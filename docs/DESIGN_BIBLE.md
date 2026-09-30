@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** DRAFT 0.1 — nothing here is locked
+**Studio:** Cycle Start Studios · **Status:** DRAFT 0.2 — tone agreed, everything else open
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---
@@ -49,18 +49,51 @@ Nobody has made one about toolmaking, and nobody who has made a factory game has
 job-shop reality: every job is different, quoted from a print, and the money arrives months after
 the steel is paid for.
 
-### Tone 🟡 Proposed
+### Tone ✅ Agreed
 
-Buy Stove is an absurdist comedy. Shop Simulator should **not** be a comedy about mold making;
-the craft is the hook and it should be treated with respect. Humour comes from **people**, not from
-the process: the customer who sends a revision the day before ship, the apprentice who ran the wrong
-program, the sales guy who promised four weeks, the purchasing agent who wants it cheaper and faster.
-Dry, knowing, shop-floor humour. The kind of thing that makes an actual moldmaker laugh because it
-is true.
+**Comedic and light-hearted, on top of real mechanics.** The point is to make people laugh while
+running a shop that actually works like a shop. The comedy comes from **what happens**, not from
+mocking the trade:
+
+- You crash a machine. Not a number going down: the spindle screams, the enclosure window
+  spiders, an end mill is embedded in the ceiling, and the apprentice is standing next to it
+  holding a coffee.
+- You scrap a block. Six weeks of work goes in the scrap bin with a satisfying clang, and someone
+  writes "OOPS" on it in paint marker.
+- Employees get disgruntled. They sulk, they walk slower, they leave passive-aggressive notes on
+  the whiteboard, they quit at the worst possible moment with a speech.
+- Customers are unreasonable in the ways real customers are. The revision that arrives the day
+  before ship. The email that says "just a small change." The purchasing agent who wants it
+  cheaper, faster, and also different.
+
+The mechanics underneath are honest. A crash has a real cause (green operator, bad program, rushed
+setup) and a real cost. The joke is in the presentation and the consequences, never in the
+simulation being fake. A real moldmaker should laugh because it is *true*, not because it is silly.
+
+Buy Stove's DNA that carries over: a big list of achievements, most of them for disasters; a game
+that comments on what you do; things that happen when you are not looking; a straight face while
+absurd things occur.
+
+### Comedy principles 🟡 Proposed
+
+1. **Every failure is visible, physical, and specific.** Nothing bad happens as a toast message
+   only. If it can be shown in 3D on the floor, it is.
+2. **People are characters.** Every hire has a name, a face-equivalent (hat, beard, hi-vis), a
+   quirk, and a grievance. The shop remembers who crashed what.
+3. **The customer inbox is a comedy channel.** RFQs, revisions, complaints, and payment excuses
+   are written to be read aloud.
+4. **Achievements celebrate the wrong things.** "Ran the wrong program", "Ordered the wrong
+   steel, twice", "Shipped it anyway", "The apprentice survived a year".
+5. **The trade is never the butt of the joke.** The jokes are about people, customers, and the
+   way things go wrong. The craft itself is shown with respect.
+6. **Success is funny too.** The first mold going out the door should feel like a parade.
 
 ### Questions for you
 
-- **Q1.** Tone: grounded-with-dry-humour (proposed), fully straight sim, or Buy Stove-style absurd?
+- **Q1.** ~~Tone~~ ✅ Answered: comedic and light-hearted, real mechanics underneath. See above.
+- **Q50.** Should there be a **narrator** like Buy Stove (a voice that comments on what you do), or
+  should the commentary come from the people in the shop (the foreman, the apprentice, the
+  customer emails)? Proposed: the people, so the comedy has faces.
 - **Q2.** Is the player the **owner** who came up through the trade (can run a machine themselves
   early on), or an owner who only manages? This changes the early game a lot.
 - **Q3.** Should the shop be named by the player, or is there a fixed fictional shop name?
@@ -417,6 +450,23 @@ components on day one and comes back months later. This is the central tension o
 - **The owner (player)** can work a machine early on (if Q2 says so), which is how a one-person
   shop survives the first year.
 
+### 8.3 Disgruntled employees 🟡 (the comedy engine, part one)
+
+Morale is not a bar. It is **behaviour** you can see from across the floor:
+
+| Morale | What you see |
+|---|---|
+| Happy | Whistling, walks briskly, cleans up, helps the apprentice |
+| Fine | Does the job |
+| Grumbling | Slower walk, longer breaks, complaints appear on the whiteboard and in your inbox |
+| Disgruntled | Stands at the vending machine, "accidentally" runs slow, quality slips, talks to the others (morale spreads) |
+| Done | Quits with a speech in the middle of the floor, ideally on the day a mold ships. May take a customer's phone number with them. |
+
+Grievances are specific and remembered: got blamed for a crash, no raise in a year, made to work
+Saturday again, the good machine went to the new guy, the coffee, the heat, the cold, the radio
+station. Fixing a grievance is a small event with a real cost (raise, new chair, radio, air
+conditioning, an apology). Some people cannot be fixed. Some quit and come back.
+
 ### Questions for you
 
 - **Q31.** What does the crew look like at 2, 6, 12 and 25 people? Who is hire #1, #2, #3?
@@ -499,21 +549,26 @@ a machine this year", the 5-axis arrives, etc. Cycle Start games like a long ach
 
 ## 12. Risk and failure
 
-🟡 The sim needs things that go wrong, and they need to be the *real* things.
+🟡 The sim needs things that go wrong, and they need to be the *real* things. This is the comedy
+engine, part two: every row below has a real cause and a real cost, and a **presentation** that is
+funny. The failure system must be fair (you can always see why) and never so punishing that the
+joke stops being funny.
 
-| Event | Cause | Consequence |
-|---|---|---|
-| Machine crash | Green operator, bad program, rushed | Rework/scrap block, machine down, morale hit |
-| Steel arrives wrong / late | Cheap vendor | Schedule slip |
-| Heat treat cracks a block | Vendor quality, wrong steel, sharp corners | Start the block over; weeks lost |
-| Tryout defects | Risk factors in the build | Rework loop, extra press time |
-| Customer revision mid-build | Random, by segment | Extra hours; who pays depends on the PO |
-| Hot runner late | Vendor lead time | Finished mold sits waiting |
-| Key employee quits | Morale, poaching | Skills walk out the door |
-| Machine breakdown | Neglected maintenance, age | Service call + downtime |
-| Cash crunch | Slow payers, too many jobs started | Bank |
-| Customer goes bankrupt | Rare event | Unpaid final invoice; you own a mold nobody wants |
-| Quote badly wrong | Bad estimate, novel job | Eat the hours |
+| Event | Cause | Consequence | How it looks |
+|---|---|---|---|
+| Machine crash | Green operator, bad program, rushed | Rework/scrap block, machine down, morale hit | Bang, alarm, cracked window, a tool sticking out of something, everyone gathers round |
+| Scrapped block | Crash, wrong dimension, wrong steel | Weeks of hours in the bin | Carried to the scrap bin, clang, "OOPS" in paint marker, an achievement |
+| Steel arrives wrong / late | Cheap vendor | Schedule slip | Wrong-size block on the dock with a shrug from the driver |
+| Heat treat cracks a block | Vendor quality, wrong steel, sharp corners | Start the block over; weeks lost | Comes back in two pieces in the same crate, with an invoice |
+| Tryout defects | Risk factors in the build | Rework loop, extra press time | Sample parts on the bench: flash like a pie crust, a short shot, a part that will not come out |
+| Customer revision mid-build | Random, by segment | Extra hours; who pays depends on the PO | "Just a small change" email; the print now has a hole through the slide |
+| Hot runner late | Vendor lead time | Finished mold sits waiting | A finished mold on the bench with a sticky note counting the days |
+| Key employee quits | Morale, poaching | Skills walk out the door | A speech, a slammed door, the radio left on their station |
+| Machine breakdown | Neglected maintenance, age | Service call + downtime | Smoke, a puddle, a tech who arrives Thursday and needs a part from Germany |
+| Cash crunch | Slow payers, too many jobs started | Bank | Phone rings; it is the bank; nobody wants to answer it |
+| Customer goes bankrupt | Rare event | Unpaid final invoice; you own a mold nobody wants | A very nice mold in the corner with a for-sale sign |
+| Quote badly wrong | Bad estimate, novel job | Eat the hours | The estimate sheet, framed, with the real number written next to it |
+| Wrong program run | Operator picked the wrong file | Crash or a nicely machined part for a different customer | A perfect cavity for a job you finished last month |
 
 ### Questions for you
 
@@ -614,7 +669,7 @@ years, competitor shops that bid against you.
 
 | # | Section | Question (short) | Status |
 |---|---|---|---|
-| Q1 | 1 | Tone | ❓ |
+| Q1 | 1 | Tone | ✅ Comedic, light-hearted, real mechanics underneath |
 | Q2 | 1 | Owner works the floor or only manages? | ❓ |
 | Q3 | 1 | Player-named shop? | ❓ |
 | Q4 | 2 | First-person vs overhead camera | ❓ |
@@ -663,6 +718,7 @@ years, competitor shops that bid against you.
 | Q47 | 13 | Defining sights and sounds | ❓ |
 | Q48 | 13 | Reuse Buy Stove UI style? | ❓ |
 | Q49 | 16 | MVP cut | ❓ |
+| Q50 | 1 | Narrator vs. commentary from the people in the shop | ❓ |
 
 ---
 
@@ -670,7 +726,7 @@ years, competitor shops that bid against you.
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
-| | | | |
+| 2026-09-30 | Q1 Tone | Comedic and light-hearted: crashes, scrap, disgruntled employees are the comedy. Real mechanics underneath. Fun first, but good gameplay. | 1 (tone, comedy principles), 8.3, 12 |
 
 ---
 
