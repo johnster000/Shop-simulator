@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** DRAFT 0.2 — tone agreed, everything else open
+**Studio:** Cycle Start Studios · **Status:** DRAFT 0.3 — tone, player and shop name agreed; the shop itself still open
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---
@@ -88,15 +88,37 @@ absurd things occur.
    way things go wrong. The craft itself is shown with respect.
 6. **Success is funny too.** The first mold going out the door should feel like a parade.
 
+### 1.4 The player ✅ Agreed
+
+You are the **owner**, and you came up through the trade. You can run any machine in the shop and
+build a mold yourself, start to finish. The shop does not need you to be good; it needs you to be
+in more than one place at once, which you cannot be. That is why you hire.
+
+The comedy of the crew is **hiring the wrong people**: the resume that said "5-axis" and meant
+"watched a video", the polisher who is excellent and also never on time, the machinist who is
+brilliant and does not believe in soft jaws. And the comedy of the trade is that **accidents
+happen to the best tradesmen too**. A twenty-year moldmaker crashes a machine with the same bang
+as the apprentice; he just swears better.
+
+**Accidentally or on purpose, both are entertaining.** The player is allowed to do dumb things on
+purpose: rapid a spindle into the vise to see what happens, throw a block off the mezzanine, run
+the sinker with no dielectric. The game does not stop you. It shows you, charges you, remembers it,
+and hands you an achievement. Deliberate stupidity is a feature, with a bill attached.
+
+### 1.5 The shop name ✅ Agreed
+
+The player names the shop on day one. The name goes on the sign over the door, the letterhead of
+every quote and invoice, the crates that ship, the coffee mugs, and the customer's complaint
+emails ("Dear [SHOP NAME], regarding the flash on…"). Renaming later costs a new sign.
+
 ### Questions for you
 
 - **Q1.** ~~Tone~~ ✅ Answered: comedic and light-hearted, real mechanics underneath. See above.
-- **Q50.** Should there be a **narrator** like Buy Stove (a voice that comments on what you do), or
-  should the commentary come from the people in the shop (the foreman, the apprentice, the
-  customer emails)? Proposed: the people, so the comedy has faces.
-- **Q2.** Is the player the **owner** who came up through the trade (can run a machine themselves
-  early on), or an owner who only manages? This changes the early game a lot.
-- **Q3.** Should the shop be named by the player, or is there a fixed fictional shop name?
+- **Q50.** ~~Narrator?~~ ✅ Answered: no narrator. Commentary comes from the people in the shop
+  and the customer inbox, so the comedy has faces.
+- **Q2.** ~~Owner works the floor?~~ ✅ Answered: the player is the owner, came up through the
+  trade, and can run any machine and build a mold themselves. See §1.4 and §8.4.
+- **Q3.** ~~Shop name~~ ✅ Answered: the player names the shop. See §1.5.
 
 ---
 
@@ -447,8 +469,25 @@ components on day one and comes back months later. This is the central tension o
   dips → quits.
 - **Hiring**: a candidate pool refreshed weekly; better candidates as reputation grows; a
   journeyman moldmaker is rare and gets poached.
-- **The owner (player)** can work a machine early on (if Q2 says so), which is how a one-person
-  shop survives the first year.
+- **The owner (player)** — see §8.4.
+
+### 8.4 The owner on the floor ✅ Agreed (mechanics 🟡 Proposed)
+
+The player can walk up to any machine or bench and **run the stage themselves**. Proposed
+mechanics:
+
+- The owner has skill levels like everyone else, starting high across the board (journeyman
+  moldmaker, competent on every machine), but is **one person**. Running a machine means not
+  quoting, not hiring, not answering the phone: the inbox piles up and customers notice.
+- Working a stage is not a mini-game grind. The player starts the stage, the machine runs, and
+  the player can walk away for a lights-out stage or must stay for a hands-on one (fitting,
+  spotting, polishing). Staying is what costs you the rest of the shop.
+- The owner's presence **teaches**: an apprentice working alongside the owner learns faster. A
+  crew working with the owner watching crashes less. A crew left alone for a week is a dice roll.
+- The owner can crash a machine too. The bang is the same. The crew talks about it for weeks.
+- Early game (one or two people) the owner does most of the work. Mid game the owner is the
+  emergency fitter who saves a ship date. Late game the owner running a machine is a nostalgic
+  choice, and the crew finds it funny.
 
 ### 8.3 Disgruntled employees 🟡 (the comedy engine, part one)
 
@@ -670,8 +709,8 @@ years, competitor shops that bid against you.
 | # | Section | Question (short) | Status |
 |---|---|---|---|
 | Q1 | 1 | Tone | ✅ Comedic, light-hearted, real mechanics underneath |
-| Q2 | 1 | Owner works the floor or only manages? | ❓ |
-| Q3 | 1 | Player-named shop? | ❓ |
+| Q2 | 1 | Owner works the floor or only manages? | ✅ Owner, knows the trade, can do anything; hires wrong people; accidents happen to everyone |
+| Q3 | 1 | Player-named shop? | ✅ Yes, player names it |
 | Q4 | 2 | First-person vs overhead camera | ❓ |
 | Q5 | 2 | Phone = management-first? | ❓ |
 | Q6 | 3 | Realistic starting building | ❓ |
@@ -718,7 +757,7 @@ years, competitor shops that bid against you.
 | Q47 | 13 | Defining sights and sounds | ❓ |
 | Q48 | 13 | Reuse Buy Stove UI style? | ❓ |
 | Q49 | 16 | MVP cut | ❓ |
-| Q50 | 1 | Narrator vs. commentary from the people in the shop | ❓ |
+| Q50 | 1 | Narrator vs. commentary from the people in the shop | ✅ The people, no narrator |
 
 ---
 
@@ -726,6 +765,9 @@ years, competitor shops that bid against you.
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
+| 2026-09-30 | Q50 Narrator | No narrator. Commentary from the people in the shop and the customer inbox. | 1 |
+| 2026-09-30 | Q2 Player | The player is the owner, came up through the trade, can run any machine and build a mold. Comedy is hiring the wrong people, and accidents that happen even to the best. Doing dumb things on purpose is allowed and entertaining. | 1.4, 8.4 |
+| 2026-09-30 | Q3 Shop name | Player names the shop; the name appears everywhere. | 1.5 |
 | 2026-09-30 | Q1 Tone | Comedic and light-hearted: crashes, scrap, disgruntled employees are the comedy. Real mechanics underneath. Fun first, but good gameplay. | 1 (tone, comedy principles), 8.3, 12 |
 
 ---
