@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** DRAFT 0.8 — sections 1 to 4 agreed; the mold model (§5) and the workflow (§6) next
+**Studio:** Cycle Start Studios · **Status:** DRAFT 0.9 — sections 1 to 4 agreed by John; sections 5 to 16 answered by Claude (🟢) pending veto; BRANDS.md awaiting vetting (Q55)
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---
@@ -22,7 +22,8 @@ Status markers used throughout:
 |---|---|
 | 🟡 **Proposed** | My suggested default. Reasonable, but not confirmed. |
 | ❓ **Needs input** | I do not know enough to decide. Do not build on this until answered. |
-| ✅ **Agreed** | Reviewed and signed off. Safe to build. |
+| 🟢 **Answered by Claude** | John asked me to decide. My best call, built on the agreed sections. Veto any of these at any time; they are not ✅ until you say so. |
+| ✅ **Agreed** | Reviewed and signed off by John. Safe to build. |
 
 Section 17 collects every question in one numbered list so review can go top to bottom.
 Section 18 is the decision log: when a question is answered, the answer goes there and the
@@ -498,206 +499,360 @@ faster, the crew complains, and the machine is not cutting steel while it is cut
 ## 5. The product: what a mold is, in game terms
 
 The game needs an abstract model of a mold that is simple enough to reason about in a UI and
-honest enough that you will not wince.
+honest enough that a moldmaker will not wince.
 
-### 5.1 The anatomy as the game sees it 🟡
+### 5.1 The anatomy as the game sees it 🟢
 
-A **mold** in the game is built from:
+A **mold** in the game is a set of **work items**, each of which moves through the stages in §6
+on its own, so that two people can be working on the same mold at once:
 
-- **Mold base** — a standard purchased assembly (plates, guide pins, bushings, return pins,
-  sprue bushing, locating ring). Bought from a vendor by size; arrives in days, not built.
-- **Cavity side (A-side)** and **core side (B-side)** — the blocks the shop actually machines.
-  These are where the hours go.
-- **Inserts** — smaller detail pieces that go into the cavity/core; more inserts = more parts to
-  make but easier to fix later.
-- **Actions**: slides / lifters for undercuts. Each one is a sub-assembly with its own machining
-  and fitting hours and its own way of going wrong.
-- **Ejection** — ejector pins, sleeves, blades, stripper plate; purchased hardware plus fitting time.
-- **Cooling** — water lines drilled through the blocks; gun drill or long drills on the mill;
-  baffles, bubblers, O-rings.
-- **Runner system** — cold runner (machined into the plates) or **hot runner** (a purchased
-  manifold system: expensive, long lead time, more fitting, unlocks higher-value work).
-- **Finish** — polish grade or texture on the cavity surface.
+| Work item | What it is | Made or bought |
+|---|---|---|
+| **Mold base** | Standard plate set: A and B plates, support plates, ejector housing, guide pins, bushings, return pins, sprue bushing, locating ring | Bought (DMV, Hazco, Moosburger); arrives in days to weeks; pre-machined options cost more and save hours |
+| **Cavity block (A-side)** | Forms the outside of the part | Made. The big hours |
+| **Core block (B-side)** | Forms the inside; carries ejection | Made. The other big hours |
+| **Inserts** | Detail pieces set into cavity or core | Made, each its own item. More inserts = more items, easier repairs later |
+| **Slides / lifters** | Actions that release undercuts | Made, each its own item with machining, fitting and a tryout risk of its own |
+| **Ejection** | Pins, sleeves, blades, stripper plate where used | Bought hardware plus fitting hours |
+| **Cooling** | Water lines through the blocks; baffles, bubblers, O-rings | Made (gun drill or long drills), plus purchased fittings |
+| **Runner** | Cold runner machined into the plates, or a **hot runner** manifold system | Cold: hours. Hot: bought (Malamute, Mould-Majors), long lead time, its own fitting and wiring |
+| **Finish** | Polish grade, or a texture | Hours in-house; texture out |
 
-### 5.2 Mold parameters (what a contract specifies) 🟡
+Rarer things exist as **late-game contract modifiers** rather than base anatomy: unscrewing
+cores (threaded parts), stripper-plate ejection, interchangeable insert families ("one base, four
+parts"), two-shot tooling. They appear on RFQs once the shop has the reputation for them.
 
-These are the knobs that generate every contract and drive hours, cost and risk:
+### 5.2 Mold parameters (what a contract specifies) 🟢
 
 | Parameter | Range | Drives |
 |---|---|---|
-| Part size | Small (cap) → Large (automotive fascia) | Mold base size, block size, machine size, crane |
-| Cavitation | 1, 2, 4, 8, 16, 32 | Repetition: more identical cavities = more hours, EDM and fitting |
-| Geometry complexity | 1–5 | Roughing/finishing hours, EDM hours, 5-axis benefit |
-| Undercuts | 0–N slides, 0–N lifters | Extra machining, fitting, risk at tryout |
-| Steel | Aluminum (proto), P20, H13, S7, 420 stainless, etc. | Material cost, heat treat, machining speed, tool wear, mold life |
-| Surface finish | SPI A-1 (lens) → D-3 (heavy texture) | Polish hours (huge for A grades), texturing vendor |
-| Tolerance | Standard / tight / medical | Inspection, CMM required, rework risk |
-| Runner | Cold / hot | Cost, lead time, vendor dependency |
-| Guaranteed cycles | 100k / 500k / 1M+ | Steel and hardening choice |
+| Part size | S (cap), M (housing), L (appliance panel), XL (automotive fascia) | Base size, block mass, machine size class, crane needed, steel cost |
+| Cavitation | 1, 2, 4, 8, 16, 32 | Repetition: EDM, fitting and polish hours scale with it; family tooling counts as cavitation with different shapes |
+| Geometry complexity | 1–5 | Rough and finish hours, EDM hours, 5-axis benefit, crash risk |
+| Undercuts | 0–N slides, 0–N lifters | Extra items, fitting hours, tryout risk |
+| Steel | Aluminum, P20, NAP80, H13, S7, 420 SS (Stayvax) | Material cost, heat treat, machining speed, tool wear, polishability, mold life |
+| Surface finish | SPI A-1 → D-3 | Polish hours (explode at A grades), texture vendor for D |
+| Tolerance | Standard / tight / medical | Inspection hours, CMM required, rework risk |
+| Runner | Cold / hot | Purchased cost, lead time, vendor dependency, higher price |
+| Guaranteed cycles | 100k / 500k / 1M+ | Steel and hardening choice, customer segment |
+| Documentation | None / first-article / full PPAP-style | Office hours, QC hire, the automotive gate |
+
+### 5.3 The five things that make a mold expensive 🟢
+
+What the estimator screen teaches, in order:
+
+1. **Mass.** Size sets everything: steel cost, machine class, crane, hours on every stage.
+2. **Cavitation.** Every cavity is another set of EDM, fitting and polish hours, and another
+   place to be out of tolerance.
+3. **Actions.** Every slide and lifter is a small mold of its own with its own way to fail at
+   tryout.
+4. **Finish.** C-grade is quick. B-grade is work. A-grade is a specialist with a bench, a lamp
+   and a week; a texture is a vendor and a wait.
+5. **Tolerance and paperwork.** Tight tolerance means inspection hours, rework loops and a CMM;
+   documentation means office hours and a QC person. Medical and automotive pay for it.
+
+A hot runner is not on the list because it is mostly a **purchased** cost passed through; it
+adds lead time and fitting, and it is how you tell a packaging job from a consumer job.
+
+### 5.4 Steel 🟢
+
+| Steel (game name) | Real-world equivalent | Used for | Machining | Heat treat | Polish | Cost |
+|---|---|---|---|---|---|---|
+| Aluminum (7075 / "QC-Ten") | 7075, QC-10 | Prototype and low-volume tools | Very fast | None | Poor (soft) | Low |
+| P20 | P20 pre-hard | The default: most consumer and appliance molds | Normal | None (pre-hard) | Good to B-grade | Medium |
+| NAP80 | NAK80 | High-polish cavities, lenses, clear parts | Normal | None (pre-hard) | Excellent, A-grade | High |
+| H13 | H13 | High-volume, abrasive resins, long life | Slow when hard | Yes (vendor, or oven) | Good | Medium-high |
+| S7 | S7 | Inserts, slides, lifters, anything that gets hit | Slow when hard | Yes | Fair | Medium |
+| Stayvax (420 SS) | Stavax / 420 stainless | Medical, packaging, corrosive resins (PVC), clear parts | Slow | Yes | Excellent | High |
+| 4140 / mild plate | 4140, 1045 | Plates, support, fixtures | Fast | No | n/a | Low |
+
+Hardened steels add the heat-treat loop (§6) and the risk that goes with it; pre-hards skip it.
+Choosing a cheaper steel than the contract specifies is a corner the player can cut (§12.2).
+
+### 5.5 Surface finish 🟢
+
+| SPI grade | Method | Relative polish hours | Notes |
+|---|---|---|---|
+| A-1, A-2, A-3 | Diamond buff | 8–12× | Lenses, clear parts, "Class A" appearance. A-1 is a specialist; outsourced until a master polisher is on staff |
+| B-1, B-2, B-3 | Paper (600 → 320 grit) | 3–5× | Most appearance parts |
+| C-1, C-2, C-3 | Stone (600 → 320) | 1× (baseline) | Non-appearance, internal parts |
+| D-1, D-2, D-3 | Dry blast / texture | Vendor | Grain texture at a texture house; polish to a B first, then send it out |
+
+Polish direction matters: polished across the draw is a stuck part at tryout. That is a skill roll
+on the polisher and a defect in §6.5.
 
 ### Questions for you
 
-- **Q15.** Is this anatomy right and is anything essential missing (hot sprue, stripper plates,
-  unscrewing cores, interchangeable inserts, mold-in-mold for family tooling)?
-- **Q16.** Which parameters actually matter most to *your* hours and risk? If you had to explain
-  to a new estimator the five things that make a mold expensive, what are they?
-- **Q17.** Steel list: which ones do you actually see, and which drive the biggest differences in
-  the shop (machinability, heat treat, cost)?
-- **Q18.** SPI finish: is it fair to say polish hours explode above B-grade, and A-1/A-2 is a
-  specialist job (possibly outsourced)?
+- **Q15.** ~~Anatomy~~ 🟢 Answered: as above; stripper plates, unscrewing cores, insert families and
+  two-shot added as late-game modifiers.
+- **Q16.** ~~Five expensive things~~ 🟢 Answered: mass, cavitation, actions, finish, tolerance and
+  paperwork.
+- **Q17.** ~~Steel~~ 🟢 Answered: aluminum, P20, NAP80, H13, S7, Stayvax, plus plate steel.
+- **Q18.** ~~Polish~~ 🟢 Answered: yes; hours explode above B, A-1 is a specialist and outsourced
+  until you have one.
 
 ---
 
 ## 6. The workflow: how a job moves through the shop
 
-This is the heart of the simulation. Each contract becomes a **job**, and a job is a sequence of
-**stages**, each requiring a machine (or bench), a person with a skill, and hours. Some stages
-can run in parallel (A-side and B-side on two machines). Some depend on vendors (steel delivery,
-heat treat, texturing).
+This is the heart of the simulation. A contract becomes a **job**; a job is a set of work items
+(§5.1); each work item moves through **stages**; each stage needs a station (machine or bench), a
+person with the skill, and hours. Items run in parallel when the shop has the stations and people.
+Some stages wait on vendors.
 
-### 6.1 Proposed stage list 🟡
+### 6.1 The stage list, as the game runs it 🟢
+
+Collapsed from the 21-step reality to what carries time, money or risk. Stages in *italics* are
+per-job (once); the rest are per-work-item.
 
 ```
- 1. RFQ arrives            customer sends a part print + requirements
- 2. Quote                  estimate hours + material + purchased parts; set price and lead time
- 3. PO / kickoff           customer accepts; deposit lands (maybe); job enters schedule
- 4. Mold design            designer produces the tool design (hours; can be outsourced early)
- 5. Purchasing             order mold base, steel, hot runner, hardware; each has lead time
- 6. CAM programming        programs for the mills (hours; programmer)
- 7. Rough machining        VMC: hog out cavities/cores from soft steel
- 8. Heat treat (vendor)    for hardened steels; ships out, comes back in ~1–2 weeks
- 9. Finish machining       VMC / hard mill: final surfaces, semi-finish for EDM
-10. Electrodes             graphite mill: cut electrodes for EDM details
-11. Sinker EDM             burn details, ribs, corners
-12. Wire EDM               inserts, pin holes, slide pockets
-13. Grinding               plates, inserts, slides square and to size
-14. Water lines            gun drill / mill: cooling circuits
-15. Polish / texture       bench polish; or texture vendor
-16. Fit and spot           moldmaker: fit inserts, slides, lifters; spot the parting line on the press
-17. Assembly               ejection, hardware, water fittings, wiring for hot runner
-18. Tryout (T1)            sample in a press (yours or a molder's); parts inspected
-19. Revisions / T2         fix what T1 showed; repeat until approved
-20. Final inspection       CMM / customer sign-off on sample parts
-21. Ship                   crate it; invoice final payment
+ 1. *Quote*             estimate, price, lead time; win or lose
+ 2. *Kickoff*           PO in, deposit in, steel / base / hot runner / hardware ordered (lead times start)
+ 3. *Design*            designer hours; can be outsourced early
+ 4. *Program*           CAM hours; needs the design; can overlap with steel arriving
+ 5. Square              plates and blocks squared and ground to size (manual or CNC grinder)
+ 6. Rough               VMC hogs out the shape; water lines drilled here too (gun drill or long drills)
+ 7. Heat treat          hardened steels only; ships to the vendor (or the oven); 1-2 weeks; risk of a crack
+ 8. Finish grind        hardened items squared again after heat treat
+ 9. Finish              VMC / hard mill: final surfaces; semi-finish stock left for EDM
+10. Electrodes          graphite cut for every sinker detail
+11. Sinker EDM          ribs, corners, text, deep pockets
+12. Wire EDM            inserts, pin holes, slide pockets; hardened items
+13. Polish              bench; the grade sets the hours; texture items go to B and stop
+14. Fit & spot          moldmaker: inserts, slides, lifters fitted; parting line spotted on the press
+15. Assemble            ejection, water fittings, hot runner wiring, hardware
+16. *Tryout (T1)*       in a press (a molder's or yours); sample parts back; defects rolled
+17. *Revise*            fix what T1 found; back to the stage that owns the defect; T2 if needed
+18. *Texture*           after T1 approval, D-grade items go to the texture house and come back
+19. *Ship*              final inspection, crate, invoice; texture and hot runner paperwork attached
 ```
 
-### 6.2 What makes it a game 🟡
+Order notes, because they matter to a moldmaker:
 
-- **Scheduling**: multiple jobs compete for the same machines and people. The schedule screen is a
-  Gantt-style board. The player can prioritise, split work, run overtime, or outsource a stage.
-- **Critical path**: the game shows which stage is holding the job up. Waiting on a hot runner
-  vendor for three weeks with a finished mold on the bench is a very real feeling.
-- **Parallelism**: A-side and B-side and each slide are separate work items that can be on
-  different machines at once, if you have the machines and people.
-- **Vendors**: heat treat, texturing, plating, hot runners, mold bases, steel. Each has a lead
-  time, a price and a reliability. A cheap heat treater who cracks a block once a year is a story.
-- **Tryout results**: T1 rolls against the job's risk factors (green fitter, rushed polish, skipped
-  inspection, lots of slides) to produce realistic defects: flash, short shot, sink, warp, stuck part,
-  drag marks, ejector marks, water leak, hot runner drool, wrong dimension. Each defect maps to a
-  fix (rework stage) and a cost.
+- **Water lines** are drilled soft, before heat treat, as part of roughing. Gun drilling is its
+  own station when the shop has one; otherwise a long drill on the VMC (slower, walks) or a
+  vendor.
+- **Grinding** happens twice: squaring at the start, and again after heat treat, because heat
+  treat moves things.
+- **Texture** goes after tryout approval, because you cannot un-texture a change.
+- **Electrodes** are their own items on their own station, made ahead of the sinker burn.
+- **Fit & spot** is where the moldmaker earns their money and where the hours hide.
+
+### 6.2 Where the hours go 🟢
+
+For a "normal" mold (M size, 2 cavities, P20, one slide, B-2 finish), the estimate splits about:
+
+| Stage group | Share of hours |
+|---|---|
+| Design and programming | 12% |
+| Squaring, roughing, finish machining | 30% |
+| Electrodes and EDM (sinker + wire) | 15% |
+| Grinding (both passes) | 5% |
+| Polish | 10% (up to 30% at A-grade) |
+| Fit, spot, assemble | 25% |
+| Tryout and revisions | 3% (plus press time) |
+
+The estimator screen shows this split; the game's estimate improves as the shop builds more molds
+and as the estimator's skill rises. A good moldmaker on fitting shortens that 25% the way nothing
+else can, which is why they are paid what they are.
+
+### 6.3 What makes it a game 🟡
+
+- **Scheduling:** work items compete for stations and people. The schedule board is a Gantt of
+  stations × days; drag to reprioritise, split, run overtime, or outsource a stage.
+- **Critical path:** the job panel shows what is holding the job up. A finished mold waiting on
+  a hot runner is a very real feeling.
+- **Parallelism:** A-side on one machine, B-side on another, the slide on the manual mill, the
+  electrodes on the carbon cutter, all at once, if you have the machines and the people.
+- **Vendors:** steel, mold bases, hot runners, heat treat, texture, outsourced machining, press
+  time. Each has a price, a lead time and a reliability; the cheap heat treater who cracks a block
+  once a year is a story.
+- **The traveller:** every job has a paper traveller on a clipboard that moves with it. On the
+  floor you can pick it up and read where the job is. It gets coffee rings.
+
+### 6.4 Tryout 🟢
+
+- **Where:** at a **molder** (a local sampling house or the customer's molder) until the shop
+  buys a sampling press. Press time is a vendor cost, about $150–250/hr, half a day minimum, and
+  the press is available when it is available.
+- **Who pays:** the shop, for T1 and T2, as part of the quote. Changes the customer asks for
+  after T1 are billed to the customer. That line is the source of half the inbox arguments.
+- **How many:** T1 always finds something. Most molds ship after T2; a bad one goes to T3 and
+  the margin is gone by then.
+- **In-house press:** cuts the cost and the wait, adds a machine and a person who knows how to
+  run it, and lets you sample on a Saturday.
+
+### 6.5 What T1 finds 🟢
+
+Each defect has a **cause** the build rolled against, a **fix stage** it sends the item back to,
+and a **look** on the sample parts on the bench.
+
+| Defect | Rolled against | Fix stage | On the bench |
+|---|---|---|---|
+| Flash | Fit & spot quality, spotting press skipped | Fit & spot | Thin fins on the parting line, like pie crust |
+| Short shot | Venting (fit), gating (design) | Fit & spot / Design | A part missing a corner |
+| Sink marks | Wall thickness (design), cooling | Design / Rough (water) | Dimples where the ribs are |
+| Warp | Cooling layout, steel choice | Rough (water) / Design | A flat part that rocks on the table |
+| Stuck part / drag marks | Polish across the draw, no draft, undersized ejection | Polish / Fit | Scratches down the side; a part still in the cavity |
+| Ejector pin marks | Pin length, pin fit | Fit & spot | Little circles pushed through |
+| Water leak | O-ring, cross-drilled line | Assemble / Rough | A puddle under the mold |
+| Hot runner drool / stringing | Manifold setup, wiring | Assemble | Plastic hair on the gates |
+| Dimension out | Shrink allowance (design), a bump on a machine (§4.4) | Design / Finish | The CMM report with a red line |
+| Burn marks | Venting | Fit & spot | Brown edges |
+| Slide/lifter hang-up | Fitting, actions | Fit & spot | The press alarm, a scratch, a sweating moldmaker |
+
+Build risk factors that make these more likely: a green fitter, rushed polish, skipped spotting,
+skipped inspection, a bumped machine nobody recalibrated, many actions, a hot runner, a steel
+switched for something cheaper.
+
+### 6.6 Engineering changes 🟢
+
+- **Frequency:** one or two per new build, more on automotive and consumer, few on packaging.
+- **Who pays:** free if the change lands before design approval; billed (hours plus any scrap)
+  after. The customer will argue. The PO terms decide who wins.
+- **Schedule:** days to weeks depending on the stage it hits; a change to a finished, polished
+  cavity is a weld-and-recut and a week; a change after texture is a new insert.
+- **The inbox line:** "Just a small change." The print attached has a hole through the slide.
 
 ### Questions for you
 
-- **Q19.** Is the stage order right? Where does grinding really sit (before rough? after heat
-  treat? both)? Where do water lines go (before heat treat, I assume)?
-- **Q20.** Which stages would you *collapse* for the sake of a game, and which must stay
-  separate because they are where time and money actually go?
-- **Q21.** Rough proportions: for a "normal" mold, what fraction of hours goes to design, CNC,
-  EDM, grinding, polish, fitting/spotting? Even "fitting and spotting is a third of it" is gold.
-- **Q22.** Tryout: is T1 in-house or at the customer's molder for a shop like yours? Who pays
-  for press time? How many rounds are typical?
-- **Q23.** What actually goes wrong at tryout most often, and what does the fix look like on the
-  floor?
-- **Q24.** Engineering changes mid-build: how common, who pays, and how do they hit the schedule?
+- **Q19.** ~~Stage order~~ 🟢 Answered: as in §6.1; water lines with roughing, grinding twice,
+  texture after T1 approval.
+- **Q20.** ~~Collapse~~ 🟢 Answered: 19 stages, purchasing folded into kickoff, CAM into
+  Program, final inspection into Ship.
+- **Q21.** ~~Hours~~ 🟢 Answered: §6.2.
+- **Q22.** ~~Tryout~~ 🟢 Answered: at a molder until you own a press; the shop pays T1/T2; the
+  customer pays for their changes; most ship after T2.
+- **Q23.** ~~Defects~~ 🟢 Answered: §6.5.
+- **Q24.** ~~ECNs~~ 🟢 Answered: §6.6.
 
 ---
 
 ## 7. Customers and contracts
 
-### 7.1 Customer types 🟡
+### 7.1 Customer types 🟢
 
-| Segment | Typical work | Pays | Patience | Requirements |
-|---|---|---|---|---|
-| Local job-shop molders | Small simple molds, repairs, revisions | Low, fast | High | None |
-| Consumer products | Housings, caps, closures; medium cavitation | Medium | Medium | Decent finish |
-| Packaging | High cavitation, fast cycles, stainless, hot runners | High | Low | Hot runner, tight tolerance, inspection |
-| Automotive Tier 1/2 | Large, complex, textured, slides everywhere | High, slow | Low | PPAP-style paperwork, CMM, big machines |
-| Medical | Small, tight tolerance, stainless, clean | Very high | Medium | CMM, documentation, cleanliness |
-| Appliance / industrial | Large, plain, long life | Medium | Medium | Big machines |
+| Segment | Typical work | Pays | Patience | Requires | Unlocks at |
+|---|---|---|---|---|---|
+| **Other mold shops** | Overflow: components, inserts, electrodes, grinding | $50–60/hr, fast | High | Nothing | Day one |
+| **Local molders** | Repairs, revisions, small simple molds | Low-medium, fast | High | Nothing | Day one |
+| **Consumer products** | Housings, caps, closures; 2–8 cavities, B finish | Medium | Medium | A VMC and an EDM | First CNC |
+| **Appliance / industrial** | Large, plain, long life | Medium | Medium | Big machine, crane | Crane |
+| **Packaging** | High cavitation, stainless, hot runner | High | Low | Hot runner experience, CMM | Reputation 3 |
+| **Automotive Tier 1/2** | Large, textured, slides everywhere, paperwork | High, slow (net 60–90) | Low | Big machines, CMM, PPAP-style docs, QC hire | Reputation 4 |
+| **Medical** | Small, tight tolerance, Stayvax, clean, documented | Very high | Medium | CMM, documentation, a clean shop | Reputation 4 |
 
-### 7.2 Contract types 🟡
+### 7.2 Contract types 🟢
 
-- **New tool build** — the main event. Weeks to months.
-- **Engineering change / revision** — days to a couple of weeks; often on a mold you built.
-- **Repair / maintenance** — a molder's damaged tool; laser weld, replace pins, re-polish.
-- **Prototype / aluminum tool** — quick, cheap, low cycle life; good early-game work.
-- **Transfer tool** — someone else's mold arrives in bad shape; fix it and get it running.
-- **Rush** — any of the above with a brutal lead time and a premium.
+- **New tool build.** The main event.
+- **Engineering change.** Days to weeks, usually on a mold you built.
+- **Repair.** A molder's damaged tool: welding, pins, re-polish. Fast money, needs the welding skill
+  for the good ones.
+- **Prototype / aluminum tool.** Quick, cheap, low cycle life. Good early-game work.
+- **Transfer tool.** Somebody else's mold arrives in a crate in bad shape. Fix it and make it run.
+  The crate always contains a surprise.
+- **Component work.** Stage 0 bread and butter: pins, inserts, electrodes for other shops.
+- **Rush.** Any of the above with a brutal lead time and a premium.
 
-### 7.3 Getting work 🟡
+### 7.3 Getting work 🟢
 
-- Early on: cold calls, a local reputation, the one molder who knows you. Contracts trickle in.
-- **Reputation** per segment, built on on-time delivery, tryout success and quality. Drives RFQ
-  volume and which segments will talk to you.
-- **Sales**: hire a sales/estimating person to bring in RFQs; attend a trade show (an event with a
-  cost and a payoff).
-- **Repeat customers**: molds you built come back for revisions and repairs; the customer's next
-  program lands on your desk first.
+- **RFQs arrive by email** with a part model and a spec sheet (the parameters in §5.2). Three to
+  five shops quote each job; the game says how many.
+- **Win rate** depends on price vs. the customer's expectation, lead time vs. their need, and
+  reputation in that segment. A new shop wins one in five; a shop with a name wins one in three;
+  a cheap quote wins more and hurts more.
+- **Reputation** per segment, from on-time delivery, tryout success, defect-free ships, and how
+  you handled the arguments. Drives RFQ volume and which segments send them.
+- **Sales:** an estimator/PM hire brings in RFQs; a trade show is an event with a cost and a
+  payoff; a repeat customer's next program lands on your desk first.
 
 ### 7.4 Quoting 🟡
 
-The quote screen shows the game's estimate (hours per stage, materials, purchased parts, vendor
-costs) based on the mold parameters and the shop's history, plus a **confidence** band. The player
-sets **price** and **lead time**. Customer response depends on price vs. their expectation, lead
-time vs. their need, and reputation. Win too cheap and you eat the overrun; quote too fat and lose
-the job. The estimate gets better as the shop builds more molds (and hires a better estimator).
+The quote screen shows the game's estimate (hours per stage, materials, purchased parts, vendors,
+press time) with a **confidence band** that narrows as the shop builds more molds and the
+estimator's skill rises. The player sets **price** and **lead time**. Win too cheap and eat the
+overrun; too fat and lose it. The screen also shows the customer's segment norms so the player is
+guessing with information.
 
-### 7.5 Payment terms 🟡
+### 7.5 Payment terms 🟢
 
-Something like 30% on PO, 30% at T1, 40% on approval, net 30. Cash goes out for steel and
-components on day one and comes back months later. This is the central tension of the money game.
+- **Default:** 30% on PO, 30% at T1, 40% on approval, each net 30.
+- **Automotive:** 30/30/40 but net 60–90, and "approval" means their PPAP sign-off, which drags.
+- **Molders and other shops:** 50/50 or net 30 on ship, fast.
+- **What they try:** 0/0/100, "pay on first production run", a deposit that arrives after the
+  steel does. Negotiable at a cost to the win rate.
+- **Late payers** are an event; a customer who goes bankrupt is a rarer one.
+
+### 7.6 Price and lead-time bands 🟢
+
+| Mold | Price band | Quoted lead time |
+|---|---|---|
+| Aluminum prototype tool | $5k–20k | 2–4 weeks |
+| Small single-cavity P20, simple | $15k–40k | 6–8 weeks |
+| Medium 2–4 cavity with a slide, B finish | $50k–120k | 10–14 weeks |
+| Medical small, tight tolerance, Stayvax | $60k–200k | 12–16 weeks |
+| 16-cavity stainless hot runner packaging | $150k–400k | 14–20 weeks |
+| Automotive large, textured, many actions | $250k–800k+ | 16–24 weeks |
+| Repair / revision | $500–15k | days to 2 weeks |
+
+### 7.7 When you are late 🟢
+
+Reputation hit in that segment, always. Small customers yell and pay anyway. Automotive contracts
+carry a per-day penalty and can hold the final payment. Twice late to the same customer and the
+next program goes elsewhere. Every late ship generates an inbox thread.
 
 ### Questions for you
 
-- **Q25.** Who are the customers of a shop like yours really? Correct the segment table.
-- **Q26.** How does work actually arrive? RFQ by email with a print and a part model? How many
-  shops quote each job? How often do you win?
-- **Q27.** Payment terms: what is normal, and what do customers try to get away with?
-- **Q28.** Price ranges: what does a small single-cavity P20 mold cost vs. a 16-cavity stainless
-  hot runner packaging tool vs. an automotive part? Even wide bands.
-- **Q29.** Lead times: typical quoted weeks for small / medium / large builds?
-- **Q30.** What does a customer do when you are late? Penalty clauses, cancelled next program,
-  or just yelling?
+- **Q25–Q30.** 🟢 Answered above.
 
 ---
 
 ## 8. Staff
 
-### 8.1 Roles 🟡
+### 8.1 Roles 🟢
 
-| Role | Does | Skill axis | Notes |
+| Role | Does | Skills | A real separate job from |
 |---|---|---|---|
-| Moldmaker / toolmaker | Fitting, spotting, assembly, can run most machines | Fitting, machining | The core of the shop; expensive and rare |
-| CNC machinist | Setup and run mills | Milling | |
-| CNC programmer (CAM) | Programs from the design | Programming | Can be the machinist early on |
-| EDM operator | Sinker and wire | EDM | |
-| Grinder hand | Surface/jig grinding | Grinding | |
-| Polisher | Bench polishing | Polish | Slow to train |
-| Mold designer | Tool design in CAD | Design | Can be outsourced early |
-| Estimator / PM | Quotes, schedules, customer contact | Estimating | Improves quote accuracy |
-| QC inspector | CMM, first article | Inspection | Needed for medical/automotive |
-| Apprentice | Anything, slowly, with risk | Grows into any role | Cheap; long-term investment |
-| Shop foreman | Multiplies everyone else | Leadership | Mid-game |
+| Moldmaker / toolmaker | Fitting, spotting, assembly; can run most machines; may weld | Fitting, machining, EDM, welding (rare) | Day one |
+| Apprentice | Anything, slowly, with risk; grows into any role | All, low | Day one |
+| CNC machinist | Setup and run mills | Milling, programming (some) | 4+ people |
+| CNC programmer | CAM; often the senior machinist at first | Programming | 8+ people |
+| EDM operator | Sinker and wire; the moldmaker runs it before this | EDM | 8–10 people |
+| Mold designer | Tool design in CAD; outsourced before this | Design | 8+ people |
+| Polisher | Bench polish; the moldmaker does it before this | Polish | 10+ people |
+| Estimator / PM | Quotes, schedule, customer email | Estimating | 6+ people (part-time before) |
+| Grinder hand | Surface and jig grinding | Grinding | 15+ people |
+| QC inspector | CMM, first article, documentation | Inspection | With the CMM and the automotive/medical work |
+| Shop foreman | Multiplies everyone else, catches skipped steps | Leadership | 15+ people |
+| Sales | Brings RFQs | Sales | 20+ people |
 
 ### 8.2 People mechanics 🟡
 
-- **Skill levels** 1–5 per axis; rise with hours on the work; drop for nothing.
-- **Wages** weekly; **overtime** at 1.5× with a morale cost.
-- **Morale**: pay, overtime, break room, crashes blamed on them, being idle. Low morale → quality
-  dips → quits.
-- **Hiring**: a candidate pool refreshed weekly; better candidates as reputation grows; a
-  journeyman moldmaker is rare and gets poached.
-- **The owner (player)** — see §8.4.
+- **Skills** 1–5 per axis; rise with hours on the work, faster next to someone skilled (§8.4).
+- **Wages** weekly; **overtime** at 1.5× with a morale cost; **Saturdays before a ship date** are
+  a thing the crew expects a few times a year and resents more than that.
+- **Hiring:** a candidate pool refreshed weekly; better candidates as reputation grows; the resume
+  and the reality differ (§1.4). A journeyman moldmaker is rare and gets poached.
+- **Apprentices** take about four years to journeyman (the trade's 8,000 hours) and are useful
+  after six to twelve months. They learn by working next to a moldmaker; alone, they learn by
+  crashing.
+
+### 8.3 Disgruntled employees 🟡 (the comedy engine, part one)
+
+Morale is not a bar. It is **behaviour** you can see from across the floor:
+
+| Morale | What you see |
+|---|---|
+| Happy | Whistling, walks briskly, cleans up, helps the apprentice |
+| Fine | Does the job |
+| Grumbling | Slower walk, longer breaks, complaints appear on the whiteboard and in your inbox |
+| Disgruntled | Stands at the vending machine, "accidentally" runs slow, quality slips, talks to the others (morale spreads) |
+| Done | Quits with a speech in the middle of the floor, ideally on the day a mold ships. May take a customer's phone number with them. |
+
+Grievances are specific and remembered: got blamed for a crash, no raise in a year, made to work
+Saturday again, the good machine went to the new guy, the coffee, the heat, the cold, the radio
+station. Fixing a grievance is a small event with a real cost (raise, new chair, radio, air
+conditioning, an apology). Some people cannot be fixed. Some quit and come back.
 
 ### 8.4 The owner on the floor ✅ Agreed (mechanics 🟡 Proposed)
 
@@ -717,106 +872,138 @@ mechanics:
   emergency fitter who saves a ship date. Late game the owner running a machine is a nostalgic
   choice, and the crew finds it funny.
 
-### 8.3 Disgruntled employees 🟡 (the comedy engine, part one)
+### 8.5 Crew shape by size 🟢
 
-Morale is not a bar. It is **behaviour** you can see from across the floor:
-
-| Morale | What you see |
+| People | Who |
 |---|---|
-| Happy | Whistling, walks briskly, cleans up, helps the apprentice |
-| Fine | Does the job |
-| Grumbling | Slower walk, longer breaks, complaints appear on the whiteboard and in your inbox |
-| Disgruntled | Stands at the vending machine, "accidentally" runs slow, quality slips, talks to the others (morale spreads) |
-| Done | Quits with a speech in the middle of the floor, ideally on the day a mold ships. May take a customer's phone number with them. |
+| 2 | Owner + one moldmaker (or a promising apprentice, cheaper and riskier) |
+| 6 | Owner, two moldmakers, a CNC machinist who programs, an EDM operator, an apprentice; the owner quotes |
+| 12 | + designer, second machinist, polisher, estimator/PM, second apprentice, part-time bookkeeper |
+| 25 | + foreman, QC inspector, grinder hand, dedicated programmer, sales, a second shift on the CNCs |
 
-Grievances are specific and remembered: got blamed for a crash, no raise in a year, made to work
-Saturday again, the good machine went to the new guy, the coffee, the heat, the cold, the radio
-station. Fixing a grievance is a small event with a real cost (raise, new chair, radio, air
-conditioning, an apology). Some people cannot be fixed. Some quit and come back.
+### 8.6 Wages 🟢 (Ontario-ish, placeholders)
+
+| Role | Hourly | Notes |
+|---|---|---|
+| Apprentice | $18–25 | Cheap; four years to pay off |
+| CNC machinist | $25–35 | |
+| EDM operator | $28–38 | |
+| Polisher | $25–40 | The good ones are artists and priced like it |
+| Programmer | $30–45 | |
+| Designer | $35–50 | |
+| Moldmaker, journeyman | $35–48 | A great one does twice the work of a green one with a quarter of the crashes |
+| Foreman | $45–55 | |
+| Estimator / PM | $70–90k/yr | |
+
+### 8.7 Culture, for the writers 🟢
+
+The radio war. The polisher's corner with the lamp and the stones and the "do not touch". The CNC
+guy who will not run the Bridgeford and the old moldmaker who will not run anything else. Cake on
+ship day. The coffee fund jar. The Saturday before the ship date. Tools that walk. The whiteboard
+with the schedule that is three weeks out of date and a drawing of the foreman. The apprentice
+who deburred the wrong edge. Blue hands from spotting. The customer who visits and touches
+everything. Every one of these is a line an employee can say, a note on the whiteboard, or an
+achievement.
 
 ### Questions for you
 
-- **Q31.** What does the crew look like at 2, 6, 12 and 25 people? Who is hire #1, #2, #3?
-- **Q32.** Rough wages by role, and how much a good moldmaker is worth vs. a green one.
-- **Q33.** Which roles are genuinely separate jobs and which does one person cover in a small
-  shop? (Is "EDM operator" a real title at 8 people, or does the moldmaker run the sinker?)
-- **Q34.** How long does an apprentice take to become useful, and how do shops actually train?
-- **Q35.** Anything about shop culture that should be in the game? Shifts, Saturdays before a
-  ship date, the guy who only does polish, the one who will not touch a CNC.
+- **Q31–Q35.** 🟢 Answered above.
 
 ---
 
 ## 9. Economy
 
-All numbers placeholder. 🟡
+🟢 All numbers placeholders until the first playable proves them.
 
-- **Start:** the 2,500 sq ft unit (§3.1), rented. A small pot of cash (placeholder: $50k, of
-  which the first $20k goes per §3.5), no crane, no machines, one bay door with a tarp.
+- **Start:** the 2,500 sq ft unit (§3.1), rented. **$50k cash**, plus an optional **$100k
+  start-up loan** at a rate that stings, offered on day one and again later on better terms once
+  the shop has a track record. The first $20k goes per §3.5.
 - **Shop rate:** the number behind every quote. Stage 0 work sells at about $50–60/hr, mold
   work at about $90–120/hr (§4.1). Quotes are hours × rate + material + purchased parts +
   vendors, and the estimate screen shows it that way.
 - **Income:** contract payments per §7.5. **Customers do not pay when you ship.** Progressive
   terms (a deposit, a payment at tryout, the rest on approval, each on net-30 or worse) mean the
   money for a job you finished arrives months after you paid for its steel. Per Q7 this is the
-  thing that really hurts small shops, and the game should make the player feel it.
-- **Outgoings:** wages weekly; rent, power, insurance, air/coolant/tooling monthly; steel, mold
-  bases, hot runners, hardware per job; vendor invoices; machine payments (buy outright, finance,
-  or lease); maintenance; the occasional disaster.
-- **Bank:** a line of credit that grows with track record; interest; a cash-flow chart that is
-  the most looked-at screen in the game.
-- **Assets:** machines depreciate; can be sold used.
-- **Failure state:** negative cash past the credit line for N weeks = the bank calls it. Game over,
-  with a summary screen.
+  thing that really hurts small shops, and the game makes the player feel it.
+- **Overhead, monthly, at 2,500 sq ft:** rent $3–4k, power $0.8–2k (scales with machines),
+  insurance $0.6–1k, air/coolant/consumables $0.5–1.5k, software maintenance ~$1k. Call it
+  **$6–9k a month before wages.** Bigger building, bigger numbers.
+- **Per job:** steel, base, hot runner, hardware, vendor invoices, press time, tooling wear.
+- **Machines:** manual machines are bought used, for cash. CNC is **financed over 5–7 years** or
+  **leased**; the bank wants two years of statements, the leasing company wants a signature and
+  more interest. Payments are monthly and do not care whether the machine is busy.
+- **Surviving the squeeze:** deposits, the line of credit, quick-pay component work between
+  builds, delaying the steel order until the deposit lands, and asking a vendor for terms. Each
+  has a cost. Factoring the invoice is the expensive last resort and exists in the game.
+- **Assets:** machines depreciate and can be sold used; the shop has a **valuation** (cash +
+  assets + backlog − debt) that is the score.
+- **Failure:** negative cash past the credit line for four weeks and the bank calls it. Game over
+  with a summary and the option to load the autosave from a month ago.
 
 ### Questions for you
 
-- **Q36.** Realistic starting position for someone who actually did this: how much cash and what
-  machines does a person open a mold shop with?
-- **Q37.** Overhead: what does a small shop pay a month in rent/power/insurance? Bands are fine.
-- **Q38.** How are machines usually paid for? Cash, financed, leased?
-- **Q39.** The cash-flow squeeze: is "steel and base paid up front, money at the end" the real
-  shape of it, and how do shops survive it?
+- **Q36–Q39.** 🟢 Answered above.
 
 ---
 
 ## 10. Time
 
-🟡 The game runs in **shop days**. One in-game day is roughly a minute of real time at normal
-speed, with pause, 1×, 3×, 10×. A week is five working days (plus optional Saturdays at overtime).
-Machines that run lights-out keep going overnight. Mold builds taking 6–16 in-game weeks means a
-first mold ships after 30–80 minutes of play, which feels right for "the first big milestone".
+🟢 The game runs in **shop days**. One in-game day is about a minute at normal speed, with pause,
+1×, 3×, 10×. Five working days a week; Saturdays optional at overtime. Lights-out machines keep
+going overnight. A first mold at 6–8 in-game weeks lands after 30–50 minutes of play; that is the
+first big milestone and it feels earned.
 
-Buy Stove's `?speed=` and `?skip=` style shortcuts stay for testing.
+The game is **endless** with a **year-end summary** each year (revenue, molds shipped, on-time
+rate, crashes, people gained and lost, best and worst moment). At ten years an optional
+**retirement ending** plays: a summary, the valuation, what the crew says about you, and a button
+that says "one more year".
+
+Buy Stove's `?speed=` and `?skip=` shortcuts stay for testing.
 
 ### Questions for you
 
-- **Q40.** Does a day-per-minute pace and a first mold at ~45 minutes feel right, or should the
-  game move faster and abstract more?
-- **Q41.** Should the game be endless, or have a horizon (10 years) with a score?
+- **Q40–Q41.** 🟢 Answered above.
 
 ---
 
 ## 11. Progression
 
-🟡 Proposed arc:
+🟢 The arc:
 
-1. **Garage phase** — you, a Bridgeport, a lathe, a grinder. Repairs, revisions, small aluminum
-   protos. Learn the UI. First VMC is the goal.
-2. **Job shop** — VMC + sinker + wire. First real new-build. Hire a moldmaker. First heat-treat
-   scare. First tryout.
-3. **Real shop** — multiple jobs in flight, scheduling matters, crane, spotting press, CMM. Start
-   winning consumer and packaging work. First hot runner tool.
-4. **Tier supplier** — 5-axis, in-house sampling press, second building, 20+ people, automotive
-   and medical programs. The game becomes about keeping the beast fed.
+1. **Manual phase** (Stage 0). You, a Bridgeford, a lathe, a grinder. Component work, repairs,
+   revisions, small aluminum protos at $50–60/hr. Learn the floor and the inbox. Bank for the VMC.
+2. **First CNC** (Stage 1). A used VMC, then a sinker and a wire. First real new build with a
+   lot of outsourcing. Hire a moldmaker. First heat-treat scare. First tryout. First "just a small
+   change" email.
+3. **A real shop** (Stage 2). Multiple jobs in flight; scheduling matters; the crane, the carbon
+   cutter, spotting press, CMM. Consumer and appliance work; the first hot runner tool.
+4. **The big leagues** (Stage 3). 5-axis, a sampling press, the oven, a second building, 20+
+   people, automotive and medical programs. The game becomes keeping the beast fed and the
+   people happy.
 
-**Milestones / achievements:** first mold shipped, first repeat customer, first job under
-estimated hours, first lights-out weekend, 1,000,000-cycle tool, zero-defect T1, "we never crashed
-a machine this year", the 5-axis arrives, etc. Cycle Start games like a long achievement list.
+**Milestones / achievements** (a long list, Cycle Start style; most for disasters, some for
+pride):
+
+- *First Cycle Start.* Press the button.
+- *One Out the Door.* Ship a mold.
+- *Shipped It Friday.* Ship after a Saturday and a 14-hour day.
+- *T1, No Notes.* A tryout with nothing to fix.
+- *The Crane.* Buy it. Lift something. Everyone watches.
+- *Lights Out, Nobody Home.* First unattended run that worked.
+- *Lights Out, Something's Wrong.* First one that did not.
+- *Genuine Advantage.* Buy the software after the letter.
+- *OOPS.* First scrapped block.
+- *Employee of the Month.* The owner runs a machine for a full week.
+- *Repeat Customer.* Their next program lands first.
+- *A Tenth Is a Tenth.* First CMM report with no red.
+- *The Big One.* First mold over $250k.
+- *One Million.* A tool you built passes a million cycles at the customer.
+- *WSIB.* You know what you did.
+- *Retired the Bridgeford.* Not possible. The achievement exists; it cannot be earned.
 
 ### Questions for you
 
-- **Q42.** Is this arc believable? What did the real growth path look like for shops you know?
-- **Q43.** Any milestone that would make a real moldmaker grin?
+- **Q42–Q43.** 🟢 Answered above.
 
 ---
 
@@ -827,120 +1014,148 @@ engine, part two: every row below has a real cause and a real cost, and a **pres
 funny. The failure system must be fair (you can always see why) and never so punishing that the
 joke stops being funny.
 
-| Event | Cause | Consequence | How it looks |
+### 12.1 Events, ranked 🟢
+
+By how often they happen, then how much they hurt:
+
+| Frequency | Event | Hurts | How it looks |
 |---|---|---|---|
-| Machine crash | Green operator, bad program, rushed | Rework/scrap block, machine down, morale hit | Bang, alarm, cracked window, a tool sticking out of something, everyone gathers round |
-| Scrapped block | Crash, wrong dimension, wrong steel | Weeks of hours in the bin | Carried to the scrap bin, clang, "OOPS" in paint marker, an achievement |
-| Steel arrives wrong / late | Cheap vendor | Schedule slip | Wrong-size block on the dock with a shrug from the driver |
-| Heat treat cracks a block | Vendor quality, wrong steel, sharp corners | Start the block over; weeks lost | Comes back in two pieces in the same crate, with an invoice |
-| Tryout defects | Risk factors in the build | Rework loop, extra press time | Sample parts on the bench: flash like a pie crust, a short shot, a part that will not come out |
-| Customer revision mid-build | Random, by segment | Extra hours; who pays depends on the PO | "Just a small change" email; the print now has a hole through the slide |
-| Hot runner late | Vendor lead time | Finished mold sits waiting | A finished mold on the bench with a sticky note counting the days |
-| Key employee quits | Morale, poaching | Skills walk out the door | A speech, a slammed door, the radio left on their station |
-| Machine breakdown | Neglected maintenance, age | Service call + downtime | Smoke, a puddle, a tech who arrives Thursday and needs a part from Germany |
-| Cash crunch | Slow payers, too many jobs started | Bank | Phone rings; it is the bank; nobody wants to answer it |
-| Customer goes bankrupt | Rare event | Unpaid final invoice; you own a mold nobody wants | A very nice mold in the corner with a for-sale sign |
-| Quote badly wrong | Bad estimate, novel job | Eat the hours | The estimate sheet, framed, with the real number written next to it |
-| Lights-out gone wrong | Tool broke at 11 p.m.; nobody there | A night of air cutting, or a ruined block | Morning reveal: a spun tool, chips in the wrong shape, an operator holding the broken end mill up like a fish |
-| EDM fire | Unattended sinker, low dielectric, bad flushing | Machine gutted, smoke damage, insurance, questions | Black soot on the ceiling, the fire department's card on the desk, everyone very quiet |
-| Welded tool | No spindle coolant, no oil, dry cut | Tool fused to the block; rework; spindle check | An end mill sticking out of a cavity like a flag |
-| Workplace injury | Something thrown, a crane load swinging, no guard on the grinder, or plain bad luck | WSIB claim, a bill, days off work, morale, an inspector visit if it keeps happening | The ambulance in the parking lot, a cast, everyone else suddenly wearing their safety glasses |
-| Wrong program run | Operator picked the wrong file | Crash or a nicely machined part for a different customer | A perfect cavity for a job you finished last month |
+| Constant | Broken cutter | Little | A snapped end mill held up like a fish |
+| Constant | Tryout defects | Some | Sample parts on the bench (§6.5) |
+| Often | "Just a small change" | Some to a lot | The email; the print with a hole through the slide |
+| Often | Steel / base / vendor late | Schedule | An empty spot on the steel rack with a sticky note |
+| Often | Slow payer | Cash | The bank's number on the phone display |
+| Often | Lights-out gone wrong | A night | The morning reveal |
+| Sometimes | Bump, accuracy loss | Silent, then a bad part | Nothing, then the CMM report |
+| Sometimes | Employee quits | Skills gone | A speech, a slammed door, the radio left on |
+| Sometimes | Machine breakdown, no maintenance | Downtime | Smoke, a puddle, a tech who arrives Thursday |
+| Sometimes | Welded tool | Rework | An end mill in a cavity like a flag |
+| Sometimes | Workplace injury | WSIB, morale | The ambulance; everyone suddenly wearing safety glasses |
+| Rare | Catastrophic crash | Weeks, a big bill | Bang, alarm, cracked window, a crowd |
+| Rare | Heat treat cracks a block | Weeks | Two pieces in one crate, with an invoice |
+| Rare | Software audit letter | A big bill | Registered mail; the CAM stops opening |
+| Rare | EDM fire | Everything | Soot on the ceiling; the fire department's card |
+| Rare | Customer bankrupt | An unpaid mold | A very nice mold in the corner with a for-sale sign |
+| Rare | Quote badly wrong | The margin | The estimate sheet, framed, with the real number next to it |
+
+### 12.2 Cutting corners 🟢
+
+The player can, and the game lets them, with a risk roll and an achievement:
+
+| Corner | Saves | Risks |
+|---|---|---|
+| Skip the probe | Minutes | Crash (§2.5) |
+| Skip spotting on the press | Hours | Flash at T1 |
+| Rush the polish | Hours | Stuck part, drag marks |
+| Skip inspection | Hours | Dimension out found at the customer, not by you |
+| Undersize or skip water lines | Hours | Warp, sink, long cycle; the customer's molder complains |
+| Cheaper steel than quoted | Money | Mold life; the customer finds out when it wears; reputation crater |
+| Skip maintenance | Money | Everything in §4.4 |
+| Run pirated software | Money | The letter |
+| Ship without T2 | A week | The customer's tryout is your tryout, in public |
+
+### 12.3 The war stories 🟢
+
+Two scripted story events every player meets once, because every shop has them:
+
+- **The Friday.** A mold ships at 11 p.m. on a Friday after a Saturday that became a Sunday. The
+  customer's revision arrives Monday at 8:04 a.m.
+- **The Draw.** A cavity polished across the draw. The part will not come out. The polisher is
+  certain it was fine. The moldmaker is certain it was not. The press is charging by the hour.
 
 ### Questions for you
 
-- **Q44.** Rank these by how often they actually happen and how much they hurt.
-- **Q45.** What is the war story every mold shop has that should be in the game?
-- **Q46.** Should the game let the player *cut corners* (skip inspection, rush polish, undersize
-  water) with a risk payoff, or is that unrealistic?
+- **Q44–Q46.** 🟢 Answered above.
 
 ---
 
 ## 13. Presentation
 
-### 13.1 The 3D shop (and its isometric twin) 🟡
+### 13.1 The 3D shop (and its isometric twin) 🟢
 
 - **Style:** Buy Stove's stylised procedural look, but industrial: grey epoxy floor with yellow
-  safety lines, steel-blue machine enclosures, orange crane, fluorescent cool light, dust in the
-  beams. Cleanliness as a visible state (chips, coolant on the floor, crates piling up).
-- **Machines** are recognisable silhouettes: an enclosed VMC with a window and a status light
-  stack (green/amber/red), an open sinker EDM with a tank, a wire EDM with its spools, a grinder
-  with a wheel guard, the spotting press as a big blue frame.
-- **Animation:** spindle spinning through the window, sparks and a glow in the EDM tank, coolant
-  spray, the crane moving, a forklift at the dock, people walking between stations and standing
-  at benches.
-- **Work-in-progress** is visible: a block on the machine table, a mold base on the bench with the
-  parting line blued up, a finished mold in a crate by the door.
+  safety lines, steel-blue machine enclosures, orange crane, fluorescent cool light with half the
+  tubes out, dust in the beams from the tarp door. Cleanliness as a visible state (chips, coolant,
+  crates, graphite dust on everything if you cut carbon on the VMC).
+- **Machines** are recognisable silhouettes with their spoofed nameplates: an enclosed VMC with a
+  window and a light stack (green/amber/red), an open sinker EDM with a tank, a wire EDM with its
+  spools, a grinder with a wheel guard, the spotting press as a big blue frame, the Bridgeford with
+  its round head.
+- **Animation:** spindle spinning in the window, sparks and glow in the EDM tank, coolant spray,
+  the crane moving, the forklift at the dock, people walking between stations, the polisher bent
+  over a lamp, the apprentice sweeping.
+- **Work-in-progress is visible:** a block on the table, a base on the bench blued up, electrodes
+  in a rack, a finished mold in a crate by the door, the traveller clipboard hanging on the job.
 - **Status light stacks** and a floating tag when looked at: `JOB 0042 · CORE BLOCK · FINISH ·
-  62% · Dave` — the floor tells you the schedule if you walk it.
+  62% · Dave`.
 - **Isometric view:** the same scene from a lifted fixed-angle camera with the roof removed; every
   machine and person gets a permanent tag; idle machines and idle people are visibly flagged.
 
-### 13.2 The management UI 🟡
+### 13.2 The management UI 🟢
 
-Honest 2D HTML overlay, monospace, terminal/paper feel (Buy Stove's catalog aesthetic reused
-for the RFQ inbox and the invoices):
+Buy Stove's monospace/paper aesthetic, reused on purpose, with a shop-paper twist: **quotes look
+like quotes, invoices look like invoices, the traveller looks like a traveller** (a stapled sheet
+with a barcode and coffee rings). Screens: inbox, quote, jobs, schedule (Gantt), shop (buy/place),
+people, purchasing/vendors, bank (cash-flow chart, P&L), reputation.
 
-- **Inbox:** RFQs, customer messages, vendor notices.
-- **Quote:** the estimate, the price/lead-time sliders, the send button.
-- **Jobs:** every job in flight, its stages, its critical path, its money.
-- **Schedule:** Gantt of machines × days; drag to reprioritise.
-- **Shop:** buy/sell/place machines and facility upgrades.
-- **People:** hire, fire, wages, skills, morale.
-- **Purchasing / vendors:** orders, lead times, reliability history.
-- **Bank:** cash, credit, cash-flow chart, P&L.
-- **Reputation:** by segment, with the reasons.
+### 13.3 Sound 🟢
 
-### 13.3 Sound 🟡
-
-All synthesized: room tone (compressor cycling, fluorescent hum), spindle pitch by RPM, the EDM
-crackle, air blow-off, grinder scream, crane beeper, forklift reverse, hydraulic press thunk, phone
-ringing in the office, the roll-up door. A quiet shop should sound *wrong* to the player.
+All synthesized: compressor cycling (always), fluorescent buzz, the tarp door flapping, spindle
+pitch by RPM, the EDM crackle and its finishing "ding", air blow-off, grinder scream, crane horn,
+forklift reverse beep, hydraulic press thunk, the phone in the office, the radio (one station,
+argued over), a band saw, tapping a block with a dead-blow, the scrap bin clang. A quiet shop
+sounds *wrong*. The compressor kicking on in a silent shop is the loneliest sound in the game.
 
 ### Questions for you
 
-- **Q47.** What sounds and sights define a mold shop to you? What would you notice was missing?
-- **Q48.** Any reason not to reuse Buy Stove's monospace/paper UI style for the office screens?
+- **Q47–Q48.** 🟢 Answered above.
 
 ---
 
 ## 14. Screens (inventory)
 
-Intro → New game / Continue → The shop (3D, HUD) → Management overlay (tabs per §13.2) →
-Machine panel (per machine) → Job panel (per job) → End of week summary → Game over / Year
-summary → Achievements gallery → Pause.
+Intro (disclaimer, press the any key) → New game (name the shop) / Continue → The shop (3D, HUD;
+`V` for isometric; `Tab` for the clipboard) → Management overlay (tabs per §13.2) → Machine panel
+(per machine: checklist, job, condition, maintenance, repair) → Job panel (per job: items, stages,
+critical path, money, traveller) → Person panel (skills, morale, grievances, wage) → End of week
+summary → Year-end summary → Retirement → Game over → Achievements gallery → Pause.
 
 ---
 
 ## 15. Save data
 
-One `localStorage` key per slot, JSON: shop layout, machines and condition, staff, jobs and stage
-progress, customers and reputation, vendors, bank, clock, achievements, settings. Autosave at end of
-day; manual save in pause. Versioned so later builds can migrate.
+One `localStorage` key per slot, JSON: shop name and layout, machines and condition, staff, jobs
+and item-stage progress, customers and reputation, vendors, bank, clock, achievements, story flags,
+settings. Autosave at end of day; manual save in pause. Versioned so later builds can migrate.
 
 ---
 
 ## 16. Scope tiers
 
-So we can agree what "done" means before building.
+🟢 So we agree what "done" means.
 
-**MVP (v0.1 — playable loop):** empty shop, buy and place 4–5 machines, hire 3 roles, one
-customer segment, new-build contracts only, the full stage pipeline (collapsed where Q20 says),
-quoting, scheduling, one vendor each for steel/base/heat treat, tryout with a few defects, cash
-and payroll, one year of play, save/load, phone-playable management UI.
+**MVP (v0.1, the playable loop):** name the shop; the empty 2,500 sq ft unit with the tarp door;
+Stage 0 manual machines and component/repair work for ten minutes of play; the first used VMC as
+the first milestone; sinker and wire; buy and place machines in isometric; walk the floor and load
+a machine by hand (probe, program, CYCLE START); hire three roles; two customer segments (other
+shops, consumer); new builds and repairs; the stage pipeline of §6.1 with parallel items;
+quoting with the estimate; the Gantt; one vendor each for steel, base, heat treat, press time;
+tryout with five defects; the crash spectrum; cash, payroll, terms; one in-game year; save/load;
+phone-playable.
 
-**v1.0:** full machine catalogue, all segments and contract types, vendors with reliability,
-morale, machine condition and crashes, hot runners, progression tiers, achievements, sound, floor
-animation, the events table in §12.
+**v1.0:** the full machine catalogue and every brand in the shortlist; all segments and contract
+types; vendors with reliability; morale and grievances; maintenance, lights-out, fire; hot runners;
+texture; the software audit; progression stages 0–3; the achievements list; full sound; floor
+animation; the events table; the two war stories; year-end summaries.
 
-**Stretch:** second building, second shift, apprentices growing into moldmakers, trade shows,
-customer personalities and recurring characters, a "story" customer program that runs across
-years, competitor shops that bid against you.
+**Stretch:** second building and second shift; apprentices growing into moldmakers over years;
+trade shows; recurring customer characters with memories; a multi-year "story" program; competitor
+shops that bid against you and poach your people; the retirement ending with the crew's verdict.
 
 ### Questions for you
 
-- **Q49.** Does the MVP cut make sense, or is there something in v1.0 that has to be in the first
-  playable for it to feel like a mold shop at all?
+- **Q49.** 🟢 Answered: MVP as above; Stage 0 and the first CNC purchase are in the first
+  playable because they are the first ten minutes.
 
 ---
 
@@ -962,41 +1177,41 @@ years, competitor shops that bid against you.
 | Q12 | 4 | Separate graphite mill? | ✅ Dedicated carbon cutter; any mill in a pinch with dust cost |
 | Q13 | 4 | What is outsourced (heat treat, texture, plating, polish) | ✅ Heat treat, texture, manifolds always out; gun drill and welding until you have them |
 | Q14 | 4 | Crashes: frequency and reality | ✅ Spectrum from cutter to catastrophic; bumps cost accuracy; money fixes anything |
-| Q15 | 5 | Mold anatomy corrections | ❓ |
-| Q16 | 5 | The five things that make a mold expensive | ❓ |
-| Q17 | 5 | Steel list | ❓ |
-| Q18 | 5 | Polish grades and hours | ❓ |
-| Q19 | 6 | Stage order | ❓ |
-| Q20 | 6 | Which stages to collapse | ❓ |
-| Q21 | 6 | Hours proportions by stage | ❓ |
-| Q22 | 6 | Tryout: where, who pays, how many rounds | ❓ |
-| Q23 | 6 | Common tryout defects and fixes | ❓ |
-| Q24 | 6 | Engineering changes mid-build | ❓ |
-| Q25 | 7 | Customer segments | ❓ |
-| Q26 | 7 | How work arrives; win rate | ❓ |
-| Q27 | 7 | Payment terms | ❓ |
-| Q28 | 7 | Mold price bands | ❓ |
-| Q29 | 7 | Lead time bands | ❓ |
-| Q30 | 7 | What happens when you are late | ❓ |
-| Q31 | 8 | Crew shape at 2/6/12/25 | ❓ |
-| Q32 | 8 | Wages | ❓ |
-| Q33 | 8 | Which roles are real separate jobs | ❓ |
-| Q34 | 8 | Apprentices | ❓ |
-| Q35 | 8 | Shop culture details | ❓ |
-| Q36 | 9 | Realistic starting cash and machines | ❓ |
-| Q37 | 9 | Monthly overhead | ❓ |
-| Q38 | 9 | How machines are financed | ❓ |
-| Q39 | 9 | Cash-flow shape | ❓ |
-| Q40 | 10 | Pace: day per minute? | ❓ |
-| Q41 | 10 | Endless or horizon | ❓ |
-| Q42 | 11 | Growth arc believable? | ❓ |
-| Q43 | 11 | Milestones that make a moldmaker grin | ❓ |
-| Q44 | 12 | Rank the failure events | ❓ |
-| Q45 | 12 | The war story | ❓ |
-| Q46 | 12 | Allow cutting corners? | ❓ |
-| Q47 | 13 | Defining sights and sounds | ❓ |
-| Q48 | 13 | Reuse Buy Stove UI style? | ❓ |
-| Q49 | 16 | MVP cut | ❓ |
+| Q15 | 5 | Mold anatomy corrections | 🟢 As §5.1; rare features as late modifiers |
+| Q16 | 5 | The five things that make a mold expensive | 🟢 Mass, cavitation, actions, finish, tolerance/paperwork |
+| Q17 | 5 | Steel list | 🟢 Al, P20, NAP80, H13, S7, Stayvax, plate |
+| Q18 | 5 | Polish grades and hours | 🟢 Yes; A-1 outsourced until a master polisher |
+| Q19 | 6 | Stage order | 🟢 §6.1; water with roughing, grind twice, texture after T1 |
+| Q20 | 6 | Which stages to collapse | 🟢 19 stages |
+| Q21 | 6 | Hours proportions by stage | 🟢 §6.2 split |
+| Q22 | 6 | Tryout: where, who pays, how many rounds | 🟢 At a molder until you own a press; shop pays T1/T2 |
+| Q23 | 6 | Common tryout defects and fixes | 🟢 §6.5 table |
+| Q24 | 6 | Engineering changes mid-build | 🟢 1–2 per build; billed after design approval |
+| Q25 | 7 | Customer segments | 🟢 §7.1 with other shops and molders as day-one customers |
+| Q26 | 7 | How work arrives; win rate | 🟢 Email RFQ, 3–5 shops, 1 in 5 → 1 in 3 |
+| Q27 | 7 | Payment terms | 🟢 30/30/40 net 30; automotive net 60–90 |
+| Q28 | 7 | Mold price bands | 🟢 §7.6 bands |
+| Q29 | 7 | Lead time bands | 🟢 §7.6 bands |
+| Q30 | 7 | What happens when you are late | 🟢 Reputation, penalties on automotive, lose the next program |
+| Q31 | 8 | Crew shape at 2/6/12/25 | 🟢 §8.5 |
+| Q32 | 8 | Wages | 🟢 §8.6 |
+| Q33 | 8 | Which roles are real separate jobs | 🟢 §8.1 last column |
+| Q34 | 8 | Apprentices | 🟢 4 years; useful after 6–12 months; learns beside a moldmaker |
+| Q35 | 8 | Shop culture details | 🟢 §8.7 |
+| Q36 | 9 | Realistic starting cash and machines | 🟢 $50k cash + optional $100k loan |
+| Q37 | 9 | Monthly overhead | 🟢 $6–9k/mo before wages |
+| Q38 | 9 | How machines are financed | 🟢 Manual cash; CNC financed 5–7 yr or leased |
+| Q39 | 9 | Cash-flow shape | 🟢 Yes; deposits, LOC, quick-pay work, factoring |
+| Q40 | 10 | Pace: day per minute? | 🟢 Day per minute; first mold at 30–50 min |
+| Q41 | 10 | Endless or horizon | 🟢 Endless with year-end summaries; optional retirement at 10 years |
+| Q42 | 11 | Growth arc believable? | 🟢 Yes, mapped to Stages 0–3 |
+| Q43 | 11 | Milestones that make a moldmaker grin | 🟢 §11 list |
+| Q44 | 12 | Rank the failure events | 🟢 §12.1 ranked |
+| Q45 | 12 | The war story | 🟢 The Friday; The Draw |
+| Q46 | 12 | Allow cutting corners? | 🟢 Yes, §12.2 |
+| Q47 | 13 | Defining sights and sounds | 🟢 §13.1, §13.3 |
+| Q48 | 13 | Reuse Buy Stove UI style? | 🟢 Reuse, with shop-paper twist |
+| Q49 | 16 | MVP cut | 🟢 MVP as §16; Stage 0 and first CNC included |
 | Q50 | 1 | Narrator vs. commentary from the people in the shop | ✅ The people, no narrator |
 | Q51 | 2 | Command people from the isometric view? | ✅ Both isometric click and floor talk |
 | Q52 | 2 | Fidelity of loading a machine by hand | ✅ Seat, door, probe, select program, CYCLE START; skipped steps cause crashes |
@@ -1015,6 +1230,7 @@ years, competitor shops that bid against you.
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
+| 2026-09-30 | Q15–Q49 | John asked Claude to answer the remaining questions. Answered as 🟢 (mold model, workflow, customers, staff, economy, time, progression, risk, presentation, scope). Each stands until vetoed. | 5–16 |
 | 2026-09-30 | Q57 Oven | Heat-treat oven is a Stage 3 upgrade. | 4.2, 4.5, 3.3 |
 | 2026-09-30 | Q58 Welder | Welding is a rare skill on a moldmaker, not a separate trade. | 4.5, 8 |
 | 2026-09-30 | Q59 Stage 0 pay | Manual-only work (components, repairs, revisions, small aluminum protos) at ~$50–60/hr; CNC-class contracts ~$90–120/hr. | 4.1, 9 |
