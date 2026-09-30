@@ -338,7 +338,8 @@ used as-is. Branded grades get spoofed. Suppliers get spoofed.
 
 The shop management software list gets one unspoofed entry: **Genvision**, hidden as the best
 and cheapest option, unlocked by an achievement or a code. It is our own name, so the legal rules
-above do not apply. Whether it is in the game at all is Q56 in the design bible.
+above do not apply. **Agreed loosely** (Q56): it goes in behind a single feature flag so it can be
+removed cleanly if approval does not come through.
 
 ---
 

@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** DRAFT 0.6 — sections 1 to 3 agreed; brand catalogue drafted for vetting; machines (§4) next
+**Studio:** Cycle Start Studios · **Status:** DRAFT 0.7 — sections 1 to 4 agreed in substance; the mold model (§5) and the workflow (§6) next
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---
@@ -229,6 +229,7 @@ You start in a **2,500 sq ft** industrial unit:
 - Bare slab, block walls, **20 ft ceilings**.
 - **One bay door**, about the height of a small truck, with a **tarp strip-curtain** rather than a
   proper roll-up (it flaps, it lets the winter in, it is the first thing everyone complains about).
+  Cheap to start, upgradeable to a real door (§3.3). ✅
 - **Power and air come with the shop**, sized for **two machines**. A small compressor in the
   corner that cycles constantly.
 - A small office box, a bathroom, a breaker panel, fluorescent lights with half the tubes out.
@@ -273,6 +274,9 @@ gate other purchases. **Purchases** are things you place on the floor.
 | Proper bay door | Truck deliveries in the rain, heating bill | Replaces the tarp. Everyone cheers |
 | Climate control | Inspection room, jig grinder, polishers in July | |
 | Coolant / chip handling | Cleanliness, floor state, tooling costs | Chip bins, coolant recycling |
+| Dust extraction | Cutting graphite on a production mill without wrecking it | See §4.6 |
+| Fire suppression | Lights-out EDM without the 3 a.m. phone call | See §4.3 |
+| Heat-treat oven | In-house hardening | Stage 3, if Q57 says yes |
 | Expansion / second building | More bays, inspection room, press area | The mid-game step |
 
 **Simple purchases** (placeable, arrive on a truck, no contractor):
@@ -333,10 +337,9 @@ bleeding.
   machine builders alike, within the legal house rules. Catalogue in [BRANDS.md](BRANDS.md).
 - **Q55.** Vet [BRANDS.md](BRANDS.md): strike, rename, add. The §6 shortlist there is what the
   first playable needs.
-- **Q56.** Does the real **Genvision** appear as an Easter-egg shop software, or is that too
-  inside?
-- **Q54.** The tarp door: is that a strip curtain, a roll-up tarp, or a literal tarp on a rope?
-  It matters for the model and the joke.
+- **Q56.** ~~Genvision~~ ✅ Answered, loosely: yes as an Easter egg, pending the boss. Kept
+  behind a single flag so it can be removed without a trace.
+- **Q54.** ~~Tarp door~~ ✅ Answered: cheap to start, upgradeable; the strip-curtain as written.
 
 ---
 
@@ -344,61 +347,149 @@ bleeding.
 
 This is the catalogue the player buys from. Every machine carries a **spoofed brand** (Hoss,
 Mikano, Sodiak, Bitsumishi; the full list is in [BRANDS.md](BRANDS.md)), and brand is a real
-attribute: it sets the price tier, reliability, service response, and how the crew feels about
-running it. Prices are **placeholders** and are the single most important thing I need corrected. Every machine has: purchase price (new and used), footprint,
-power/air/foundation needs, what stages of a build it can do, hours-per-stage multiplier, breakdown
-rate, operator skill required, and resale value.
+attribute: it sets the price tier, reliability, service response and parts lead time, and how the
+crew feels about running it. Every machine has: purchase price (new and used), footprint,
+power/air/foundation needs, what stages it can do, hours-per-stage multiplier, tool changer (or
+not), condition, breakdown behaviour, operator skill required, and resale value.
 
-### 4.1 Proposed catalogue 🟡
+### 4.1 Progression: manual first ✅ Agreed
 
-| Tier | Machine | What it does in the game | My guess at price (new / used) |
+Machines come in **stages**, and the shop climbs them with capital or loans:
+
+**Stage 0, manual.** A knee mill, a lathe, a manual surface grinder, a bench, a drill press and a
+band saw. With these you can do **small blocks and components**: pins, sleeves, inserts, small
+plates, repairs, revisions, and fitting work on other people's molds. You cannot cut a cavity of
+any size in a sensible time. This is the whole early game: enough small work to bank the money
+(or the credit history) for the first CNC.
+
+**Stage 1, first CNC.** A used 3-axis VMC, then a sinker EDM and a wire EDM. Now you can build a
+real mold, slowly, with a lot of outsourcing (§4.5).
+
+**Stage 2, a real shop.** Bigger VMCs, a hard-milling machine, a dedicated graphite cutter, CNC
+grinding, a gun drill, a CMM, a spotting press, the crane. Outsourcing shrinks.
+
+**Stage 3, the big leagues.** 5-axis, a sampling press, large EDM, maybe a heat-treat oven, a
+second building.
+
+### 4.2 Catalogue 🟡 (prices are a starting point per Q10 ✅)
+
+| Stage | Machine | What it does in the game | Price guess (new / used) |
 |---|---|---|---|
-| 0 | Manual knee mill (Bridgeport type) | Drilling, tapping, simple work, fitting-room fixes | $15k / $5k |
-| 0 | Manual lathe | Round inserts, pins, sprue bushings, core pins | $20k / $6k |
-| 0 | Surface grinder (manual) | Squaring blocks, plates flat and parallel | $25k / $8k |
-| 0 | Bench / drill press / band saw | Fitting, cutting stock | $5k |
-| 1 | 3-axis VMC (small, 30 taper) | Roughing and finishing cavities and cores, mold base machining | $90k / $40k |
-| 1 | Sinker (ram) EDM | Ribs, sharp corners, deep pockets, text; needs electrodes | $120k / $45k |
-| 1 | Graphite mill (high-speed, small) | Cutting electrodes for the sinker | $80k / $35k |
-| 1 | Wire EDM | Inserts, ejector pin holes through hardened steel, slides, precision shapes | $150k / $60k |
-| 2 | 3-axis VMC (large, 40/50 taper) | Big mold bases and blocks | $250k / $110k |
-| 2 | Hard-milling VMC (high-speed, high-accuracy) | Finishing in hardened steel, reduces EDM and polish hours | $300k / $130k |
-| 2 | Gun drill | Long straight water lines | $120k / $50k |
+| 0 | Manual knee mill (Bridgeford) | Drilling, tapping, small blocks, fitting-room fixes | $15k / $5k |
+| 0 | Manual lathe (Hardedge, Coldchester) | Round inserts, pins, sprue bushings, core pins | $20k / $6k |
+| 0 | Surface grinder, manual (Herring, Okeymoto) | Squaring blocks, plates flat and parallel | $25k / $8k |
+| 0 | Bench, drill press, band saw | Fitting, cutting stock | $5k |
+| 1 | 3-axis VMC, small, 30 taper (Hoss, Hurtco) | Roughing and finishing cavities and cores, base machining | $90k / $40k |
+| 1 | Sinker EDM (Charmer, Sodiak) | Ribs, sharp corners, deep pockets, text; needs electrodes | $120k / $45k |
+| 1 | Wire EDM (Excusetek, Bitsumishi) | Inserts, ejector pin holes through hardened steel, slides | $150k / $60k |
+| 2 | Dedicated graphite mill (Rudders, Daytron) | Electrodes, with dust extraction built in | $80k / $35k |
+| 2 | 3-axis VMC, large, 40/50 taper (Dozan, Okayma) | Big bases and blocks | $250k / $110k |
+| 2 | Hard-milling VMC (Mikano, Yesda) | Finishing in hardened steel, cuts EDM and polish hours | $300k–$500k / $130k |
+| 2 | Gun drill (UNISIGH) | Long straight water lines | $120k / $50k |
 | 2 | CNC surface grinder | Faster, unattended grinding | $90k / $40k |
-| 2 | CMM | Inspection; unlocks tolerance-critical customers | $110k / $50k |
-| 2 | Spotting press | Spotting/bluing the parting line, fitting | $80k / $30k |
-| 3 | 5-axis mill | Complex cores/cavities, fewer setups, unlocks the hard contracts | $500k / $220k |
-| 3 | Sampling injection press (small) | In-house tryouts instead of paying a molder | $150k / $60k |
-| 3 | Laser welder | Repair work and revisions without scrapping | $60k / $25k |
-| 3 | Large sinker EDM / large wire | Bigger molds | $250k+ |
+| 2 | CMM (Zeus, Heptagon) | Inspection; unlocks tolerance-critical customers | $110k / $50k |
+| 2 | Spotting press (Millennial, Rice) | Spotting the parting line, fitting | $80k / $30k |
+| 2 | Laser welder (Alfa Lazer) | Repairs and revisions; needs a welder (§4.5) | $60k / $25k |
+| 3 | 5-axis mill (Hermlin, DGM Nori, Grub) | Complex cores and cavities, fewer setups, the hard contracts | $500k–$1M / $250k |
+| 3 | Large gantry 5-axis (Pappas, Zimmerframe) | The automotive blocks | $1M+ |
+| 3 | Sampling injection press (Lad, Angel) | In-house tryouts instead of paying a molder | $150k / $60k |
+| 3 | Large sinker / large wire | Bigger molds | $250k+ |
+| 3 | Heat-treat oven (see Q57) | In-house hardening; its own way of ruining a block | $150k+ |
 
-### 4.2 Machine behaviour 🟡
+### 4.3 Lights-out ✅ Agreed (rules 🟡)
 
-- Each machine runs **one job stage at a time** and needs an **operator with the right skill**
-  (except ones that can run lights-out once set up: wire EDM, sinker with a tool changer, CNC grinder).
-- **Setup time** before cutting; **run time** after, scaled by the operator's skill and the
-  machine's condition.
-- **Condition** decays with use; **maintenance** restores it; a neglected machine breaks down and
-  costs a service call plus lost days.
-- **Crashes**: a bad program, a wrong offset, a green operator — chance of a crash that damages the
-  workpiece (rework or scrap) and sometimes the machine.
-- **Tooling and consumables** are a running cost per hour: end mills, inserts, graphite, EDM wire,
-  dielectric, filters, coolant, grinding wheels.
+Anything can run unattended **if it has enough to do**. The rules:
+
+- The stage must be **long enough** to be worth walking away from: a finish cut, a long EDM
+  burn, a wire cut through a plate. A ten-minute drilling op is not lights-out.
+- The machine needs a **tool changer** with the tools the program needs loaded. Manual machines
+  and single-tool setups do not qualify.
+- **Tools wear and break.** Every lights-out run rolls tool life against the hours. A worn tool
+  gives a bad surface (rework). A broken tool, unnoticed, means the machine cuts air for the rest
+  of the night: **lost cutting time**, and sometimes a damaged part. Better machines and tool-break
+  detection (an upgrade) reduce the odds; they never remove them.
+- **EDM catches fire.** A sinker running unattended with the dielectric low, the flushing wrong,
+  or a bad electrode can ignite. It is rare. It is a night you remember. Fire suppression is an
+  upgrade. Insurance is a monthly cost that you will be glad of exactly once.
+- The morning after is a **reveal**: walk in, look at the machine. Either a finished block and a
+  good day, or a spun tool, a pile of chips in the wrong shape, and a call to the tooling rep.
+
+### 4.4 Crashes, breakdowns and repair ✅ Agreed (numbers 🟡)
+
+Damage is a **spectrum**, and money fixes anything. A lot of money fixes it properly; a little
+band-aids it and gets it running.
+
+| Severity | What happened | Consequence |
+|---|---|---|
+| Broken cutter | The most common. A snapped end mill, a chipped insert | Lost time, a new tool, maybe a mark to polish out. On lights-out: a night of air cutting |
+| Bump | A small collision, a rapid into a clamp, a heavy chatter | The machine **loses accuracy**. Nothing looks broken. Parts come out bad, or barely in tolerance, and may still be acceptable. A recalibration fixes it; a shop that ignores it makes worse molds and does not know why |
+| Weld | No spindle coolant, no oil, a dry cut on hard steel | Tool welded to the workpiece. Block rework, spindle inspection |
+| Catastrophic | Spindle into the table, into the vise, into the fixture | Machine down. **A tech has to come**. Parts on order: cheap machines have **long parts lead times**, expensive ones have a tech on a plane. Weeks of downtime, a bill with a comma in it |
+| Fire | EDM unattended, dielectric issue | Machine gone or gutted, smoke damage to the shop, insurance claim, the fire department has questions |
+
+**Maintenance** is a running cost and a running chore: way oil, spindle coolant, filters,
+dielectric, way covers. Skip it and the condition rating falls; low condition raises every roll
+above. "You ran out of oil" is a thing that happens to a busy shop, and the game should let it.
+
+**Repair choices** when something breaks:
+
+| Option | Cost | Effect |
+|---|---|---|
+| Proper fix (OEM tech, OEM parts) | High, slow on cheap brands, fast on premium | Condition fully restored |
+| Band-aid (local tech, used part, "it'll run") | Low, quick | Runs, but condition capped lower and accuracy suspect until fixed properly |
+| Ignore it | Free | It gets worse. It always gets worse |
+
+### 4.5 In-house vs. outsourced ✅ Agreed
+
+What goes out, and when it can come in:
+
+| Work | Day one | Comes in-house when |
+|---|---|---|
+| **Heat treat** | Always out (no oven) | Only if a heat-treat oven is bought (Stage 3, see Q57) |
+| **Grain texture** | Always out | Never. A texture house is a texture house |
+| **Hot runner manifold systems** | Always purchased | Never built in-house; always a vendor with a lead time |
+| **Gun drilling** | Out | When the gun drill is bought |
+| **Welding** (repairs, revisions) | Out | When a laser welder is bought **and** someone with the welding skill is hired |
+| **Big machining** (large blocks, bases) | Out | When the crane and a large-enough machine exist |
+| **Electrodes** | In, badly (any mill in a pinch, dust everywhere) | Properly when a dedicated graphite mill with extraction arrives |
+| **Sampling / tryout** | Out (at a molder) | When a sampling press is bought |
+| **Inspection to a report** | Out or by hand | When the CMM arrives |
+| **Polish** | In | Always in; specialist A-grade polish may still go out (Q18) |
+
+Outsourced work costs more, waits on somebody else's schedule, and has a vendor reliability roll.
+Bringing it in-house is a capital decision the player makes with the numbers in front of them.
+
+### 4.6 Graphite ✅ Agreed
+
+Any mill can cut electrodes **in a pinch**. Doing it on the production VMC costs you: the dust
+gets into the ways, the operator, the coffee, and everything else on the floor; condition drops
+faster, the crew complains, and the machine is not cutting steel while it is cutting carbon. A
+**vacuum / dust-extraction system** is a facility purchase that removes most of the cost; a
+**dedicated carbon cutter** with its own extraction removes all of it and is what a real shop wants.
 
 ### Questions for you
 
-- **Q9.** Correct the catalogue. What is essential for a starting shop? What would you *never*
-  start without, and what is a luxury? What is missing?
-- **Q10.** Prices, even roughly. New vs. good used. I would rather have "a used 3-axis VMC is
-  $40k–$70k" from you than a nice round number from me.
-- **Q11.** Which of these can realistically run unattended overnight in a small shop?
-- **Q12.** Is "graphite mill for electrodes" a separate machine in a small shop, or do people
-  cut electrodes on the same VMC (with a dust problem)?
-- **Q13.** Does a small shop send out **heat treat**, **texturing**, **gun drilling**, **plating**,
-  or **polishing**? Which are always outsourced, which are sometimes brought in-house as the shop
-  grows? (This defines the "vendors" system.)
-- **Q14.** Machine crashes: how common, and what really happens? Does it scrap the block or is it
-  usually a weld-and-recut? I want the failure system to be fair, not punishing.
+- **Q9.** ~~Catalogue~~ ✅ Answered: manual machines first (small blocks and components), CNC
+  when there is capital or a loan. Table reordered by stage.
+- **Q10.** ~~Prices~~ ✅ Answered: good start; 5-axis moved up toward $1M for the serious ones.
+- **Q11.** ~~Lights-out~~ ✅ Answered: anything with a long enough cut, needs a tool changer,
+  tools wear and break, EDM can catch fire. See §4.3.
+- **Q12.** ~~Graphite~~ ✅ Answered: dedicated carbon cutter wanted; any machine in a pinch with
+  a dust cost unless there is a vacuum system. See §4.6.
+- **Q13.** ~~Outsourcing~~ ✅ Answered: heat treat always (no oven), texture always, manifolds
+  always; gun drill and welding until you have the machine or the person. See §4.5.
+- **Q14.** ~~Crashes~~ ✅ Answered: a spectrum from broken cutter to spindle in the table; bumps
+  reduce accuracy silently; no maintenance welds tools to parts; money fixes anything, properly or
+  with a band-aid. See §4.4.
+- **Q57.** Heat-treat oven as a Stage 3 upgrade: yes or no? If yes, proposed: expensive, needs
+  power and a permit, removes the vendor wait, and gives the shop its own way to crack a block.
+- **Q58.** Welding: is "welder" a **separate hire**, or a **skill** a moldmaker can have (and
+  learn)? Proposed: a skill, rare, and some moldmakers come with it.
+- **Q59.** Stage 0 work: what can a manual-only shop actually sell? Proposed: component work
+  for other mold shops (pins, sleeves, small inserts), repairs and revisions on customers' molds,
+  small aluminum prototype inserts. Is that right, and roughly what does that work pay per hour?
+- **Q60.** Tool-break detection and fire suppression as buyable upgrades: fair, or is that too
+  much granularity?
 
 ---
 
@@ -745,6 +836,9 @@ joke stops being funny.
 | Cash crunch | Slow payers, too many jobs started | Bank | Phone rings; it is the bank; nobody wants to answer it |
 | Customer goes bankrupt | Rare event | Unpaid final invoice; you own a mold nobody wants | A very nice mold in the corner with a for-sale sign |
 | Quote badly wrong | Bad estimate, novel job | Eat the hours | The estimate sheet, framed, with the real number written next to it |
+| Lights-out gone wrong | Tool broke at 11 p.m.; nobody there | A night of air cutting, or a ruined block | Morning reveal: a spun tool, chips in the wrong shape, an operator holding the broken end mill up like a fish |
+| EDM fire | Unattended sinker, low dielectric, bad flushing | Machine gutted, smoke damage, insurance, questions | Black soot on the ceiling, the fire department's card on the desk, everyone very quiet |
+| Welded tool | No spindle coolant, no oil, dry cut | Tool fused to the block; rework; spindle check | An end mill sticking out of a cavity like a flag |
 | Workplace injury | Something thrown, a crane load swinging, no guard on the grinder, or plain bad luck | WSIB claim, a bill, days off work, morale, an inspector visit if it keeps happening | The ambulance in the parking lot, a cast, everyone else suddenly wearing their safety glasses |
 | Wrong program run | Operator picked the wrong file | Crash or a nicely machined part for a different customer | A perfect cavity for a job you finished last month |
 
@@ -857,12 +951,12 @@ years, competitor shops that bid against you.
 | Q6 | 3 | Realistic starting building | ✅ 2,500 sq ft, tarp bay door, 20 ft ceiling, power for 2 machines |
 | Q7 | 3 | Which facility items gate a small shop | ✅ Power/air included but upgradeable; no crane day 1; first $20k = machines, employee, software |
 | Q8 | 3 | Facility list corrections | ✅ My judgement, redirect as needed |
-| Q9 | 4 | Machine catalogue corrections | ❓ |
-| Q10 | 4 | Machine prices | ❓ |
-| Q11 | 4 | What runs unattended | ❓ |
-| Q12 | 4 | Separate graphite mill? | ❓ |
-| Q13 | 4 | What is outsourced (heat treat, texture, plating, polish) | ❓ |
-| Q14 | 4 | Crashes: frequency and reality | ❓ |
+| Q9 | 4 | Machine catalogue corrections | ✅ Manual first, CNC with capital or loans |
+| Q10 | 4 | Machine prices | ✅ Good start; 5-axis toward $1M |
+| Q11 | 4 | What runs unattended | ✅ Long cuts only, needs tool changer, tools break, EDM fires |
+| Q12 | 4 | Separate graphite mill? | ✅ Dedicated carbon cutter; any mill in a pinch with dust cost |
+| Q13 | 4 | What is outsourced (heat treat, texture, plating, polish) | ✅ Heat treat, texture, manifolds always out; gun drill and welding until you have them |
+| Q14 | 4 | Crashes: frequency and reality | ✅ Spectrum from cutter to catastrophic; bumps cost accuracy; money fixes anything |
 | Q15 | 5 | Mold anatomy corrections | ❓ |
 | Q16 | 5 | The five things that make a mold expensive | ❓ |
 | Q17 | 5 | Steel list | ❓ |
@@ -903,8 +997,12 @@ years, competitor shops that bid against you.
 | Q52 | 2 | Fidelity of loading a machine by hand | ✅ Seat, door, probe, select program, CYCLE START; skipped steps cause crashes |
 | Q53 | 3 | Software package naming | ✅ Spoofed real brands everywhere, see BRANDS.md |
 | Q55 | 3 | Vet the BRANDS.md spoof list | ❓ |
-| Q56 | 3 | Genvision Easter egg? | ❓ |
-| Q54 | 3 | What kind of tarp door | ❓ |
+| Q56 | 3 | Genvision Easter egg? | ✅ Yes, loosely, behind a flag |
+| Q57 | 4 | Heat-treat oven as a Stage 3 upgrade? | ❓ |
+| Q58 | 4 | Welder: separate hire or a skill? | ❓ |
+| Q59 | 4 | What Stage 0 (manual-only) work sells, and for what | ❓ |
+| Q60 | 4 | Tool-break detection and fire suppression as upgrades? | ❓ |
+| Q54 | 3 | What kind of tarp door | ✅ Cheap, upgradeable, as written |
 
 ---
 
@@ -912,6 +1010,14 @@ years, competitor shops that bid against you.
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
+| 2026-09-30 | Q9 Progression | Manual machines first for small blocks and components; CNC when capital or loans allow. | 4.1, 4.2 |
+| 2026-09-30 | Q10 Prices | Starting prices accepted; 5-axis raised toward $1M. | 4.2 |
+| 2026-09-30 | Q11 Lights-out | Any long enough cut can run unattended with a tool changer; tools wear and break; EDM can catch fire. | 4.3, 12 |
+| 2026-09-30 | Q12 Graphite | Dedicated carbon cutter is the goal; any mill in a pinch at a dust cost unless a vacuum system exists. | 4.6, 3.3 |
+| 2026-09-30 | Q13 Outsourcing | Heat treat (no oven), grain texture and manifold systems always out; gun drilling and welding out until the machine or person exists. | 4.5 |
+| 2026-09-30 | Q14 Crashes | A spectrum: broken cutter, silent accuracy loss from a bump, welded tool from no coolant, spindle in the table with a tech visit and parts lead time. Money fixes anything, properly or as a band-aid. | 4.4, 12 |
+| 2026-09-30 | Q54 Tarp door | Cheap strip curtain to start, upgradeable to a real door. | 3.1, 3.3 |
+| 2026-09-30 | Q56 Genvision | Easter egg, loosely, behind a flag pending approval. | BRANDS.md §5 |
 | 2026-09-30 | Q53 Brands | All software and machine brands are spoofs of real companies, kept inside the legal house rules in BRANDS.md (no real names, logos or trade dress; famous marks get more distance; the joke is never that a real product is bad). | 3.4, 4, BRANDS.md |
 | 2026-09-30 | Q6 Building | 2,500 sq ft, 20 ft ceilings, one small-truck bay door with a tarp system, power for two machines. Verify visually once walkable. | 3.1, 9 |
 | 2026-09-30 | Q7 Gates | Air and power included, upgrade for more machines. No crane on day one; outsource big work. First $20k: machines, employee, software licenses (pirated is an option with consequences). Steel and tooling on top; customers pay late on progressive terms. | 3.3, 3.4, 3.5, 3.6, 9 |
