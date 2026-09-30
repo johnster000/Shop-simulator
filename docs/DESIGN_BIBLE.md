@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** DRAFT 0.4 — tone, player, shop name, camera and platform agreed; the shop itself still open
+**Studio:** Cycle Start Studios · **Status:** DRAFT 0.5 — sections 1 to 3 agreed; machines (§4) next
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---
@@ -187,67 +187,149 @@ look, tap to act), plus the isometric view which is naturally touch-friendly (ta
 to pan, pinch to zoom, as in Anvil & Acre). The management overlay is responsive. No
 "management-only" phone build.
 
+### 2.5 Loading a machine ✅ Agreed
+
+The physical sequence at a CNC, for the player or for an employee:
+
+1. Put the block on the table (or in the vise / on the fixture). Big blocks need the crane.
+2. Close the door.
+3. **Probe it.** Run the automatic probe cycle to pick up the job and set the work offset.
+4. **Select the program.** The right one. From a list that also contains last month's jobs, a
+   test program, and something called `NEW_FINAL_v2_USE_THIS`.
+5. **CYCLE START.**
+
+Steps 3 and 4 are where crashes come from. Skip the probe and the offsets are wherever they were
+last: the first rapid move finds out. Pick the wrong program and you machine a beautiful cavity for
+somebody else's part, or drive a tool through the vise. An employee's skill decides how often they
+skip a step or pick wrong; the player can skip them on purpose, and the game lets them.
+
+The same idea applies elsewhere with different steps: the sinker needs the electrode indicated and
+the tank filled; the wire needs the wire threaded and the part squared; the grinder needs the wheel
+dressed. Each machine has its own short checklist and its own way of punishing a skipped item.
+
 ### Questions for you
 
 - **Q4.** ~~Camera~~ ✅ Answered: both. First-person 3D is the core, 2D isometric for management
   and layout, switchable at any time.
 - **Q5.** ~~Phone = management-first?~~ ✅ Answered: no. Walk-around is the game on every device.
-- **Q51.** In the isometric view, should the player be able to **command people** ("you, go run
-  the wire EDM") by clicking, or is directing the crew only done by assigning jobs on the schedule
-  and talking to them on the floor? Proposed: both, but talking to them on the floor is faster and
-  they like it more.
-- **Q52.** How much physical fidelity in loading a machine? Proposed: carry block to table,
-  click to seat it, click the door, click CYCLE START. No manual indicating or offsets; that is
-  where the operator's skill (or lack of it) lives, and where crashes come from.
+- **Q51.** ~~Command people from isometric?~~ ✅ Answered: both. Click-to-command in the
+  isometric view, and talk to them on the floor (faster, and they like it more).
+- **Q52.** ~~Loading fidelity~~ ✅ Answered: carry, seat, door, CYCLE START, **plus two steps
+  that matter**: pick up the job with the **automatic probe** (set the work offset) and **select
+  the correct program**. Skipping either is how crashes happen. See §2.5.
 
 ---
 
 ## 3. The shop (the building)
 
-### 3.1 Starting state 🟡 Proposed
+### 3.1 Starting state ✅ Agreed (to be verified in-game)
 
-An empty industrial unit: bare slab, block walls, high ceiling, one roll-up door, a small office
-box in one corner, a bathroom, a breaker panel. Fluorescent lights, half of them out. It is
-big, echoey and empty, and the emptiness is the game's first motivator.
+You start in a **2,500 sq ft** industrial unit:
+
+- Bare slab, block walls, **20 ft ceilings**.
+- **One bay door**, about the height of a small truck, with a **tarp strip-curtain** rather than a
+  proper roll-up (it flaps, it lets the winter in, it is the first thing everyone complains about).
+- **Power and air come with the shop**, sized for **two machines**. A small compressor in the
+  corner that cycles constantly.
+- A small office box, a bathroom, a breaker panel, fluorescent lights with half the tubes out.
+- **No crane.** Anything you cannot lift or move with a pallet jack gets outsourced until you buy
+  one.
+
+It is small. 2,500 sq ft fills up fast: two machines, a bench, a steel rack and a desk and you are
+already walking sideways. That is the point; the second building is a real milestone. These numbers
+are agreed on paper and will be checked when the empty shop is first walked in 3D.
 
 ### 3.2 Zones 🟡 Proposed
 
-The floor is a grid of **bays**. Machines occupy bays and have a footprint. The player chooses
-where things go; layout affects walking time and crane reach, nothing else at first.
+The floor is a grid of **bays**. Machines and benches occupy bays and have a footprint. The player
+chooses where things go in the isometric view. Layout affects walking time, crane reach (later),
+and whether the forklift can get to the door.
 
 | Zone | What lives there | Starts as |
 |---|---|---|
-| Machining bays | CNC mills, EDM, grinders | Empty slab |
-| Bench / fitting area | Moldmaker benches, spotting press | Empty slab |
+| Machining bays | CNC mills, EDM, grinders | Empty slab, room for two |
+| Bench / fitting area | Moldmaker benches, later the spotting press | Empty slab |
 | Tool crib | Cutters, electrodes, consumables, hardware | Empty shelving |
 | Steel rack | Incoming plate and blocks | Empty |
-| Inspection room | CMM, granite plate, height gauges | Locked (later purchase) |
-| Sampling / press area | Injection press for tryouts | Locked |
-| Shipping dock | Crates going out, steel coming in | The roll-up door |
+| Inspection room | CMM, granite plate, height gauges | Not in this building |
+| Sampling / press area | Injection press for tryouts | Not in this building |
+| Shipping | Crates in and out | The bay door and a pallet jack |
 | Office | Desk, PC, whiteboard, phone | Yours, day one |
-| Break room | Coffee. Morale. | Later |
+| Break room | Coffee. Morale. | A kettle on a filing cabinet |
 
-### 3.3 Facility upgrades 🟡 Proposed
+### 3.3 Upgrades vs. purchases 🟡 Proposed (judgement per Q8 ✅)
 
-Things you buy that are not machines but gate machines:
+Two kinds of things you buy for the building. **Upgrades** change what the building can do and
+gate other purchases. **Purchases** are things you place on the floor.
 
-- **Overhead crane / jib cranes** — needed to move anything over a set weight (mold bases, big blocks).
-- **Compressed air** — a compressor and lines; needed by most machines.
-- **Electrical service** — a bigger panel / transformer as machine count grows.
-- **Foundation pads** — some machines (big VMCs, grinders, sinker EDM) need a proper pad.
-- **Coolant / chip handling** — chip bins, coolant recycling; ignore it and it becomes a mess.
-- **Climate control** — the inspection room and jig grinder want a stable temperature.
-- **Expansion** — knock out a wall, add a second bay row; or move to a bigger building.
+**Facility upgrades** (gate capacity, usually a contractor, usually a few days of disruption):
+
+| Upgrade | Gates | Notes |
+|---|---|---|
+| Electrical service | Number and size of machines | Starts at "two machines". Each step is a transformer, a panel, an electrician, and a week of "the power guy is coming Thursday" |
+| Compressor | Machines that need air; air tools; blow-off | Starts small and constantly cycling. Bigger compressor, then a dryer, then a receiver tank |
+| Overhead crane / jib crane | Moving anything over what a pallet jack handles: mold bases, big blocks, finished molds | **Not on day one.** Until then big work is outsourced. The crane is a moment |
+| Foundation pads | Big VMCs, grinders, sinker EDM | Cut the slab, pour, wait |
+| Proper bay door | Truck deliveries in the rain, heating bill | Replaces the tarp. Everyone cheers |
+| Climate control | Inspection room, jig grinder, polishers in July | |
+| Coolant / chip handling | Cleanliness, floor state, tooling costs | Chip bins, coolant recycling |
+| Expansion / second building | More bays, inspection room, press area | The mid-game step |
+
+**Simple purchases** (placeable, arrive on a truck, no contractor):
+
+Machines (§4), benches, shelving, steel rack, tool crib contents, pallet jack, forklift, chip
+bins, scrap bin, whiteboard, coffee machine, radio, fridge, microwave, first aid kit, safety
+glasses dispenser, wet floor sign, a chair that does not squeak.
+
+### 3.4 Software licenses 🟡 Proposed (from Q7 ✅)
+
+A shop needs **CAD** (to design the mold), **CAM** (to program the mills), and eventually
+**shop software** (scheduling, quoting, job tracking). These are **licenses**: an upfront cost and
+an annual maintenance fee, per seat. They are part of the first $20k and they never stop.
+
+There is a **cheaper option**. The game offers a "borrowed" copy of CAD and CAM for free. It works.
+It works right up until it does not: an audit letter, a lawsuit, a settlement bill that dwarfs the
+licenses you skipped, and a week with no CAM. The longer you run on it and the bigger the shop
+gets, the more likely the letter. A one-person shop can probably get away with it for a while. A
+twelve-person shop cannot. The choice is the player's, and the achievement is called "Genuine
+Advantage".
+
+### 3.5 Day one, and the first $20k ✅ Agreed (numbers 🟡)
+
+Per Q7, the first money goes to:
+
+1. **Machines** (used, see §4),
+2. **an employee**,
+3. **software licenses** (or not, see §3.4),
+4. and then, immediately, **tooling and steel** for the first job.
+
+And the first job does not pay when you ship it. It pays on terms, in pieces, weeks later. The
+steel was cash on day one. This is the squeeze the whole money game is built on (§9), and the
+shop's first year is about surviving it.
+
+### 3.6 Outsourcing big work 🟡 Proposed (from Q7 ✅)
+
+Until the crane arrives, and until the machines are big enough, jobs that need it go **out**:
+large blocks machined at another shop, big mold bases handled elsewhere, sampling at a molder.
+Outsourced stages cost more, take longer, and depend on somebody else's schedule. This is the
+same vendor system as heat treat and texturing (§6.2), and it means the early game can quote work
+it cannot physically do, at a margin cost. Buying the crane and the big machine is what stops the
+bleeding.
 
 ### Questions for you
 
-- **Q6.** What does a realistic *starting* space look like for a one-person or two-person mold
-  shop? Square footage, ceiling height, door size, power? I want the empty building to be
-  believable.
-- **Q7.** Which facility items actually gate a small shop? Is the crane the real first purchase?
-  Is air a day-one thing? Is 3-phase power the thing that eats the first $20k?
-- **Q8.** Anything above that is wrong or missing? (Water for the EDM and the press, dielectric
-  storage, forklift, etc.)
+- **Q6.** ~~Starting building~~ ✅ Answered: 2,500 sq ft, one small-truck bay door with a tarp
+  system, 20 ft ceilings, power for two machines. To be verified visually in-game.
+- **Q7.** ~~Facility gates~~ ✅ Answered: air and power come with the shop but need upgrading as
+  machines are added; no crane on day one, outsource big work until then; first $20k is machines,
+  an employee and software licenses; steel and tooling on top; customers pay late and progressive
+  terms hurt.
+- **Q8.** ~~Facility list~~ ✅ Answered: my judgement on upgrade vs. purchase; you will redirect
+  as needed.
+- **Q53.** Software: which packages does the game name? Fictional names in the style of the real
+  ones (proposed), or generic "CAD seat / CAM seat"?
+- **Q54.** The tarp door: is that a strip curtain, a roll-up tarp, or a literal tarp on a rope?
+  It matters for the model and the joke.
 
 ---
 
@@ -566,9 +648,12 @@ conditioning, an apology). Some people cannot be fixed. Some quit and come back.
 
 All numbers placeholder. 🟡
 
-- **Start:** a building (rented or inherited?), $150k cash or a $250k loan, one or two manual
-  machines.
-- **Income:** contract payments per §7.5.
+- **Start:** the 2,500 sq ft unit (§3.1), rented. A small pot of cash (placeholder: $50k, of
+  which the first $20k goes per §3.5), no crane, no machines, one bay door with a tarp.
+- **Income:** contract payments per §7.5. **Customers do not pay when you ship.** Progressive
+  terms (a deposit, a payment at tryout, the rest on approval, each on net-30 or worse) mean the
+  money for a job you finished arrives months after you paid for its steel. Per Q7 this is the
+  thing that really hurts small shops, and the game should make the player feel it.
 - **Outgoings:** wages weekly; rent, power, insurance, air/coolant/tooling monthly; steel, mold
   bases, hot runners, hardware per job; vendor invoices; machine payments (buy outright, finance,
   or lease); maintenance; the occasional disaster.
@@ -760,9 +845,9 @@ years, competitor shops that bid against you.
 | Q3 | 1 | Player-named shop? | ✅ Yes, player names it |
 | Q4 | 2 | First-person vs overhead camera | ✅ Both, switchable; first-person is the core |
 | Q5 | 2 | Phone = management-first? | ✅ No; walk-around everywhere, management UI is secondary |
-| Q6 | 3 | Realistic starting building | ❓ |
-| Q7 | 3 | Which facility items gate a small shop | ❓ |
-| Q8 | 3 | Facility list corrections | ❓ |
+| Q6 | 3 | Realistic starting building | ✅ 2,500 sq ft, tarp bay door, 20 ft ceiling, power for 2 machines |
+| Q7 | 3 | Which facility items gate a small shop | ✅ Power/air included but upgradeable; no crane day 1; first $20k = machines, employee, software |
+| Q8 | 3 | Facility list corrections | ✅ My judgement, redirect as needed |
 | Q9 | 4 | Machine catalogue corrections | ❓ |
 | Q10 | 4 | Machine prices | ❓ |
 | Q11 | 4 | What runs unattended | ❓ |
@@ -805,8 +890,10 @@ years, competitor shops that bid against you.
 | Q48 | 13 | Reuse Buy Stove UI style? | ❓ |
 | Q49 | 16 | MVP cut | ❓ |
 | Q50 | 1 | Narrator vs. commentary from the people in the shop | ✅ The people, no narrator |
-| Q51 | 2 | Command people from the isometric view? | ❓ |
-| Q52 | 2 | Fidelity of loading a machine by hand | ❓ |
+| Q51 | 2 | Command people from the isometric view? | ✅ Both isometric click and floor talk |
+| Q52 | 2 | Fidelity of loading a machine by hand | ✅ Seat, door, probe, select program, CYCLE START; skipped steps cause crashes |
+| Q53 | 3 | Software package naming | ❓ |
+| Q54 | 3 | What kind of tarp door | ❓ |
 
 ---
 
@@ -814,6 +901,11 @@ years, competitor shops that bid against you.
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
+| 2026-09-30 | Q6 Building | 2,500 sq ft, 20 ft ceilings, one small-truck bay door with a tarp system, power for two machines. Verify visually once walkable. | 3.1, 9 |
+| 2026-09-30 | Q7 Gates | Air and power included, upgrade for more machines. No crane on day one; outsource big work. First $20k: machines, employee, software licenses (pirated is an option with consequences). Steel and tooling on top; customers pay late on progressive terms. | 3.3, 3.4, 3.5, 3.6, 9 |
+| 2026-09-30 | Q8 Facility list | Upgrade vs. purchase split is my call, subject to redirection. | 3.3 |
+| 2026-09-30 | Q51 Commanding | Both: click-to-command in isometric, talk on the floor. | 2 |
+| 2026-09-30 | Q52 Loading | Seat, door, probe (work offset), select correct program, CYCLE START. Skipping the probe or picking the wrong program is how crashes happen. | 2.5 |
 | 2026-09-30 | Q4 Camera | Two views of one shop: first-person 3D is the core, 2D isometric for managing and layout, switch any time. You can pick up a block, load a machine, press CYCLE START, or throw the block at an employee and get a WSIB claim. | 2.1, 2.2, 12, 13.1 |
 | 2026-09-30 | Q5 Phones / UI | Walk-around is the game on every device. The management UI is only for managing and is never the core view. | 2.3, 2.4 |
 | 2026-09-30 | Q50 Narrator | No narrator. Commentary from the people in the shop and the customer inbox. | 1 |
