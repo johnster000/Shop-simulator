@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** DRAFT 0.7 — sections 1 to 4 agreed in substance; the mold model (§5) and the workflow (§6) next
+**Studio:** Cycle Start Studios · **Status:** DRAFT 0.8 — sections 1 to 4 agreed; the mold model (§5) and the workflow (§6) next
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---
@@ -362,6 +362,12 @@ plates, repairs, revisions, and fitting work on other people's molds. You cannot
 any size in a sensible time. This is the whole early game: enough small work to bank the money
 (or the credit history) for the first CNC.
 
+**What Stage 0 work pays** ✅: small contracts (component work for other shops, repairs,
+revisions, small aluminum prototype inserts) run about **$50–60 per hour**. Bigger contracts, the
+kind you need CNC for, run about **$90–120 per hour**. That gap is the reason to buy the VMC, and
+the game should show it on the quote screen: the same hour is worth twice as much once you can
+sell it as mold work.
+
 **Stage 1, first CNC.** A used 3-axis VMC, then a sinker EDM and a wire EDM. Now you can build a
 real mold, slowly, with a lot of outsourcing (§4.5).
 
@@ -394,7 +400,7 @@ second building.
 | 3 | Large gantry 5-axis (Pappas, Zimmerframe) | The automotive blocks | $1M+ |
 | 3 | Sampling injection press (Lad, Angel) | In-house tryouts instead of paying a molder | $150k / $60k |
 | 3 | Large sinker / large wire | Bigger molds | $250k+ |
-| 3 | Heat-treat oven (see Q57) | In-house hardening; its own way of ruining a block | $150k+ |
+| 3 | Heat-treat oven ✅ | In-house hardening; needs power and a permit; its own way of ruining a block | $150k+ |
 
 ### 4.3 Lights-out ✅ Agreed (rules 🟡)
 
@@ -406,11 +412,11 @@ Anything can run unattended **if it has enough to do**. The rules:
   and single-tool setups do not qualify.
 - **Tools wear and break.** Every lights-out run rolls tool life against the hours. A worn tool
   gives a bad surface (rework). A broken tool, unnoticed, means the machine cuts air for the rest
-  of the night: **lost cutting time**, and sometimes a damaged part. Better machines and tool-break
-  detection (an upgrade) reduce the odds; they never remove them.
+  of the night: **lost cutting time**, and sometimes a damaged part. Better machines and **tool-break
+  detection** (a buyable upgrade ✅) reduce the odds; they never remove them.
 - **EDM catches fire.** A sinker running unattended with the dielectric low, the flushing wrong,
-  or a bad electrode can ignite. It is rare. It is a night you remember. Fire suppression is an
-  upgrade. Insurance is a monthly cost that you will be glad of exactly once.
+  or a bad electrode can ignite. It is rare. It is a night you remember. **Fire suppression** is a
+  buyable upgrade ✅. Insurance is a monthly cost that you will be glad of exactly once.
 - The morning after is a **reveal**: walk in, look at the machine. Either a finished block and a
   good day, or a spun tool, a pile of chips in the wrong shape, and a call to the tooling rep.
 
@@ -445,11 +451,11 @@ What goes out, and when it can come in:
 
 | Work | Day one | Comes in-house when |
 |---|---|---|
-| **Heat treat** | Always out (no oven) | Only if a heat-treat oven is bought (Stage 3, see Q57) |
+| **Heat treat** | Always out (no oven) | When a heat-treat oven is bought (Stage 3) ✅ |
 | **Grain texture** | Always out | Never. A texture house is a texture house |
 | **Hot runner manifold systems** | Always purchased | Never built in-house; always a vendor with a lead time |
 | **Gun drilling** | Out | When the gun drill is bought |
-| **Welding** (repairs, revisions) | Out | When a laser welder is bought **and** someone with the welding skill is hired |
+| **Welding** (repairs, revisions) | Out | When a laser welder is bought **and** someone on the crew has the welding skill (a rare skill, not a separate trade; some moldmakers come with it, others can learn it) ✅ |
 | **Big machining** (large blocks, bases) | Out | When the crane and a large-enough machine exist |
 | **Electrodes** | In, badly (any mill in a pinch, dust everywhere) | Properly when a dedicated graphite mill with extraction arrives |
 | **Sampling / tryout** | Out (at a molder) | When a sampling press is bought |
@@ -481,15 +487,11 @@ faster, the crew complains, and the machine is not cutting steel while it is cut
 - **Q14.** ~~Crashes~~ ✅ Answered: a spectrum from broken cutter to spindle in the table; bumps
   reduce accuracy silently; no maintenance welds tools to parts; money fixes anything, properly or
   with a band-aid. See §4.4.
-- **Q57.** Heat-treat oven as a Stage 3 upgrade: yes or no? If yes, proposed: expensive, needs
-  power and a permit, removes the vendor wait, and gives the shop its own way to crack a block.
-- **Q58.** Welding: is "welder" a **separate hire**, or a **skill** a moldmaker can have (and
-  learn)? Proposed: a skill, rare, and some moldmakers come with it.
-- **Q59.** Stage 0 work: what can a manual-only shop actually sell? Proposed: component work
-  for other mold shops (pins, sleeves, small inserts), repairs and revisions on customers' molds,
-  small aluminum prototype inserts. Is that right, and roughly what does that work pay per hour?
-- **Q60.** Tool-break detection and fire suppression as buyable upgrades: fair, or is that too
-  much granularity?
+- **Q57.** ~~Heat-treat oven~~ ✅ Answered: yes, a Stage 3 upgrade.
+- **Q58.** ~~Welder~~ ✅ Answered: a skill, rare, some moldmakers come with it.
+- **Q59.** ~~Stage 0 work~~ ✅ Answered: components, repairs, revisions, small aluminum protos
+  at about $50–60/hr; bigger CNC-class contracts at about $90–120/hr.
+- **Q60.** ~~Upgrades~~ ✅ Answered: yes to tool-break detection and fire suppression.
 
 ---
 
@@ -750,6 +752,9 @@ All numbers placeholder. 🟡
 
 - **Start:** the 2,500 sq ft unit (§3.1), rented. A small pot of cash (placeholder: $50k, of
   which the first $20k goes per §3.5), no crane, no machines, one bay door with a tarp.
+- **Shop rate:** the number behind every quote. Stage 0 work sells at about $50–60/hr, mold
+  work at about $90–120/hr (§4.1). Quotes are hours × rate + material + purchased parts +
+  vendors, and the estimate screen shows it that way.
 - **Income:** contract payments per §7.5. **Customers do not pay when you ship.** Progressive
   terms (a deposit, a payment at tryout, the rest on approval, each on net-30 or worse) mean the
   money for a job you finished arrives months after you paid for its steel. Per Q7 this is the
@@ -998,10 +1003,10 @@ years, competitor shops that bid against you.
 | Q53 | 3 | Software package naming | ✅ Spoofed real brands everywhere, see BRANDS.md |
 | Q55 | 3 | Vet the BRANDS.md spoof list | ❓ |
 | Q56 | 3 | Genvision Easter egg? | ✅ Yes, loosely, behind a flag |
-| Q57 | 4 | Heat-treat oven as a Stage 3 upgrade? | ❓ |
-| Q58 | 4 | Welder: separate hire or a skill? | ❓ |
-| Q59 | 4 | What Stage 0 (manual-only) work sells, and for what | ❓ |
-| Q60 | 4 | Tool-break detection and fire suppression as upgrades? | ❓ |
+| Q57 | 4 | Heat-treat oven as a Stage 3 upgrade? | ✅ Yes |
+| Q58 | 4 | Welder: separate hire or a skill? | ✅ A skill, rare |
+| Q59 | 4 | What Stage 0 (manual-only) work sells, and for what | ✅ Components, repairs, protos at $50–60/hr; CNC-class work at $90–120/hr |
+| Q60 | 4 | Tool-break detection and fire suppression as upgrades? | ✅ Yes, both |
 | Q54 | 3 | What kind of tarp door | ✅ Cheap, upgradeable, as written |
 
 ---
@@ -1010,6 +1015,10 @@ years, competitor shops that bid against you.
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
+| 2026-09-30 | Q57 Oven | Heat-treat oven is a Stage 3 upgrade. | 4.2, 4.5, 3.3 |
+| 2026-09-30 | Q58 Welder | Welding is a rare skill on a moldmaker, not a separate trade. | 4.5, 8 |
+| 2026-09-30 | Q59 Stage 0 pay | Manual-only work (components, repairs, revisions, small aluminum protos) at ~$50–60/hr; CNC-class contracts ~$90–120/hr. | 4.1, 9 |
+| 2026-09-30 | Q60 Upgrades | Tool-break detection and fire suppression are buyable upgrades. | 4.3, 3.3 |
 | 2026-09-30 | Q9 Progression | Manual machines first for small blocks and components; CNC when capital or loans allow. | 4.1, 4.2 |
 | 2026-09-30 | Q10 Prices | Starting prices accepted; 5-axis raised toward $1M. | 4.2 |
 | 2026-09-30 | Q11 Lights-out | Any long enough cut can run unattended with a tool changer; tools wear and break; EDM can catch fire. | 4.3, 12 |
