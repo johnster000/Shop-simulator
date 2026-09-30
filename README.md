@@ -10,3 +10,6 @@ on desktop or phone.
 **Status: design phase.** Nothing is built yet. Everything is in [docs/DESIGN_BIBLE.md](docs/DESIGN_BIBLE.md),
 which is written as a set of proposals with questions attached, to be reviewed by someone who runs
 a real mold shop before any decision is locked.
+
+The brand catalogue (every machine, software package and supplier in the game, spoofed off the
+real world) is in [docs/BRANDS.md](docs/BRANDS.md).

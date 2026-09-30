@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** DRAFT 0.5 — sections 1 to 3 agreed; machines (§4) next
+**Studio:** Cycle Start Studios · **Status:** DRAFT 0.6 — sections 1 to 3 agreed; brand catalogue drafted for vetting; machines (§4) next
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---
@@ -287,6 +287,9 @@ A shop needs **CAD** (to design the mold), **CAM** (to program the mills), and e
 **shop software** (scheduling, quoting, job tracking). These are **licenses**: an upfront cost and
 an annual maintenance fee, per seat. They are part of the first $20k and they never stop.
 
+Every package is a spoof of a real one; the full list, with the real-world price tiers behind
+it and the legal house rules, is in [BRANDS.md](BRANDS.md).
+
 There is a **cheaper option**. The game offers a "borrowed" copy of CAD and CAM for free. It works.
 It works right up until it does not: an audit letter, a lawsuit, a settlement bill that dwarfs the
 licenses you skipped, and a week with no CAM. The longer you run on it and the bigger the shop
@@ -326,8 +329,12 @@ bleeding.
   terms hurt.
 - **Q8.** ~~Facility list~~ ✅ Answered: my judgement on upgrade vs. purchase; you will redirect
   as needed.
-- **Q53.** Software: which packages does the game name? Fictional names in the style of the real
-  ones (proposed), or generic "CAD seat / CAM seat"?
+- **Q53.** ~~Software naming~~ ✅ Answered: everything spoofed off real companies, software and
+  machine builders alike, within the legal house rules. Catalogue in [BRANDS.md](BRANDS.md).
+- **Q55.** Vet [BRANDS.md](BRANDS.md): strike, rename, add. The §6 shortlist there is what the
+  first playable needs.
+- **Q56.** Does the real **Genvision** appear as an Easter-egg shop software, or is that too
+  inside?
 - **Q54.** The tarp door: is that a strip curtain, a roll-up tarp, or a literal tarp on a rope?
   It matters for the model and the joke.
 
@@ -335,8 +342,10 @@ bleeding.
 
 ## 4. Machines
 
-This is the catalogue the player buys from. Prices are **placeholders** and are the single most
-important thing I need corrected. Every machine has: purchase price (new and used), footprint,
+This is the catalogue the player buys from. Every machine carries a **spoofed brand** (Hoss,
+Mikano, Sodiak, Bitsumishi; the full list is in [BRANDS.md](BRANDS.md)), and brand is a real
+attribute: it sets the price tier, reliability, service response, and how the crew feels about
+running it. Prices are **placeholders** and are the single most important thing I need corrected. Every machine has: purchase price (new and used), footprint,
 power/air/foundation needs, what stages of a build it can do, hours-per-stage multiplier, breakdown
 rate, operator skill required, and resale value.
 
@@ -892,7 +901,9 @@ years, competitor shops that bid against you.
 | Q50 | 1 | Narrator vs. commentary from the people in the shop | ✅ The people, no narrator |
 | Q51 | 2 | Command people from the isometric view? | ✅ Both isometric click and floor talk |
 | Q52 | 2 | Fidelity of loading a machine by hand | ✅ Seat, door, probe, select program, CYCLE START; skipped steps cause crashes |
-| Q53 | 3 | Software package naming | ❓ |
+| Q53 | 3 | Software package naming | ✅ Spoofed real brands everywhere, see BRANDS.md |
+| Q55 | 3 | Vet the BRANDS.md spoof list | ❓ |
+| Q56 | 3 | Genvision Easter egg? | ❓ |
 | Q54 | 3 | What kind of tarp door | ❓ |
 
 ---
@@ -901,6 +912,7 @@ years, competitor shops that bid against you.
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
+| 2026-09-30 | Q53 Brands | All software and machine brands are spoofs of real companies, kept inside the legal house rules in BRANDS.md (no real names, logos or trade dress; famous marks get more distance; the joke is never that a real product is bad). | 3.4, 4, BRANDS.md |
 | 2026-09-30 | Q6 Building | 2,500 sq ft, 20 ft ceilings, one small-truck bay door with a tarp system, power for two machines. Verify visually once walkable. | 3.1, 9 |
 | 2026-09-30 | Q7 Gates | Air and power included, upgrade for more machines. No crane on day one; outsource big work. First $20k: machines, employee, software licenses (pirated is an option with consequences). Steel and tooling on top; customers pay late on progressive terms. | 3.3, 3.4, 3.5, 3.6, 9 |
 | 2026-09-30 | Q8 Facility list | Upgrade vs. purchase split is my call, subject to redirection. | 3.3 |
