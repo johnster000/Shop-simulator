@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** DRAFT 0.3 — tone, player and shop name agreed; the shop itself still open
+**Studio:** Cycle Start Studios · **Status:** DRAFT 0.4 — tone, player, shop name, camera and platform agreed; the shop itself still open
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---
@@ -138,23 +138,67 @@ whole team (you and me) agrees what we are building on.
 | Assets | Everything procedural: canvas textures, box/cylinder/lathe geometry. No modelled meshes, no image packs. Machines are stylised, readable silhouettes, not CAD. |
 | Testing shortcuts | Query params for fast time (`?speed=`), starting cash (`?cash=`), skip-to-day (`?day=`). |
 
-### Camera and interaction model 🟡 Proposed
+### 2.1 Camera: two views, one shop ✅ Agreed
 
-- **On the floor:** first-person walk, exactly Buy Stove's feel. Walk up to a machine and look at
-  it to see its status (job, % done, operator, alarm). Click to open its panel.
-- **In the office:** a desk with a PC. Clicking the monitor opens the **management UI** as a
-  full-screen 2D overlay: quotes, schedule, purchasing, hiring, bank. This keeps the 3D world
-  simple and lets the management screens be honest HTML instead of 3D UI.
-- **Quick access:** a tablet in the player's hand (key `Tab`) opens the same management UI from
-  anywhere, so walking back to the office is a choice, not a chore.
+The game has **two views of the same shop**, switched with one key (`V`) or a HUD button:
+
+| View | What it is for | Feel |
+|---|---|---|
+| **3D first-person** (the core view) | Being in the shop. Walking the floor, picking things up, loading machines, pressing buttons, talking to people, throwing things. | Buy Stove: pointer-lock look, WASD, click to touch / pick up / throw. |
+| **2D isometric** (the management view) | Seeing the whole shop at once. Placing machines, reading the floor, spotting the idle guy, dragging a job to a different machine. | Anvil & Acre-style overhead of the same 3D scene: the camera lifts to a fixed isometric angle, the roof comes off, the HUD shows tags on everything. |
+
+Same scene, same objects, same state. Switching view never pauses the shop. The isometric view
+is a camera, not a separate game.
+
+### 2.2 Walk around and do stuff ✅ Agreed (details 🟡 Proposed)
+
+The core loop is **physical**. Management screens exist to manage; they are not where you live.
+The floor is where the game happens:
+
+- **Pick things up:** a block of steel, an electrode, a box of ejector pins, a coffee, the
+  apprentice's phone. Small things by hand; big things (mold bases, big blocks, a finished mold)
+  need the crane or a forklift, which you drive.
+- **Load a machine:** carry the block to the VMC, put it on the table, close the door, press
+  **CYCLE START**. The big green button. The spindle winds up. That is the moment the game is
+  named after, twice.
+- **Do the stage yourself** (see §8.4): stay and work, or walk away if it can run unattended.
+- **Talk to people:** walk up, click, get a line. What they say is what they think of the job,
+  the shop, and you. This replaces the narrator.
+- **Read the shop:** status light stacks on every machine, chips on the floor, crates by the
+  door, a whiteboard in the office, sticky notes on things. If you walk the floor you know the
+  schedule.
+- **Throw things.** Because you can. Throw a block of steel at an employee and you get a
+  **WSIB claim**, a bill, a very disgruntled employee, and an achievement. Throw it at a machine
+  window and you get a glazier's invoice. Throw the coffee and you get a wet floor sign. Buy
+  Stove's throw physics carry straight over; the consequences are new.
+
+### 2.3 The management UI 🟡 Proposed (scope per Q5 ✅)
+
+Secondary, on purpose. Opened from the office PC, or from a **clipboard** in the player's hand
+(`Tab`) so you can quote a job standing next to the machine. It is a 2D overlay: inbox, quotes,
+jobs, schedule, purchasing, people, bank. It is there to manage; it is not the main view, and it
+should never be the screen you spend most of your time in. If a thing can be done on the floor by
+walking and clicking, it is done on the floor. The UI is for the things that only happen on paper.
+
+### 2.4 Phones ✅ Agreed
+
+Phones get the same walk-around game with Buy Stove's touch controls (left-side joystick, drag to
+look, tap to act), plus the isometric view which is naturally touch-friendly (tap to select, drag
+to pan, pinch to zoom, as in Anvil & Acre). The management overlay is responsive. No
+"management-only" phone build.
 
 ### Questions for you
 
-- **Q4.** Is the walk-the-floor first-person view actually what you want, or would you rather an
-  overhead/isometric view of the shop with the ability to drop into first person? (First-person is
-  "the Buy Stove style"; overhead is what most tycoons do and makes layout easier to read.)
-- **Q5.** Phone support is a Cycle Start rule. Are we happy for the phone version to be
-  "management UI first, floor view second"?
+- **Q4.** ~~Camera~~ ✅ Answered: both. First-person 3D is the core, 2D isometric for management
+  and layout, switchable at any time.
+- **Q5.** ~~Phone = management-first?~~ ✅ Answered: no. Walk-around is the game on every device.
+- **Q51.** In the isometric view, should the player be able to **command people** ("you, go run
+  the wire EDM") by clicking, or is directing the crew only done by assigning jobs on the schedule
+  and talking to them on the floor? Proposed: both, but talking to them on the floor is faster and
+  they like it more.
+- **Q52.** How much physical fidelity in loading a machine? Proposed: carry block to table,
+  click to seat it, click the door, click CYCLE START. No manual indicating or offsets; that is
+  where the operator's skill (or lack of it) lives, and where crashes come from.
 
 ---
 
@@ -607,6 +651,7 @@ joke stops being funny.
 | Cash crunch | Slow payers, too many jobs started | Bank | Phone rings; it is the bank; nobody wants to answer it |
 | Customer goes bankrupt | Rare event | Unpaid final invoice; you own a mold nobody wants | A very nice mold in the corner with a for-sale sign |
 | Quote badly wrong | Bad estimate, novel job | Eat the hours | The estimate sheet, framed, with the real number written next to it |
+| Workplace injury | Something thrown, a crane load swinging, no guard on the grinder, or plain bad luck | WSIB claim, a bill, days off work, morale, an inspector visit if it keeps happening | The ambulance in the parking lot, a cast, everyone else suddenly wearing their safety glasses |
 | Wrong program run | Operator picked the wrong file | Crash or a nicely machined part for a different customer | A perfect cavity for a job you finished last month |
 
 ### Questions for you
@@ -620,7 +665,7 @@ joke stops being funny.
 
 ## 13. Presentation
 
-### 13.1 The 3D shop 🟡
+### 13.1 The 3D shop (and its isometric twin) 🟡
 
 - **Style:** Buy Stove's stylised procedural look, but industrial: grey epoxy floor with yellow
   safety lines, steel-blue machine enclosures, orange crane, fluorescent cool light, dust in the
@@ -635,6 +680,8 @@ joke stops being funny.
   parting line blued up, a finished mold in a crate by the door.
 - **Status light stacks** and a floating tag when looked at: `JOB 0042 · CORE BLOCK · FINISH ·
   62% · Dave` — the floor tells you the schedule if you walk it.
+- **Isometric view:** the same scene from a lifted fixed-angle camera with the roof removed; every
+  machine and person gets a permanent tag; idle machines and idle people are visibly flagged.
 
 ### 13.2 The management UI 🟡
 
@@ -711,8 +758,8 @@ years, competitor shops that bid against you.
 | Q1 | 1 | Tone | ✅ Comedic, light-hearted, real mechanics underneath |
 | Q2 | 1 | Owner works the floor or only manages? | ✅ Owner, knows the trade, can do anything; hires wrong people; accidents happen to everyone |
 | Q3 | 1 | Player-named shop? | ✅ Yes, player names it |
-| Q4 | 2 | First-person vs overhead camera | ❓ |
-| Q5 | 2 | Phone = management-first? | ❓ |
+| Q4 | 2 | First-person vs overhead camera | ✅ Both, switchable; first-person is the core |
+| Q5 | 2 | Phone = management-first? | ✅ No; walk-around everywhere, management UI is secondary |
 | Q6 | 3 | Realistic starting building | ❓ |
 | Q7 | 3 | Which facility items gate a small shop | ❓ |
 | Q8 | 3 | Facility list corrections | ❓ |
@@ -758,6 +805,8 @@ years, competitor shops that bid against you.
 | Q48 | 13 | Reuse Buy Stove UI style? | ❓ |
 | Q49 | 16 | MVP cut | ❓ |
 | Q50 | 1 | Narrator vs. commentary from the people in the shop | ✅ The people, no narrator |
+| Q51 | 2 | Command people from the isometric view? | ❓ |
+| Q52 | 2 | Fidelity of loading a machine by hand | ❓ |
 
 ---
 
@@ -765,6 +814,8 @@ years, competitor shops that bid against you.
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
+| 2026-09-30 | Q4 Camera | Two views of one shop: first-person 3D is the core, 2D isometric for managing and layout, switch any time. You can pick up a block, load a machine, press CYCLE START, or throw the block at an employee and get a WSIB claim. | 2.1, 2.2, 12, 13.1 |
+| 2026-09-30 | Q5 Phones / UI | Walk-around is the game on every device. The management UI is only for managing and is never the core view. | 2.3, 2.4 |
 | 2026-09-30 | Q50 Narrator | No narrator. Commentary from the people in the shop and the customer inbox. | 1 |
 | 2026-09-30 | Q2 Player | The player is the owner, came up through the trade, can run any machine and build a mold. Comedy is hiring the wrong people, and accidents that happen even to the best. Doing dumb things on purpose is allowed and entertaining. | 1.4, 8.4 |
 | 2026-09-30 | Q3 Shop name | Player names the shop; the name appears everywhere. | 1.5 |
