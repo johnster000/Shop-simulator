@@ -533,8 +533,10 @@ export function startShop(T, audio, state) {
     ray.setFromCamera(centre, camera);
     const hits = ray.intersectObjects(scene.children, true);
     lookAt = null; let lookDist = 99;
+    const shown = (o) => { for (let q = o; q; q = q.parent) if (!q.visible) return false; return true; }; // raycasts do not care about visible; we do
     for (const h of hits) {
       if (h.distance > 3.2) break;
+      if (!shown(h.object)) continue;
       const i = h.object.userData.interact; if (!i || i.type === 'floor') continue;
       lookAt = i; lookDist = h.distance; break;
     }
@@ -800,6 +802,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, get paused() { return paused; }, get night() { return night; }, run: (m, skipped) => runMachine(m, skipped, null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, run: (m, skipped) => runMachine(m, skipped, null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

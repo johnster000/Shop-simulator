@@ -13,7 +13,7 @@ export class Visitor {
   constructor(T, scene, shop, nav, state, crew, hooks) {
     this.T = T; this.scene = scene; this.shop = shop; this.nav = nav; this.state = state; this.crew = crew; this.hooks = hooks;
     const look = randomLook(); look.vest = true; look.glasses = true; look.hat = 'none'; look.coveralls = false;
-    this.g = buildPerson(T, look); this.g.visible = false; scene.add(this.g);
+    this.g = buildPerson(T, look); this.g.visible = false; this.g.position.y = -200; scene.add(this.g);
     this.g.traverse((o) => { o.userData.interact = { type: 'visitor' }; });
     this.pos = { x: 0, z: 0 }; this.yaw = 0; this.walk = 0; this.path = []; this.t = 0; this.wait = 0;
     this.here = false; this.dayChecked = -1; this.due = null; this.stops = []; this.score = 0; this.seen = new Set(); this.toured = false;
@@ -96,7 +96,7 @@ export class Visitor {
   }
   // the verdict, by email, that night. the score decides the tone and whether an RFQ comes with it.
   finish() {
-    const s = this.state, c = this.customer; this.here = false; this.g.visible = false; this.leaving = false; this.due = null;
+    const s = this.state, c = this.customer; this.here = false; this.g.visible = false; this.g.position.y = -200; this.leaving = false; this.due = null;
     const sc = this.score;
     s.rep = Math.max(0, Math.min(1, s.rep + (this.hit ? -0.15 : sc >= 3 ? 0.06 : sc >= 1 ? 0.03 : sc <= -2 ? -0.06 : 0)));
     let body;
@@ -110,5 +110,5 @@ export class Visitor {
     this.hooks.toast(`${this.p.name} left. ${this.hit ? 'Limping. There will be an email.' : sc >= 3 ? 'Impressed. There will be an RFQ.' : sc >= 1 ? 'Pleasant enough.' : sc <= -2 ? 'Not impressed. There will be an email.' : 'Noncommittal.'}`, 4500);
     if (sc >= 3) this.hooks.unlock('tour');
   }
-  night() { if (this.here) this.finish(); this.here = false; this.g.visible = false; this.leaving = false; }
+  night() { if (this.here) this.finish(); this.here = false; this.g.visible = false; this.g.position.y = -200; this.leaving = false; }
 }

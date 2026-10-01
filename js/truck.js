@@ -49,9 +49,9 @@ const LEFT_LINES = ['Left it on the pad. He waited twenty minutes, which he ment
 export class Delivery {
   constructor(T, scene, shop, state) {
     this.T = T; this.scene = scene; this.shop = shop; this.state = state;
-    this.truck = buildTruck(T); this.truck.visible = false; scene.add(this.truck);
+    this.truck = buildTruck(T); this.truck.visible = false; this.truck.position.y = -200; scene.add(this.truck);
     const look = randomLook(); look.vest = true; look.hat = 'cap'; look.coveralls = false;
-    this.driver = buildPerson(T, look); this.driver.visible = false; scene.add(this.driver);
+    this.driver = buildPerson(T, look); this.driver.visible = false; this.driver.position.y = -200; scene.add(this.driver);
     this.driver.traverse((o) => { o.userData.interact = { type: 'driver', text: 'the driver. clipboard. nine more stops.' }; });
     const clip = buildClipboard(T); holdProp(this.driver, clip, 'l'); clip.traverse((o) => { o.userData.interact = { type: 'driver' }; });
     this.here = false; this.leaving = 0; this.t = 0;
@@ -64,7 +64,7 @@ export class Delivery {
     this.t += dt;
     if (want && !this.here && !this.leaving) {
       this.here = true; this.truck.visible = true; this.driver.visible = true; this.arrivedAt = s.t;
-      this.truck.position.set(d.x, 0, hz + 3.6); this.truck.rotation.y = 0;
+      this.truck.position.set(d.x, 0, hz + 3.6); this.truck.rotation.y = 0; this.driver.position.y = 0;
       this.driver.position.set(d.x + 0.9, 0, hz - 1.3); this.driver.rotation.y = Math.PI * 0.85;
     }
     if (this.here) pose(this.driver, { mode: 'hold', t: this.t, walk: 0, morale: 0.6 });
@@ -75,9 +75,9 @@ export class Delivery {
     // noon: he leaves it on the pad
     // noon: he leaves it on the pad. if the truck never got here (it was leaving, or you loaded the game at two), it is on the pad anyway.
     if (s.t >= 300 && this.waiting().length && (s.day - 1) % 7 !== 5) { for (const j of this.waiting()) { j.truck = false; j.status = 'work'; } if (onLeft) onLeft(LEFT_LINES[Math.floor(Math.random() * LEFT_LINES.length)]); if (this.here) this.leave(); }
-    if (this.leaving) { this.leaving -= dt; this.truck.position.z += dt * 2.2; this.truck.position.x += dt * 0.3; if (this.leaving <= 0) { this.leaving = 0; this.truck.visible = false; } }
+    if (this.leaving) { this.leaving -= dt; this.truck.position.z += dt * 2.2; this.truck.position.x += dt * 0.3; if (this.leaving <= 0) { this.leaving = 0; this.truck.visible = false; this.truck.position.y = -200; } }
   }
-  leave() { this.here = false; this.driver.visible = false; this.leaving = 5; }
+  leave() { this.here = false; this.driver.visible = false; this.driver.position.y = -200; this.leaving = 5; }
   // the signature. returns a line from the driver.
   sign() {
     const jobs = this.waiting(); if (!jobs.length) return null;
@@ -85,5 +85,5 @@ export class Delivery {
     this.leave();
     return { jobs, line: DRIVER_LINES[Math.floor(Math.random() * DRIVER_LINES.length)] };
   }
-  night() { this.here = false; this.leaving = 0; this.truck.visible = false; this.driver.visible = false; }
+  night() { this.here = false; this.leaving = 0; this.truck.visible = false; this.driver.visible = false; this.truck.position.y = -200; this.driver.position.y = -200; }
 }
