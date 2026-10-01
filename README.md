@@ -72,3 +72,9 @@ js/audio.js       every sound, synthesized. the compressor is most of them.
 js/textures.js    canvas textures: concrete, block, tarp, nameplates, the sign
 js/vendor/        three.js r160 (MIT)
 ```
+
+## Publishing to a claude.ai artifact
+
+The artifact host wraps the page in its own document skeleton, so it takes a body fragment rather
+than `index.html` itself. `tools/make-artifact.mjs <out-file>` derives that fragment; publish it
+with `style.css` and `js/**` as supporting files.
