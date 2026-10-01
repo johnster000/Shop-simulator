@@ -209,6 +209,17 @@ export class Shop {
     const phone = this.box(0.18, 0.06, 0.2, new T.MeshStandardMaterial({ color: 0x222 }), 0.5, 0.79, -0.15, desk);
     s.add(desk); this.tag(desk, 'pc', 'the office PC. quotes, bills, the inbox.'); this.solid(x0 + 1.4, z0 + 1.0, 0.9, 0.45);
     this.pc = desk; this.pcPos = { x: x0 + 1.4, z: z0 + 1.0 };
+    // the office phone. beige. a cord. a red light for when it rings and nobody is in the office.
+    const ph = new T.Group(); ph.position.set(x0 + 1.4 - 0.45, 0.77, z0 + 1.0 - 0.3); s.add(ph);
+    const beige = new T.MeshStandardMaterial({ color: 0xd9d2bd, roughness: 0.7 });
+    const base = new T.Mesh(new T.BoxGeometry(0.22, 0.06, 0.18), beige); base.position.y = 0.03; base.rotation.x = 0.12; ph.add(base);
+    const pad = new T.Mesh(new T.PlaneGeometry(0.1, 0.09), new T.MeshBasicMaterial({ map: TX.label(T, ['1 2 3', '4 5 6', '7 8 9'], { size: 22 }) })); pad.position.set(0.04, 0.062, 0.0); pad.rotation.x = -Math.PI / 2 + 0.12; ph.add(pad);
+    const hs = new T.Mesh(new T.BoxGeometry(0.05, 0.03, 0.2), beige); hs.position.set(-0.07, 0.085, 0); ph.add(hs);
+    for (const z of [-0.085, 0.085]) { const cup = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.03, 12), beige); cup.position.set(-0.07, 0.085, z); ph.add(cup); }
+    const led = new T.Mesh(new T.SphereGeometry(0.008, 8, 6), new T.MeshStandardMaterial({ color: 0x441111, emissive: 0xff2020, emissiveIntensity: 0 })); led.position.set(0.09, 0.07, -0.07); ph.add(led); this.phoneLed = led;
+    const cord = new T.Mesh(new T.TorusGeometry(0.03, 0.004, 6, 16, Math.PI), new T.MeshStandardMaterial({ color: 0x333 })); cord.position.set(0.1, 0.0, 0.08); cord.rotation.y = Math.PI / 2; ph.add(cord);
+    ph.traverse((o) => { o.userData.interact = { type: 'phone', text: 'the office phone. it rings when you are at the far end of the shop.' }; });
+    this.phonePos = { x: x0 + 0.95, z: z0 + 0.7 };
     const chair = new T.Group(); chair.position.set(x0 + 1.4, 0, z0 + 1.9);
     const cm = new T.MeshStandardMaterial({ color: 0x333, roughness: 0.8 });
     this.box(0.5, 0.06, 0.5, cm, 0, 0.45, 0, chair); this.box(0.5, 0.5, 0.06, cm, 0, 0.75, 0.24, chair);

@@ -181,6 +181,12 @@ Then open http://localhost:8080/.
   about something, the French station in three, and static. It gets quieter as you walk away
   and louder when you come back, like a real one. Click it to change it; somebody will object.
 
+- The office phone. It rings during the day, with a red light, and it falls off with distance so
+  you hear it best from the far end of the shop. Answer it at the desk: Rick (or a customer) with
+  a rush job at a rush rate and two days, a complaint you can talk down, or a man about your
+  extended machine warranty who costs four minutes. Let it ring and the rush job goes to
+  Lakeshore and the complaint becomes a voicemail.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
