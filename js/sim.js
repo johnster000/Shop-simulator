@@ -1,10 +1,15 @@
 // The simulation. No three.js in here: this is the shop as numbers.
-// Time is in shop days. A day is 60 real seconds at 1x. Monday is day 1.
+// Time is minute for minute: a shop minute is a real minute at 1x. The day opens at 7:00 and
+// closes at 17:00; you can stay late until 23:00, and then you go home whether you like it or not.
+// Monday is day 1.
 
 import { byId, SHOP } from './catalog.js';
 
 export const SAVE_KEY = 'shopsim.save.v1';
-export const DAY_SECONDS = 60;
+export const OPEN_HOUR = 7;
+export const CLOSE_MIN = 600;    // 17:00, in minutes after opening
+export const HARD_STOP_MIN = 960; // 23:00. nobody is any good after this.
+export const END_DAY_SPEED = 60;  // END DAY runs a shop minute per real second
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const RENT_WEEKLY = 850;      // $3,400 a month-ish for 2,500 sq ft, charged Monday morning
 const POWER_WEEKLY_BASE = 200; // the lights and the compressor
@@ -17,8 +22,11 @@ export function newState(shopName) {
     shopName,
     cash: Math.max(0, parseFloat(params.get('cash')) || 50000),
     day: Math.max(1, parseInt(params.get('day')) || 1),
-    t: 0,              // seconds into the current day (0..DAY_SECONDS)
-    speed: 1,
+    t: 0,              // shop minutes since 7:00
+    speed: 1,          // 0 paused, 1, 2, 3, or END_DAY_SPEED
+    closingShown: false,
+    fatigue: 0,        // 0 rested .. 1 wrecked. set by how much sleep you got.
+    lastSleep: 10,
     machines: [],      // { uid, id, x, z, rot, used, condition, hours, running, checklist }
     nextUid: 1,
     ledger: [{ day: 1, text: 'Opening balance', amount: 0 }],
@@ -45,12 +53,13 @@ export function wipe() { try { localStorage.removeItem(SAVE_KEY); } catch (e) { 
 
 export function dayName(day) { return DAYS[(day - 1) % 7]; }
 
-export function clockText(state) {
-  // the shop day runs 7:00 to 17:00 on the display; the maths underneath is just seconds
-  const mins = Math.floor((state.t / DAY_SECONDS) * 600);
-  const h = 7 + Math.floor(mins / 60), m = mins % 60;
-  return `Day ${state.day} · ${dayName(state.day)} ${h}:${m < 10 ? '0' : ''}${m}`;
+export function hourText(mins) {
+  const h = OPEN_HOUR + Math.floor(mins / 60), m = Math.floor(mins % 60);
+  return `${h % 24}:${m < 10 ? '0' : ''}${m}`;
 }
+export function clockText(state) { return `Day ${state.day} \u00b7 ${dayName(state.day)} ${hourText(state.t)}`; }
+export function afterHours(state) { return state.t >= CLOSE_MIN; }
+export function fatigueText(f) { return f >= 0.6 ? 'EXHAUSTED' : f >= 0.25 ? 'TIRED' : ''; }
 
 export function money(n) {
   const neg = n < 0; n = Math.abs(n);
@@ -72,31 +81,46 @@ export function canPower(state, def) {
   return def.power === 0 || poweredCount(state) < SHOP.powerSlots;
 }
 
-// Advance the clock. Returns a list of events that happened (for toasts and sounds).
+// Advance the clock by dt real seconds. Returns the events that happened (for toasts and sounds).
+// The clock never rolls the day over by itself: you do that by going home (goHome).
 export function tick(state, dt) {
   const events = [];
   if (state.speed <= 0) return events;
-  state.t += dt * state.speed;
-  while (state.t >= DAY_SECONDS) {
-    state.t -= DAY_SECONDS;
-    state.day += 1;
-    events.push({ type: 'day', day: state.day });
-    if ((state.day - 1) % 7 === 0) {
-      post(state, 'Rent', -RENT_WEEKLY);
-      const power = POWER_WEEKLY_BASE + POWER_PER_MACHINE * poweredCount(state);
-      post(state, 'Hydro', -power);
-      events.push({ type: 'week', rent: RENT_WEEKLY, power });
-    }
-  }
-  // machines run their cycles
+  const mins = (dt / 60) * state.speed;
+  const before = state.t;
+  state.t = Math.min(HARD_STOP_MIN, state.t + mins);
+  const elapsed = state.t - before;
+  if (before < CLOSE_MIN && state.t >= CLOSE_MIN && !state.closingShown) { state.closingShown = true; events.push({ type: 'closing' }); }
+  if (state.t >= HARD_STOP_MIN && before < HARD_STOP_MIN) events.push({ type: 'hardstop' });
+  // machines run their cycles, in shop minutes
   for (const m of state.machines) {
     if (m.running) {
-      m.runLeft -= dt * state.speed;
-      m.hours += (dt * state.speed) / DAY_SECONDS * 10;
+      m.runLeft -= elapsed;
+      m.hours += elapsed / 60;
       if (m.runLeft <= 0) { m.running = false; m.runLeft = 0; m.checklist = {}; events.push({ type: 'cycleDone', uid: m.uid }); }
     }
   }
   return events;
+}
+
+// Lock up and go home. Returns what the night was like, for the home screen.
+export function goHome(state) {
+  const leftAt = OPEN_HOUR + state.t / 60;               // e.g. 17.0 or 22.5
+  const sleep = Math.max(0, (24 - leftAt) + 6.5 - 0.5 - 0.5); // home by leftAt+0.5, up at 6:00, half an hour of being a person
+  // ten hours is a full night. less than that and it starts to show.
+  const fatigue = Math.max(0, Math.min(1, (9.5 - sleep) / 4.5));
+  const overtime = Math.max(0, state.t - CLOSE_MIN);
+  const night = { leftAt: hourText(state.t), sleep, fatigue, overtime, dayDone: state.day };
+  state.lastSleep = sleep; state.fatigue = fatigue;
+  state.day += 1; state.t = 0; state.closingShown = false; state.speed = 1;
+  if ((state.day - 1) % 7 === 0) {
+    post(state, 'Rent', -RENT_WEEKLY);
+    const power = POWER_WEEKLY_BASE + POWER_PER_MACHINE * poweredCount(state);
+    post(state, 'Hydro', -power);
+    night.week = { rent: RENT_WEEKLY, power };
+  }
+  night.day = state.day;
+  return night;
 }
 
 export function buy(state, def, used) {

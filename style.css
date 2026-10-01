@@ -42,6 +42,11 @@ button{font:inherit;cursor:pointer}
 #speeds{display:inline-flex;gap:4px;pointer-events:auto}
 #speeds button{width:38px;height:28px;background:rgba(0,0,0,.5);color:#ccc;border:1px solid rgba(255,255,255,.35);font-size:12px;padding:0}
 #speeds button.on{background:#fff;color:#000;border-color:#fff}
+#speeds #endDay{width:auto;padding:0 10px;letter-spacing:.08em}
+#endDay.home{background:rgba(240,180,41,.25);border-color:var(--amber);color:#fff}
+#fatigue{font-size:11px;letter-spacing:.2em;color:var(--amber);padding:3px 8px;border:1px solid var(--amber);display:none}
+#fatigue.show{display:inline-block}
+#fatigue.bad{color:#ff6b6b;border-color:#ff6b6b}
 #crosshair{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:rgba(255,255,255,.85)}
 body.iso #crosshair{display:none}
 #hint{position:absolute;left:50%;top:calc(50% + 22px);transform:translateX(-50%);font-size:14px;letter-spacing:.08em;opacity:0;transition:opacity .15s;white-space:nowrap}
@@ -75,7 +80,19 @@ body.touch #enter small{display:none}
 /* overlays */
 .overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#eee;text-align:center;background:rgba(0,0,0,.78);z-index:5;padding:20px}
 .overlay small{display:block;margin-top:14px;font-size:12px;color:#999;letter-spacing:.05em;line-height:1.9}
-#pause h2{letter-spacing:.3em;font-weight:normal}
+#pause h2,#closing h2,#night h2{letter-spacing:.3em;font-weight:normal}
+#closing{background:rgba(0,0,0,.86)}
+#closing .btn,#night .btn{background:transparent;color:#eee;border-color:#eee;min-width:280px;margin:5px}
+#closing .btn:hover,#night .btn:hover{background:#eee;color:#111}
+#closingLine{color:#aaa;font-size:14px;letter-spacing:.06em;margin:0 0 18px;max-width:520px;line-height:1.7}
+.overlayNote{color:#777;font-size:12px;max-width:520px;line-height:1.7;letter-spacing:.04em;margin-top:18px}
+#night{background:#000;z-index:8;transition:opacity 1.2s}
+#night.fade{opacity:0}
+#nightShop{letter-spacing:.2em;color:#666;font-size:12px}
+#nightClock{font-size:clamp(40px,8vw,72px);letter-spacing:.1em;margin:8px 0 14px;font-variant-numeric:tabular-nums}
+#nightLine{color:#aaa;font-size:14px;letter-spacing:.06em;max-width:520px;line-height:1.8;min-height:3em}
+body.tired #vignette{opacity:1}
+#vignette{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity 2s;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.55) 100%)}
 #pause .btn{background:transparent;color:#eee;border-color:#eee;min-width:260px;margin:5px}
 #pause .btn:hover{background:#eee;color:#111}
 #pauseShop{letter-spacing:.15em;color:#aaa;font-size:13px;margin:0 0 18px}

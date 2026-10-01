@@ -948,10 +948,33 @@ achievement.
 
 ## 10. Time
 
-🟢 The game runs in **shop days**. One in-game day is about a minute at normal speed, with pause,
-1×, 3×, 10×. Five working days a week; Saturdays optional at overtime. Lights-out machines keep
-going overnight. A first mold at 6–8 in-game weeks lands after 30–50 minutes of play; that is the
-first big milestone and it feels earned.
+### 10.1 The clock ✅ Agreed
+
+Time is **minute for minute**: a shop minute is a real minute at 1x. The day opens at 7:00 and
+closes at 17:00. Speeds are **1x, 2x, 3x**, and **END DAY**, which runs the clock to five o'clock
+while everything in progress keeps going. Lights-out machines keep going overnight (once they
+exist).
+
+### 10.2 Five o'clock ✅ Agreed
+
+At closing time the clock stops and you choose: **lock up and go home**, or **stay late**. Staying
+late gets more done today. At **23:00** you go home whether you like it or not.
+
+### 10.3 Home ✅ Agreed
+
+You must go home to sleep every day, even if the night is short. The night is a screen: the shop
+name, the clock running from when you left to 7:00, a line about how it went. Autosave happens
+when you lock up.
+
+### 10.4 Fatigue ✅ Agreed (numbers 🟡)
+
+Sleep less than a full night and the next day you are **tired**, then **exhausted**. Tired owners
+press the wrong button (the red one, nothing happens), rotate the machine when they meant to
+confirm it, and are certain they clamped the work when they did not: the checklist shows a tick
+the machine does not agree with. The HUD says so, the edges of the screen darken, and the crew
+will eventually say so too. Proposed: leaving at 21:00 is fine, 22:00 is tired, 23:00 is wrecked.
+
+### 10.5 Years 🟢
 
 The game is **endless** with a **year-end summary** each year (revenue, molds shipped, on-time
 rate, crashes, people gained and lost, best and worst moment). At ten years an optional
@@ -962,7 +985,9 @@ Buy Stove's `?speed=` and `?skip=` shortcuts stay for testing.
 
 ### Questions for you
 
-- **Q40–Q41.** 🟢 Answered above.
+- **Q40.** ~~Pace~~ ✅ Answered by John: minute for minute, 2x, 3x, END DAY; overtime with fatigue;
+  mandatory sleep. Overrides the earlier 🟢 proposal.
+- **Q41.** 🟢 Endless with year-end summaries; optional retirement at ten years.
 
 ---
 
@@ -1202,7 +1227,7 @@ shops that bid against you and poach your people; the retirement ending with the
 | Q37 | 9 | Monthly overhead | 🟢 $6–9k/mo before wages |
 | Q38 | 9 | How machines are financed | 🟢 Manual cash; CNC financed 5–7 yr or leased |
 | Q39 | 9 | Cash-flow shape | 🟢 Yes; deposits, LOC, quick-pay work, factoring |
-| Q40 | 10 | Pace: day per minute? | 🟢 Day per minute; first mold at 30–50 min |
+| Q40 | 10 | Pace | ✅ Minute for minute; 1x/2x/3x/END DAY; overtime, fatigue, mandatory sleep |
 | Q41 | 10 | Endless or horizon | 🟢 Endless with year-end summaries; optional retirement at 10 years |
 | Q42 | 11 | Growth arc believable? | 🟢 Yes, mapped to Stages 0–3 |
 | Q43 | 11 | Milestones that make a moldmaker grin | 🟢 §11 list |
@@ -1230,6 +1255,7 @@ shops that bid against you and poach your people; the retirement ending with the
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
+| 2026-10-01 | Q40 Time | Minute for minute at 1x, 2x, 3x, END DAY to five. Five o'clock: go home or stay late. Mandatory sleep every night. Short sleep makes the owner tired: wrong buttons, steps you think you did. Hard stop at 23:00. | 10 |
 | 2026-10-01 | Q55 Brands | BRANDS.md approved as is; adjust on the fly. Build started. | BRANDS.md |
 | 2026-09-30 | Q15–Q49 | John asked Claude to answer the remaining questions. Answered as 🟢 (mold model, workflow, customers, staff, economy, time, progression, risk, presentation, scope). Each stands until vetoed. | 5–16 |
 | 2026-09-30 | Q57 Oven | Heat-treat oven is a Stage 3 upgrade. | 4.2, 4.5, 3.3 |

@@ -5,7 +5,7 @@ import { MachineView } from './machines.js';
 import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
-import { tick, save, money, post, DAY_SECONDS } from './sim.js';
+import { tick, save, money, post, goHome, hourText, END_DAY_SPEED } from './sim.js';
 
 const $ = (id) => document.getElementById(id);
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -32,14 +32,15 @@ export function startShop(T, audio, state) {
   const views = state.machines.map((m) => new MachineView(T, scene, m));
   const viewOf = (uid) => views.find((v) => v.m.uid === uid);
 
-  let modal = false, paused = false, placing = null;
+  let modal = false, paused = false, placing = null, night = false;
   const ui = new UI(state, audio, {
-    modal(on) { modal = on; if (!on && !iso.active && !paused) player.requestLock(); },
+    modal(on) { modal = on; if (!on && !iso.active && !paused && !night) player.requestLock(); },
     place(m) { beginPlace(m); },
     refreshMachines() { syncViews(); },
     toggleIso() { toggleIso(); },
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
+    goHome() { leaveForTheNight(); },
   });
   $('hud').classList.remove('hidden');
 
@@ -83,7 +84,7 @@ export function startShop(T, audio, state) {
   }
   iso.onPick = (uid) => { const m = state.machines.find((q) => q.uid === uid); if (m && !m.running) beginPlace(m); else if (m) ui.toast('It is running. Let it finish.'); };
   $('placeRot').addEventListener('click', () => { iso.rotate(); audio.click(); });
-  $('placeOk').addEventListener('click', () => { if (!iso.confirm()) audio.nope(); });
+  $('placeOk').addEventListener('click', () => { if (ui.fumble(0.5)) { iso.rotate(); audio.click(); ui.toast(ui.fumbleLine() + ' It turned instead.'); return; } if (!iso.confirm()) audio.nope(); });
   $('placeNo').addEventListener('click', () => { cancelPlace(); audio.click(); });
 
   // ---- the machine
@@ -92,7 +93,7 @@ export function startShop(T, audio, state) {
     audio.cycleStart();
     const skipped = keys.filter((k) => m.checklist[k] !== true);
     const risk = skipped.length * 0.18 + (1 - m.condition) * 0.12;
-    m.running = true; m.runTotal = 20 + Math.random() * 25; m.runLeft = m.runTotal;
+    m.running = true; m.runTotal = 25 + Math.random() * 35; m.runLeft = m.runTotal; // shop minutes
     state.stats.cycleStarts++;
     if (!state.firstCycle) { state.firstCycle = true; ui.toast('ACHIEVEMENT: FIRST CYCLE START', 3200); audio.ding(); }
     else ui.toast(skipped.length ? pick(['You skipped a step. The machine noticed.', 'Bold.', 'That is how it starts.']) : pick(['Chips.', 'Making chips.', 'Nothing wrong with that.']));
@@ -108,6 +109,53 @@ export function startShop(T, audio, state) {
       }, 1500 + Math.random() * 6000);
     }
   }
+
+  // ---- five o'clock, and the night
+  const closingEl = $('closing'), nightEl = $('night');
+  let nightTimer = 0;
+  function closingTime() {
+    if (modal || paused) return;
+    ui.setSpeed(0);
+    if (player.locked) document.exitPointerLock(); player.enabled = false;
+    const running = state.machines.filter((m) => m.running).length;
+    $('closingLine').textContent = running ? `${running} machine${running === 1 ? ' is' : 's are'} still cutting. Manual machines do not run without you.` : pick(['The compressor would like to be alone.', 'Nobody is waiting for you at home. The compressor knows that.', 'Go home. The chips will be here tomorrow.']);
+    closingEl.classList.remove('hidden'); modal = true;
+  }
+  $('stayBtn').addEventListener('click', () => { closingEl.classList.add('hidden'); modal = false; ui.setSpeed(1); audio.click(); ui.toast('Overtime. The lights hum a little louder.', 2600); if (!iso.active) { player.enabled = true; player.requestLock(); } });
+  $('homeBtn').addEventListener('click', () => { closingEl.classList.add('hidden'); modal = false; leaveForTheNight(); });
+  function leaveForTheNight() {
+    if (night) return;
+    night = true; modal = true; ui.setSpeed(0);
+    if (player.locked) document.exitPointerLock(); player.enabled = false;
+    if (iso.active) { iso.exit(); endPlace(); }
+    ui.closeClip(); ui.closePanel(); modal = true;
+    const leftMin = state.t;
+    const n = goHome(state); save(state);
+    $('nightShop').textContent = state.shopName.toUpperCase();
+    $('nightClock').textContent = n.leftAt;
+    const line = n.fatigue >= 0.6 ? `You left at ${n.leftAt}. ${n.sleep.toFixed(1)} hours of sleep. Tomorrow is going to be a day.`
+      : n.fatigue >= 0.25 ? `You left at ${n.leftAt}. ${n.sleep.toFixed(1)} hours of sleep. Not enough. You will feel it.`
+      : n.overtime > 0 ? `You left at ${n.leftAt}. Late, but you slept.` : pick(['You left at five. The compressor kept going.', 'Dinner. Television. A thought about the mill. Sleep.', 'You dreamed about the tarp door. It flapped.']);
+    $('nightLine').textContent = line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '');
+    $('wakeBtn').classList.add('hidden');
+    nightEl.classList.remove('hidden'); nightEl.classList.remove('fade');
+    // the clock runs through the night
+    const start = performance.now(), dur = 5000, from = leftMin, to = 24 * 60 - 7 * 60 + 0; // to 7:00 next day, in minutes after 7:00
+    const run = () => {
+      const k = Math.min(1, (performance.now() - start) / dur);
+      const mins = from + (to - from) * (k * k * (3 - 2 * k));
+      $('nightClock').textContent = hourText(mins % (24 * 60));
+      if (k < 1) nightTimer = requestAnimationFrame(run); else { $('nightClock').textContent = '7:00'; $('wakeBtn').classList.remove('hidden'); }
+    };
+    run();
+  }
+  $('wakeBtn').addEventListener('click', () => {
+    nightEl.classList.add('fade'); audio.paper();
+    setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
+    camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
+    if (state.fatigue >= 0.25) ui.toast(state.fatigue >= 0.6 ? 'Day ' + state.day + '. You are wrecked. Read every button twice.' : 'Day ' + state.day + '. Tired. Coffee first.', 3500);
+    else ui.toast('Day ' + state.day + '. ' + pick(['The compressor is already going.', 'Fresh. For now.', 'The tarp let the night in.']), 2600);
+  });
 
   // ---- interaction
   const ray = new T.Raycaster(); const centre = new T.Vector2(0, 0);
@@ -185,6 +233,7 @@ export function startShop(T, audio, state) {
       if (ui.clipOpen) { ui.closeClip(); return; }
       if (placing) { cancelPlace(); return; }
       if (iso.active) { toggleIso(); return; }
+      if (night || !closingEl.classList.contains('hidden')) return;
       if (paused) resume(); else if (!player.locked) pause();
       return;
     }
@@ -199,24 +248,26 @@ export function startShop(T, audio, state) {
       return;
     }
     if (e.code === 'KeyE' && !modal && !iso.active) use();
-    if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { ui.setSpeed({ Digit1: 1, Digit2: 3, Digit3: 10 }[e.code]); }
+    if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { if (!modal) ui.setSpeed({ Digit1: 1, Digit2: 2, Digit3: 3 }[e.code]); }
     if (e.code === 'KeyP' || e.code === 'Space') { if (!modal) ui.setSpeed(state.speed ? 0 : 1); }
+    if (e.code === 'KeyN' && !modal && !night) { $('endDay').click(); }
   });
 
   addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); iso.fit(); });
 
   // ---- loop
-  let last = performance.now(), lastSave = state.day;
+  let last = performance.now();
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (!paused && !modal) {
       const events = tick(state, dt * speedMul);
       for (const ev of events) {
-        if (ev.type === 'week') { ui.toast(`Monday. Rent ${money(ev.rent)}, hydro ${money(ev.power)}.`, 3000); audio.cash(); }
-        if (ev.type === 'day' && ev.day !== lastSave) { lastSave = ev.day; save(state); }
+        if (ev.type === 'closing') closingTime();
+        if (ev.type === 'hardstop') { ui.toast('Eleven o\'clock. You cannot keep your eyes open.', 2500); setTimeout(() => leaveForTheNight(), 1200); }
         if (ev.type === 'cycleDone') { audio.ding(); const v = viewOf(ev.uid); if (v) ui.toast(`${v.def.brand} ${v.def.name}: done. A perfectly good scrap block, slightly smaller.`, 3000); }
       }
+      if (state.speed === END_DAY_SPEED && state.t >= 600 && !state.closingShown) closingTime();
     }
     if (iso.active) iso.update(); else player.update(dt, [...shop.colliders, ...views.filter((v) => v.m.placed).map((v) => v.collider())], { hx: shop.hx, hz: shop.hz });
     shop.update(paused ? 0 : dt, audio.compOn);

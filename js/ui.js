@@ -1,6 +1,6 @@
 // HUD, the clipboard, the machine panel. Honest HTML. No 3D UI.
 import { MACHINES, byId } from './catalog.js';
-import { money, clockText, buy, sell, canPower, poweredCount } from './sim.js';
+import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED } from './sim.js';
 import { SHOP } from './catalog.js';
 
 const $ = (id) => document.getElementById(id);
@@ -10,7 +10,11 @@ export class UI {
     this.state = state; this.audio = audio; this.hooks = hooks; // hooks: { place(m), refreshMachines(), pause(), resume(), modal(bool) }
     this.toastTimer = 0; this.lastCash = null; this.tab = 'shop';
     $('shopSign').textContent = state.shopName;
-    $('speeds').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; this.setSpeed(parseFloat(b.dataset.speed)); audio.click(); });
+    $('speeds').addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return; audio.click();
+      if (b.id === 'endDay') { if (afterHours(state)) hooks.goHome(); else this.setSpeed(END_DAY_SPEED); return; }
+      this.setSpeed(parseFloat(b.dataset.speed));
+    });
     $('clipClose').addEventListener('click', () => this.closeClip());
     $('clipTabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; this.showTab(b.dataset.tab); audio.paper(); });
     $('panelClose').addEventListener('click', () => this.closePanel());
@@ -21,6 +25,16 @@ export class UI {
 
   setSpeed(s) { this.state.speed = s; for (const b of $('speeds').querySelectorAll('button')) b.classList.toggle('on', parseFloat(b.dataset.speed) === s); }
 
+  // Tired people press the wrong button. Returns true when a click should go wrong.
+  fumble(scale = 1) {
+    const f = this.state.fatigue || 0;
+    if (f <= 0) return false;
+    return Math.random() < f * 0.35 * scale;
+  }
+  fumbleLine() {
+    return ['You pressed the wrong button.', 'You blinked for a second there.', 'Your hand went to the other button.', 'Coffee. You need coffee.', 'You read that twice and it still did not go in.'][Math.floor(Math.random() * 5)];
+  }
+
   toast(msg, dur = 2200) { const el = $('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(this.toastTimer); this.toastTimer = setTimeout(() => el.classList.remove('show'), dur); }
   hint(text) { const el = $('hint'); if (text) { el.textContent = text; el.classList.add('show'); } else { el.textContent = ''; el.classList.remove('show'); } }
   tag(text) { const el = $('tag'); if (text) { el.textContent = text; el.classList.add('show'); } else { el.textContent = ''; el.classList.remove('show'); } }
@@ -29,6 +43,10 @@ export class UI {
     const s = this.state;
     if (s.cash !== this.lastCash) { $('cash').textContent = money(s.cash); $('cash').classList.toggle('bad', s.cash < 0); this.lastCash = s.cash; }
     $('clockText').textContent = clockText(s);
+    const late = afterHours(s), ed = $('endDay');
+    if (late !== this.lastLate) { this.lastLate = late; ed.textContent = late ? 'GO HOME' : 'END DAY'; ed.classList.toggle('home', late); }
+    const ft = fatigueText(s.fatigue || 0), fe = $('fatigue');
+    if (ft !== this.lastFt) { this.lastFt = ft; fe.textContent = ft; fe.classList.toggle('show', !!ft); fe.classList.toggle('bad', ft === 'EXHAUSTED'); document.body.classList.toggle('tired', (s.fatigue || 0) >= 0.25); }
   }
 
   // ---- clipboard
@@ -104,7 +122,7 @@ export class UI {
     if (m.running) {
       body.innerHTML = `<p>Running. <span class="note">${d.manual ? 'You are standing here. That is the job.' : ''}</span></p>
         <div class="bar"><i style="width:${Math.round((1 - m.runLeft / m.runTotal) * 100)}%"></i></div>
-        <p class="note">No contracts yet, so this is a practice cut on a scrap block. Chips are chips.</p>`;
+        <p class="note">${Math.ceil(m.runLeft)} minutes to go. No contracts yet, so this is a practice cut on a scrap block. Chips are chips.</p>`;
       return;
     }
     body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}</span></div>
@@ -113,8 +131,14 @@ export class UI {
         <span>${cl[k] ? '' : `<button data-do="${k}">DO IT</button> <button class="skip" data-skip="${k}">SKIP</button>`}</span></li>`).join('')}</ul>
       <button class="cycle" id="cycleStart">CYCLE START</button>
       <p class="note">Skipping steps is how crashes happen. The button does not know what you skipped. The machine finds out.</p>`;
-    body.querySelectorAll('[data-do]').forEach((b) => b.addEventListener('click', () => { cl[b.dataset.do] = true; this.audio.click(); this.renderPanel(); }));
+    body.querySelectorAll('[data-do]').forEach((b) => b.addEventListener('click', () => {
+      // tired: you are sure you did it. the machine will have an opinion.
+      cl[b.dataset.do] = this.fumble(0.8) ? 'thought' : true; this.audio.click(); this.renderPanel();
+    }));
     body.querySelectorAll('[data-skip]').forEach((b) => b.addEventListener('click', () => { cl[b.dataset.skip] = 'skip'; s.stats.skipped++; this.audio.click(0.2, 400); this.renderPanel(); }));
-    $('cycleStart').addEventListener('click', () => { this.hooks.cycleStart(m, steps.map(([k]) => k)); this.closePanel(); });
+    $('cycleStart').addEventListener('click', () => {
+      if (this.fumble(0.6)) { this.audio.nope(); this.toast(this.fumbleLine() + ' The red one. Nothing happened.', 2600); return; }
+      this.hooks.cycleStart(m, steps.map(([k]) => k)); this.closePanel();
+    });
   }
 }

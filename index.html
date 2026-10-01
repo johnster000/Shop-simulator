@@ -43,7 +43,8 @@
   <div id="cash">$0</div>
   <div id="clock">
     <span id="clockText">Day 1 &middot; Mon 8:00</span>
-    <span id="speeds"><button data-speed="0">II</button><button data-speed="1" class="on">1x</button><button data-speed="3">3x</button><button data-speed="10">10x</button></span>
+    <span id="speeds"><button data-speed="0">II</button><button data-speed="1" class="on">1x</button><button data-speed="2">2x</button><button data-speed="3">3x</button><button id="endDay" data-speed="60" title="N">END DAY</button></span>
+    <span id="fatigue"></span>
   </div>
   <div id="crosshair"></div>
   <div id="hint"></div>
@@ -62,11 +63,12 @@
 </div>
 
 <div id="touch"><div class="knob"></div></div>
+<div id="vignette"></div>
 
 <div id="enter" class="overlay hidden">
   <div>click to walk in</div>
   <small>
-    WASD walk &middot; shift run &middot; mouse look &middot; click to use &middot; V overhead view &middot; Tab clipboard &middot; Esc pause<br>
+    WASD walk &middot; shift run &middot; mouse look &middot; click or E to use &middot; V overhead view &middot; Tab clipboard &middot; 1 2 3 clock speed &middot; N end the day &middot; Esc pause<br>
     on touch: left side to move, drag the right to look, tap to use
   </small>
 </div>
@@ -92,6 +94,22 @@
     <div class="clipTop"><span class="clipTitle" id="panelTitle">MACHINE</span><button id="panelClose" class="x" aria-label="close">&times;</button></div>
     <div id="panelBody"></div>
   </div>
+</div>
+
+<div id="closing" class="overlay hidden">
+  <h2>FIVE O'CLOCK.</h2>
+  <p id="closingLine"></p>
+  <button class="btn" id="homeBtn">LOCK UP &amp; GO HOME</button>
+  <button class="btn" id="stayBtn">STAY LATE</button>
+  <p class="overlayNote">Stay late and you get more done today. Tomorrow you will be tired, and tired people press the wrong button.</p>
+</div>
+
+<div id="night" class="overlay hidden">
+  <p id="nightShop"></p>
+  <h2>HOME.</h2>
+  <div id="nightClock">17:00</div>
+  <p id="nightLine"></p>
+  <button class="btn hidden" id="wakeBtn">BACK TO WORK</button>
 </div>
 
 <div id="pause" class="overlay hidden">

@@ -31,14 +31,15 @@ Then open http://localhost:8080/.
 - WASD / arrows to walk, Shift to run, mouse to look, click or E to use, Esc to pause.
 - `V` switches between walking the floor and the overhead (isometric) view. `Tab` opens the clipboard.
 - In the overhead view: click a machine to pick it up and move it. While placing: drag the ghost or click where it goes, arrow keys nudge it, `R` rotates, Enter or CONFIRM lands it, Esc or CANCEL puts it back.
-- `1` `2` `3` set the clock speed, `P` or Space pauses it.
+- Time is minute for minute. `1` `2` `3` set the clock to 1x, 2x, 3x; `P` or Space pauses it; `N` (or the END DAY button) runs the clock to five o'clock. At five you lock up or stay late. At eleven you go home whether you like it or not.
+- Short sleep makes you tired. Tired owners press the wrong button and are sure they clamped things they did not clamp.
 - On a touchscreen: left side of the screen is a joystick, drag on the right to look, tap to use. The ISO and CLIP buttons do what the keys do.
 
 ## Testing shortcuts
 
 - `?cash=250000` starts with more money.
 - `?day=30` starts on a later day.
-- `?speed=4` runs the shop clock four times faster on top of the in-game speed buttons.
+- `?speed=20` runs the shop clock twenty times faster on top of the in-game speed buttons (for testing a day in minutes).
 
 ## What is in this build (v0.1, first slice)
 
@@ -47,7 +48,7 @@ Then open http://localhost:8080/.
   with a desk and a whiteboard, a breaker panel good for two machines, a compressor that never stops.
 - Walk the floor in first person; lift the roof off with `V` and place machines on a grid.
 - The Stage 0 catalogue: knee mill, lathe, surface grinder, bench, drill press, band saw, new or used.
-- The clock (a shop day a minute), cash, weekly rent and hydro, a ledger, autosave.
+- The clock, minute for minute, with 2x, 3x and END DAY; the five o'clock choice; the night at home; fatigue the morning after a late one. Cash, weekly rent and hydro, a ledger, autosave when you lock up.
 - Walk up to a machine, open its panel, do or skip the setup steps, and press CYCLE START.
   Skipped steps are how things break. Money fixes it.
 
