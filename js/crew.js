@@ -46,6 +46,9 @@ export class Crew {
   gatherRound(x, z) { this.gather = { x, z, until: this.state.t + 12 }; for (const v of this.views.values()) if (v.g.visible && v.mode === 'idle') { this.goTo(v, { x: x + (Math.random() - 0.5) * 2.4, z: z + 1.2 + Math.random() * 1.2 }, 'toGather'); } }
 
   sync() {
+    // after an injury, everybody wears safety glasses for ten days. then they stop. then somebody gets hurt.
+    const specs = (this.state.glassesUntil || 0) > this.state.day;
+    for (const p of this.state.people) { if (p.look.ownGlasses == null) p.look.ownGlasses = !!p.look.glasses; const want = specs || !!p.look.ownGlasses; if (p.look.glasses !== want) { p.look.glasses = want; const v = this.views.get(p.id); if (v) { this.scene.remove(v.g); this.views.delete(p.id); } } }
     for (const p of this.state.people) if (!this.views.has(p.id)) {
       const g = buildPerson(this.T, p.look); g.visible = false; g.traverse((o) => { o.userData.interact = { type: 'person', id: p.id }; });
       this.scene.add(g);

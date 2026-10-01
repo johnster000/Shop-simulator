@@ -393,6 +393,22 @@ export class Shop {
   }
 
   // blocks in the scrap bin: every one a story
+  // the orphaned mold: somebody's very nice tool in the south-west corner with a FOR SALE sign on it
+  setOrphans(n) {
+    const T = this.T, s = this.scene;
+    if (!this.orphanG) { this.orphanG = new T.Group(); s.add(this.orphanG); this.orphanG.position.set(-this.hx + 1.5, 0, this.hz - 1.6); this.orphanG.traverse((o) => { o.userData.interact = { type: 'orphan' }; }); }
+    const g = this.orphanG; while (g.children.length) g.remove(g.children[0]);
+    for (let i = 0; i < Math.min(n, 3); i++) {
+      const steel = new T.MeshStandardMaterial({ color: 0x8a9096, metalness: 0.6, roughness: 0.35 });
+      const base = new T.Mesh(new T.BoxGeometry(0.8, 0.7, 0.7), steel); base.position.set(i * 1.0, 0.35, 0); g.add(base);
+      for (const y of [0.1, 0.6]) { const plate = new T.Mesh(new T.BoxGeometry(0.84, 0.06, 0.74), new T.MeshStandardMaterial({ color: 0x5a6066, metalness: 0.5 })); plate.position.set(i * 1.0, y, 0); g.add(plate); }
+      const line = new T.Mesh(new T.BoxGeometry(0.82, 0.015, 0.72), new T.MeshStandardMaterial({ color: 0x222 })); line.position.set(i * 1.0, 0.35, 0); g.add(line);
+      const eye = new T.Mesh(new T.TorusGeometry(0.05, 0.012, 8, 16), steel); eye.position.set(i * 1.0, 0.76, 0); eye.rotation.x = Math.PI / 2; g.add(eye);
+    }
+    if (n > 0) { const sign = new T.Mesh(new T.PlaneGeometry(0.5, 0.3), new T.MeshBasicMaterial({ map: TX.label(T, ['FOR SALE', 'ONE OWNER', 'NEVER RAN'], { size: 30, bg: '#f2e76b', border: '#333', fg: '#111' }), side: T.DoubleSide })); sign.position.set(0, 0.95, 0.2); sign.rotation.x = -0.3; g.add(sign); }
+    g.traverse((o) => { o.userData.interact = { type: 'orphan', text: `${n} mold${n === 1 ? '' : 's'} nobody will pay for. a very nice mold, in a corner, with a for-sale sign.` }; });
+    g.visible = n > 0;
+  }
   setScrap(n) {
     const T = this.T;
     while (this.scrapBlocks.length < Math.min(n, 12)) {

@@ -255,6 +255,13 @@ Then open http://localhost:8080/.
   waiting, set it up (badly, sometimes), and run it until morning. The night note says what got
   done, what broke, and what was left on the control. Nobody has seen them arrive or leave.
 
+- The real things, from bible 12.1. A block thrown at a machine can bump it out of true, silently;
+  nothing shows until parts come back out of tolerance or the CMM says so at night (a service
+  fixes it; a lucky whack with the dead-blow does too). A machine run dry or on duct tape can weld
+  the cutter into the block, standing up like a flag: the stage starts over. After a WSIB claim
+  everyone on the floor wears safety glasses for ten days. When a customer goes under, their mold
+  sits in the corner with a FOR SALE sign until a man with a trailer buys it for not much.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

@@ -306,7 +306,7 @@ export function resolveTryout(state, job, byId) {
   const found = [];
   for (const d of DEFECTS) {
     if (d[2] === 'slide' && !(spec.slides > 0)) continue;
-    let w = d[5]; if (d[0] === 'Dimension out' && hasCmm) w *= 0.3; if (d[0] === 'Flash' && job.spotted) w *= 0.4;
+    let w = d[5]; if (d[0] === 'Dimension out' && hasCmm) w *= 0.3; if (d[0] === 'Dimension out' && state.machines.some((m) => m.placed && m.bumped)) w *= 2.5; if (d[0] === 'Flash' && job.spotted) w *= 0.4;
     if (Math.random() < Math.max(0.02, base * w)) found.push(d);
   }
   const notes = [];
@@ -329,6 +329,13 @@ export function resolveTryout(state, job, byId) {
 }
 
 // a job-level or item stage that a vendor does, kicked off automatically when it comes up
+// the CMM, at the end of the day, says what nobody noticed: a machine was bumped and is out
+export function cmmReport(state, byId) {
+  const hasCmm = state.machines.some((m) => m.placed && !m.down && byId(m.id).stations.includes('inspect'));
+  const out = [];
+  for (const m of state.machines) if (m.placed && m.bumped && !m.found && (hasCmm ? Math.random() < 0.7 : Math.random() < 0.06)) { const d = byId(m.id); out.push(`${hasCmm ? 'CMM report' : 'A part came back'}: the ${d.name.toLowerCase()} is out by two thou. Somebody bumped it and said nothing. Re-indicate it: a service, or a whack with the dead-blow if you are lucky.`); m.found = true; }
+  return out;
+}
 function vendorOut(state, job, q, itemName) {
   if (q.kind === 'heat') { post(state, `Quench & Sons: heat treat, job ${job.id}${itemName ? ', ' + itemName.toLowerCase() : ''}`, -HEAT_COST); q.out = { backDay: state.day + 2, cost: HEAT_COST, heat: true }; return `Job ${job.id}${itemName ? ' ' + itemName.toLowerCase() : ''} went to Quench & Sons. Back in two days, probably in one piece.`; }
   if (q.kind === 'base') { const cost = job.spec.base; post(state, `DMV mold base, job ${job.id}`, -cost); q.out = { backDay: state.day + BASE_DAYS, cost }; return `Mold base for job ${job.id} ordered from DMV. Take a number. ${BASE_DAYS} days.`; }

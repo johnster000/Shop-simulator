@@ -4,7 +4,7 @@
 // Monday is day 1.
 
 import { byId, SHOP, BUILDINGS, UPGRADES, SOFTWARE } from './catalog.js';
-import { initJobs, endOfDay, makeRfq, CUSTOMERS, TEMPLATES } from './jobs.js';
+import { initJobs, endOfDay, makeRfq, CUSTOMERS, TEMPLATES, cmmReport } from './jobs.js';
 import { initPeople, endOfDay as peopleEndOfDay } from './people.js';
 import { nightlyEvents, yearSummary } from './events.js';
 
@@ -191,7 +191,7 @@ export function maintain(state, m, what) {
   if (what === 'oil') { if (state.cash < 40) return { ok: false, why: 'no money for oil' }; post(state, `Way oil, ${def.name}`, -40); m.oil = 1; m.dryWarned = false; state.t = Math.min(HARD_STOP_MIN, state.t + 8); return { ok: true, note: 'Topped up. Eight minutes and a rag.' }; }
   if (what === 'service') {
     const c = serviceCost(def); if (state.cash < c) return { ok: false, why: `${money(c)} for a service. You have ${money(state.cash)}.` };
-    post(state, `Service, ${def.name}`, -c); m.oil = 1; m.dryWarned = false; m.taped = false; m.condition = Math.min(0.97, m.condition + 0.15); m.down = { why: 'being serviced', until: state.day + 1, kind: 'service' }; m.job = null; m.checklist = {};
+    post(state, `Service, ${def.name}`, -c); m.oil = 1; m.dryWarned = false; m.taped = false; m.bumped = false; m.found = false; m.condition = Math.min(0.97, m.condition + 0.15); m.down = { why: 'being serviced', until: state.day + 1, kind: 'service' }; m.job = null; m.checklist = {};
     return { ok: true, note: `Serviced. ${money(c)}. It is down until tomorrow; the tech found two other things and fixed one.` };
   }
   if (what === 'tech') {
@@ -292,6 +292,7 @@ export const ACHIEVEMENTS = {
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   glad_once: ['Glad Of It, Exactly Once', 'A fire, with insurance. The adjuster said "huh".'], uninsured: ['Should Have', 'A fire, without insurance. The Monday you turned it down.'],
   swept: ['Billable, Apparently', 'Swept the floor yourself. Ten times. The crew watched.'], chips_deep: ['Ankle Deep', 'A machine with chips to the top of its boots. Somebody should sweep.'],
+  welded: ['The Flag', 'Welded an end mill into a cavity. It stood up like a flag.'], bumped: ['Two Thou', 'A machine was out for a week and the CMM finally said so.'], glasses: ['Safety Culture', 'After the injury, everyone wore safety glasses. For ten days.'],
   night_shift: ['Second Shift', 'Somebody you have never met ran a machine all night and it was fine.'],
   estimator: ['Somebody Else Quotes', 'Hired an estimator. The phone rings more. So do the opinions.'],
   the_saturday: ['The Saturday', 'Came in on a Saturday before a ship date. Most of them came too.'], saturday_ship: ['Shipped It Saturday', 'Out the door on a Saturday. Monday will be quiet.'],
@@ -394,7 +395,7 @@ export function goHome(state) {
   const yday = (state.day - 1) % 260; state.summer = yday >= 130 && yday < 190;
   if (state.summer && !state.facility.climate) { for (const p of state.people) p.morale = Math.max(0, p.morale - 0.012); if (yday === 130) night.notes = ['July. The shop is thirty degrees by ten. The polishers have opinions about it. Climate control is on the SHOP tab.']; }
   night.day = state.day;
-  night.notes = (night.notes || []).concat(upgradeDue(state).concat(extra, overnightMachines(state), endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state), nightlyEvents(state), bankCheck(state)));
+  night.notes = (night.notes || []).concat(upgradeDue(state).concat(extra, overnightMachines(state), cmmReport(state, byId), endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state), nightlyEvents(state), bankCheck(state)));
   if (state.bankrupt) night.bankrupt = true; else monthlySave(state);
   // the year turns every 52 weeks
   const yearBefore = Math.floor((night.dayDone - 1) / 260), yearAfter = Math.floor((state.day - 1) / 260);
