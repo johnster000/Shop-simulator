@@ -16,7 +16,7 @@ export class Phone {
   plan() {
     const s = this.state; if (this.dayPlanned === s.day) return; this.dayPlanned = s.day;
     this.calls = [];
-    const n = Math.random() < 0.55 ? 1 : Math.random() < 0.25 ? 2 : 0;
+    const n = (s.day - 1) % 7 === 5 ? 0 : Math.random() < 0.55 ? 1 : Math.random() < 0.25 ? 2 : 0;
     for (let i = 0; i < n; i++) this.calls.push({ at: 15 + Math.random() * 460, kind: Math.random() < 0.55 ? 'rush' : Math.random() < 0.5 ? 'complaint' : 'sales' });
   }
   update(dt, listener) {

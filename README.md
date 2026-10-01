@@ -237,6 +237,12 @@ Then open http://localhost:8080/.
   anyone who walks through it may go down, $400 and a form, unless the wet floor sign from beside
   the office is standing next to it.
 
+- The Saturday. On a Friday with something due early next week, the five o'clock prompt grows a
+  COME IN SATURDAY button. The crew are asked: most come (morale permitting; a few have a thing),
+  at time and a half, and they resent the fourth one in two months more than the first. Saturday
+  has no trucks, no phone, no visitors, just the ship date; Sunday you sleep. Shipping on a
+  Saturday goes on the wall.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

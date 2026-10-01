@@ -11,7 +11,7 @@ import { Delivery } from './truck.js';
 import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
 import { practice } from './people.js';
-import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost } from './sim.js';
+import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost, saturdayWorth, isSaturday } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message, openCrate } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
@@ -55,7 +55,7 @@ export function startShop(T, audio, state) {
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
     goHome() { leaveForTheNight(); },
-    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (state.t >= 780) unlock('shipped_friday'); if (j && j.mold) { unlock('first_mold'); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
+    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
     crew() { return crew; },
     crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); },
     achievement(a) { showAchievement(a); },
@@ -426,10 +426,13 @@ export function startShop(T, audio, state) {
     $('closingLine').textContent = running.length ? `${cnc ? `${cnc} CNC${cnc > 1 ? 's' : ''} will keep cutting tonight. ` : ''}${man ? `${man} manual machine${man > 1 ? 's' : ''} will stop where ${man > 1 ? 'they are' : 'it is'}. ` : ''}` : pick(['The compressor would like to be alone.', 'Nobody is waiting for you at home. The compressor knows that.', 'Go home. The chips will be here tomorrow.']);
     const crewHere = state.people.filter((p) => p.startDay != null && p.startDay <= state.day).length;
     $('crewBtn').classList.toggle('hidden', !crewHere); $('crewBtn').textContent = `EVERYBODY STAYS (${crewHere} × 1.5)`;
+    $('satBtn').classList.toggle('hidden', !saturdayWorth(state)); $('satBtn').textContent = `COME IN SATURDAY${crewHere ? ' (ASK THE CREW)' : ''}`;
+    if (isSaturday(state)) $('closingLine').textContent = 'Saturday. ' + $('closingLine').textContent;
     closingEl.classList.remove('hidden'); modal = true;
   }
   $('stayBtn').addEventListener('click', () => { closingEl.classList.add('hidden'); modal = false; ui.setSpeed(1); audio.click(); ui.toast('Overtime. The lights hum a little louder.', 2600); if (!iso.active) { player.enabled = true; player.requestLock(); } });
   $('homeBtn').addEventListener('click', () => { closingEl.classList.add('hidden'); modal = false; leaveForTheNight(); });
+  $('satBtn').addEventListener('click', () => { state.saturdayPlanned = true; closingEl.classList.add('hidden'); modal = false; leaveForTheNight(); });
   $('crewBtn').addEventListener('click', () => {
     state.crewOT = true; closingEl.classList.add('hidden'); modal = false; ui.setSpeed(1); audio.click(); unlock('stayed');
     ui.toast('The crew is staying. Time and a half, and a look. Somebody is calling home.', 4000);
@@ -464,7 +467,8 @@ export function startShop(T, audio, state) {
       $('nightLine').textContent = `YEAR ${y.year} IS DONE. ${y.shipped} job${y.shipped === 1 ? '' : 's'} shipped, ${y.molds} mold${y.molds === 1 ? '' : 's'}. ${onTime}${money(y.revenue)} in. ${y.hired} hired, ${y.left} quit; ${y.people} on the crew, ${y.machines} machine${y.machines === 1 ? '' : 's'}, ${y.crashes} scrapped block${y.crashes === 1 ? '' : 's'}. Reputation ${y.rep}.${y.best ? ` Best day: ${y.best}.` : ''}${y.worst ? ` Worst: ${y.worst}.` : ''} The shop is worth ${money(y.valuation.total)}. ${y.line}${y.retire ? ' Ten years. There is a second button tonight.' : ''}`;
       unlock('year'); if (y.retire) retireNow = true;
     }
-    else $('nightLine').textContent = (n.weekend ? pick(['The weekend. Two days. You thought about the shop both of them. ', 'Saturday: errands. Sunday: the drive past the shop to check the door. ', 'The weekend. The compressor ran the whole time, for nobody. ']) : '') + line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '') + (n.show ? ' ' + n.show : '') + (n.notes && n.notes.length ? ' Overnight: ' + n.notes.join(' ') : '');
+    else if (n.saturday) $('nightLine').textContent = `${line} ${n.satLine} The ship date does not care what day it is.`;
+    else $('nightLine').textContent = (n.saturdayDone ? `${n.saturdayDone.crew ? `Saturday done. ${money(n.saturdayDone.cost)} at time and a half. ` : 'Saturday done, alone. '}Sunday: you slept most of it. ` : '') + (n.weekend && !n.sunday ? pick(['The weekend. Two days. You thought about the shop both of them. ', 'Saturday: errands. Sunday: the drive past the shop to check the door. ', 'The weekend. The compressor ran the whole time, for nobody. ']) : '') + line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '') + (n.show ? ' ' + n.show : '') + (n.notes && n.notes.length ? ' Overnight: ' + n.notes.join(' ') : '');
     $('wakeBtn').classList.add('hidden');
     nightEl.classList.remove('hidden'); nightEl.classList.remove('fade');
     // the clock runs through the night
@@ -489,6 +493,7 @@ export function startShop(T, audio, state) {
   $('wakeBtn').addEventListener('click', () => {
     if (state.moved) { state.moved = false; save(state); try { localStorage.setItem('shopsim.resume', '1'); } catch (e) { /* fine */ } location.reload(); return; }
     nightEl.classList.add('fade'); audio.paper();
+    if (isSaturday(state)) setTimeout(() => ui.toast(`Saturday. ${(state.satCrew || []).length ? `${(state.satCrew || []).length} came in. The radio is louder than usual.` : 'Just you and the compressor.'} No trucks, no phone, no visitors. Just the ship date.`, 5000), 1500);
     setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
     camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
     shop.setWhiteboard(whiteboardLines());

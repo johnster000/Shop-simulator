@@ -60,7 +60,7 @@ export class Delivery {
   waiting() { return this.state.jobs.filter((j) => j.status === 'material' && j.truck); }
   update(dt, onLeft, crewSigner) {
     const s = this.state, d = this.shop.door, hz = this.shop.hz;
-    const want = this.waiting().length > 0 && s.t < 300 && s.t >= 0;
+    const want = this.waiting().length > 0 && s.t < 300 && s.t >= 0 && (s.day - 1) % 7 !== 5; // no trucks on Saturday
     this.t += dt;
     if (want && !this.here && !this.leaving) {
       this.here = true; this.truck.visible = true; this.driver.visible = true; this.arrivedAt = s.t;
@@ -74,7 +74,7 @@ export class Delivery {
     }
     // noon: he leaves it on the pad
     // noon: he leaves it on the pad. if the truck never got here (it was leaving, or you loaded the game at two), it is on the pad anyway.
-    if (s.t >= 300 && this.waiting().length) { for (const j of this.waiting()) { j.truck = false; j.status = 'work'; } if (onLeft) onLeft(LEFT_LINES[Math.floor(Math.random() * LEFT_LINES.length)]); if (this.here) this.leave(); }
+    if (s.t >= 300 && this.waiting().length && (s.day - 1) % 7 !== 5) { for (const j of this.waiting()) { j.truck = false; j.status = 'work'; } if (onLeft) onLeft(LEFT_LINES[Math.floor(Math.random() * LEFT_LINES.length)]); if (this.here) this.leave(); }
     if (this.leaving) { this.leaving -= dt; this.truck.position.z += dt * 2.2; this.truck.position.x += dt * 0.3; if (this.leaving <= 0) { this.leaving = 0; this.truck.visible = false; } }
   }
   leave() { this.here = false; this.driver.visible = false; this.leaving = 5; }

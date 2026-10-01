@@ -25,7 +25,7 @@ export class Visitor {
     const s = this.state; if (this.dayChecked === s.day) return; this.dayChecked = s.day;
     const shipped = s.jobs.filter((j) => j.status === 'shipped');
     const p = (shipped.length ? 0.05 : 0.02) + s.rep * 0.05 + (s.jobs.some((j) => j.status === 'work' && j.mold) ? 0.04 : 0);
-    this.due = Math.random() < p ? 120 + Math.random() * 100 : null;
+    this.due = (s.day - 1) % 7 !== 5 && Math.random() < p ? 120 + Math.random() * 100 : null;
     if (this.due != null) {
       const custs = shipped.length && Math.random() < 0.7 ? [...new Set(shipped.map((j) => j.customer))].map(customerOf) : CUSTOMERS.filter((c) => !c.five && !c.cnc);
       this.customer = pick(custs.length ? custs : CUSTOMERS); this.p.name = `${pick(FIRST)} (${this.customer.name})`; this.title = pick(TITLES);

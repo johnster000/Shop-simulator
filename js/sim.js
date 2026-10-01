@@ -292,6 +292,7 @@ export const ACHIEVEMENTS = {
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   glad_once: ['Glad Of It, Exactly Once', 'A fire, with insurance. The adjuster said "huh".'], uninsured: ['Should Have', 'A fire, without insurance. The Monday you turned it down.'],
   swept: ['Billable, Apparently', 'Swept the floor yourself. Ten times. The crew watched.'], chips_deep: ['Ankle Deep', 'A machine with chips to the top of its boots. Somebody should sweep.'],
+  the_saturday: ['The Saturday', 'Came in on a Saturday before a ship date. Most of them came too.'], saturday_ship: ['Shipped It Saturday', 'Out the door on a Saturday. Monday will be quiet.'],
   wet_sign: ['Caution: Wet', 'Put the sign out before anybody slipped. Rare.'], slipped: ['WHOA', 'Somebody slipped on the coffee. There was a sign for that. It was in the closet.'],
   lanyard: ['The Lanyard', 'Went to the trade show. Came back with pens and RFQs.'], the_crate: ['The Crate', 'Opened somebody else\'s mold. There was a surprise. There is always a surprise.'],
   the_speech: ['The Speech', 'Somebody quit on the floor, out loud, with everyone watching.'],
@@ -349,9 +350,22 @@ export function goHome(state) {
     state.crewOT = false;
   }
   state.lastSleep = sleep; state.fatigue = fatigue;
-  const friday = (state.day - 1) % 7 === 4;
-  state.day += friday ? 3 : 1; state.t = 0; state.closingShown = false; state.speed = 1;
-  if (friday) { night.weekend = true; night.fatigue = state.fatigue = Math.max(0, fatigue - 0.5); }
+  const friday = (state.day - 1) % 7 === 4, saturday = (state.day - 1) % 7 === 5;
+  if (saturday) { // the Saturday is over. pay it, resent it, sleep Sunday.
+    const crew = state.people.filter((p) => (state.satCrew || []).includes(p.id)), hrs = Math.max(1, state.t / 60);
+    const cost = Math.round(crew.reduce((a, p) => a + p.wage * 1.5 * hrs, 0)); if (cost) post(state, `Saturday: ${crew.length} on the crew, ${hrs.toFixed(1)} h at 1.5×`, -cost);
+    night.saturdayDone = { crew: crew.length, cost }; state.satCrew = [];
+  }
+  if (friday && state.saturdayPlanned) {
+    state.saturdayPlanned = false; state.day += 1; night.saturday = true;
+    state.saturdays = (state.saturdays || []).filter((d) => d > state.day - 60); state.saturdays.push(state.day);
+    const many = state.saturdays.length > 3; const came = [], not = [];
+    for (const p of state.people) { if (p.startDay == null || p.startDay > state.day || p.quitting) continue; const ok = p.morale > 0.3 || Math.random() < 0.5; if (ok) { came.push(p.id); p.morale = Math.max(0, p.morale - (many ? 0.15 : 0.05)); } else { not.push(p.name); p.morale = Math.max(0, p.morale - 0.02); } }
+    state.satCrew = came; achieve(state, 'the_saturday');
+    night.satLine = `Saturday. ${came.length ? `${came.length} coming in${many ? ', and this is the fourth one in two months, which was mentioned' : ''}.` : 'Nobody is coming in. Just you.'}${not.length ? ` ${not.join(' and ')} ${not.length === 1 ? 'has' : 'have'} a thing.` : ''}`;
+  } else state.day += friday ? 3 : saturday ? 2 : 1;
+  state.t = 0; state.closingShown = false; state.speed = 1;
+  if ((friday && !night.saturday) || saturday) { night.weekend = true; night.sunday = saturday; night.fatigue = state.fatigue = Math.max(0, fatigue - (saturday ? 0.3 : 0.5)); }
   const extra = [];
   if ((state.day - 1) % 7 === 0) {
     const rent = building(state).rent;
@@ -412,3 +426,7 @@ export function sell(state, uid) {
 }
 
 export function pluralName(def) { return `${def.brand} ${def.name}`; }
+
+// is there a reason to come in Saturday? something due early next week and not done.
+export function saturdayWorth(state) { return (state.day - 1) % 7 === 4 && state.jobs.some((j) => (j.status === 'work' || j.status === 'ready') && j.dueDay <= state.day + 5); }
+export function isSaturday(state) { return (state.day - 1) % 7 === 5; }
