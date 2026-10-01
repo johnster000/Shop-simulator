@@ -65,7 +65,7 @@ export function valuation(state) {
   const machines = state.machines.reduce((a, m) => { const d = byId(m.id); return a + Math.round((m.used ? d.priceUsed : d.priceNew) * 0.6 * (0.5 + 0.5 * m.condition)); }, 0);
   const receivables = (state.receivables || []).reduce((a, r) => a + r.amount, 0);
   const backlog = state.jobs.filter((j) => j.status !== 'shipped' && j.status !== 'dead' && j.status !== 'scrapped').reduce((a, j) => a + Math.round((j.price - (j.paid || 0)) * 0.5), 0);
-  const debt = state.loans.reduce((a, l) => a + l.balance, 0);
+  const debt = state.loans.reduce((a, l) => a + l.balance, 0) + (state.payables || []).reduce((a, p) => a + p.amount, 0);
   const building = state.building === 'large' ? 0 : 0; // rented. the landlord has the valuation on the building.
   return { cash: state.cash, machines, receivables, backlog, debt, building, total: state.cash + machines + receivables + backlog - debt };
 }
@@ -244,6 +244,15 @@ export function monthlySave(state) { if ((state.day - 1) % 20 === 0) { try { loc
 export function loadMonth() { try { const raw = localStorage.getItem(MONTH_KEY); if (!raw) return null; const s = JSON.parse(raw); upgradeState(s); initJobs(s); initPeople(s); return s; } catch (e) { return null; } }
 
 // ---- loans
+// asking the steel supplier for terms. they say yes once there is something to point at.
+export function askSteelTerms(state) {
+  if (state.steelTerms) return { ok: false, why: 'you already have terms' };
+  if (state.stats.shipped < 2 || state.rep < 0.3) return { ok: false, why: 'they want to see two jobs shipped and a name. Cash on delivery until then.' };
+  if (state.termsAskedDay && state.day - state.termsAskedDay < 10) return { ok: false, why: 'you asked last week. They remember.' };
+  state.termsAskedDay = state.day;
+  if (state.cash < 0) return { ok: false, why: 'the account is overdrawn. They checked.' };
+  state.steelTerms = true; achieve(state, 'net_thirty'); return { ok: true };
+}
 export function takeLoan(state, kind) {
   const L = kind === 'startup' ? { kind, name: 'Start-up loan', principal: 100000, rate: 0.11, weeks: 260 } : kind === 'loc' ? { kind, name: 'Line of credit', principal: 50000, rate: 0.09, weeks: 104 } : null;
   if (!L) return { ok: false };
@@ -298,6 +307,7 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  net_thirty: ['Net Thirty', 'The steel supplier gave you terms. The invoice still comes. Later.'],
   lifted: ['Certified', 'Lifted a crate with the forklift. Everyone watched. Nobody helped.'], dock: ['Staged', 'Put a crate down at the door with the forks. The truck still came late.'],
   eye_wash: ['Not the Sink', 'Somebody used the eye wash station. The real one. Fifteen minutes, like the sign says.'], textured: ['Grain', 'Sent a cavity out for texture and got it back. Nobody touched it. Nobody.'],
   seg_auto: ['Tier Two', 'Automotive called. The quality manual is thicker than the mold.'], seg_appliance: ['Big and Plain', 'Appliance called. Nothing they make fits on a pallet jack.'], seg_packaging: ['Sixteen or Do Not Bother', 'Packaging called. Stainless, hot runner, no patience at all.'], seg_medical: ['Wipe Your Feet', 'Medical called. Stavax, a tenth, and a binder. They asked if the shop was clean.'],

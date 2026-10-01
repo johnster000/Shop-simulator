@@ -1,6 +1,6 @@
 // HUD, the clipboard, the machine panel. Honest HTML. No 3D UI.
 import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
-import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor, insuranceWeekly } from './sim.js';
+import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor, insuranceWeekly, askSteelTerms } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
 import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel, canCheapSteel, cheapSteel, canInspect, inspect, canShipEarly, shipEarly, CHEAP_STEELS, VENDORS, vendorFor, CUSTOMERS, customerOpen } from './jobs.js';
@@ -282,6 +282,9 @@ export class UI {
       <h4 class="sect">THE BANK</h4>
       <div class="note">${s.loans.length ? s.loans.map((l) => `${l.name}: ${money(l.balance)} left, ${money(l.weekly)}/wk`).join('<br>') : 'No loans.'}</div>
       <div class="pacts">${s.loans.some((l) => l.kind === 'startup') ? '' : `<button data-loan="startup">START-UP LOAN · $100,000 at 11%</button>`}${s.stats.shipped >= 3 && !s.loans.some((l) => l.kind === 'loc') ? `<button data-loan="loc">LINE OF CREDIT · $50,000 at 9%</button>` : `<span class="note">${s.stats.shipped >= 3 ? '' : 'A line of credit after three shipped jobs. The bank wants to see something leave the building.'}</span>`}</div>
+      <h4 class="sect">THE STEEL SUPPLIER</h4>
+      <div class="note">${s.steelTerms ? `Net 30 on steel. ${(s.payables || []).length ? (s.payables || []).map((p) => `${p.text}: ${money(p.amount)} due day ${p.due}`).join('<br>') : 'Nothing owing yet. It will be.'}` : 'Cash on delivery. The steel for a job goes out the day the PO lands, which is a month before anybody pays you. Ask for terms once they know your name.'}</div>
+      <div class="pacts">${s.steelTerms ? '' : '<button data-terms="1">ASK FOR NET 30</button>'}</div>
       <h4 class="sect">THE WALL</h4>
       <div class="note">${(s.achievements || []).length ? s.achievements.map((id) => ACHIEVEMENTS[id] ? `<b>${ACHIEVEMENTS[id][0]}</b> · ${ACHIEVEMENTS[id][1]}` : id).join('<br>') : 'Nothing framed yet.'}<br><span style="opacity:.45"><b>${ACHIEVEMENTS.retired_bridgeford[0]}</b> · ${ACHIEVEMENTS.retired_bridgeford[1]}</span></div>
       <h4 class="sect">LEDGER</h4>
@@ -292,6 +295,7 @@ export class UI {
       const now = Math.round(r.amount * 0.85); post(s, `Factored: ${r.text} (85%)`, now); s.rep = Math.max(0, s.rep - 0.02); achieve(s, 'factored');
       this.audio.cash(); this.toast(`${money(now)} today. ${money(r.amount - now)} to a company called Receivable Solutions. ${r.text.split(',')[0]} will get a letter from them, and will mention it.`, 5000); this.renderBank();
     }));
+    el.querySelectorAll('[data-terms]').forEach((b) => b.addEventListener('click', () => { const r = askSteelTerms(s); if (!r.ok) { this.audio.nope(); this.toast(`No: ${r.why}`, 3800); return; } this.audio.paper(); this.toast('Net 30 on steel. They said it like they were doing you a favour. They are.', 3600); const a = ACHIEVEMENTS.net_thirty; this.hooks.achievement(a); this.renderBank(); }));
     el.querySelectorAll('[data-loan]').forEach((b) => b.addEventListener('click', () => { const r = takeLoan(s, b.dataset.loan); if (!r.ok) { this.audio.nope(); this.toast(r.why || 'no'); return; } this.audio.cash(); this.toast(`Signed. ${money(r.weekly)} a week. The bank sends a calendar.`, 3200); this.renderBank(); }));
   }
 

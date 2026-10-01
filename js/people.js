@@ -47,14 +47,14 @@ export function makeCandidate(state) {
   const role = ROLES[roleId];
   const claimed = {}, actual = {};
   for (const k of SKILLS) {
-    claimed[k] = Math.max(0, Math.min(5, rint(role.skills[0], role.skills[1]) + (k === 'general' ? 1 : 0)));
+    claimed[k] = Math.max(0, Math.min(5, rint(role.skills[0], role.skills[1]) + (k === 'general' ? 1 : 0) + (state.rep >= 0.7 && Math.random() < 0.5 ? 1 : 0))); // a name draws better resumes
     // the resume is not under oath
     actual[k] = Math.max(0, claimed[k] - (Math.random() < 0.3 ? rint(1, 2) : 0));
   }
   const quirk = pick(roleId === 'machinist' && Math.random() < 0.3 ? [CNC_ONLY] : roleId === 'moldmaker' && Math.random() < 0.3 ? [MANUAL_ONLY] : QUIRKS);
   if (quirk === CNC_ONLY) { claimed.vmc = Math.max(claimed.vmc, 3); actual.vmc = Math.max(actual.vmc, 2); }
   return {
-    id: state.nextPerson++, name: pick(FIRST), role: roleId, roleName: role.name, blurb: pick(role.blurbs), quirk: quirk[1], quirkId: quirk[0],
+    id: state.nextPerson++, name: pick(FIRST), role: roleId, roleName: role.name, blurb: state.rep >= 0.7 && Math.random() < 0.3 ? pick(['Heard the name. Wants in.', 'Left a bigger shop to come here. Says so twice.', 'Saw the mold at the show. Asked who built it.']) : pick(role.blurbs), quirk: quirk[1], quirkId: quirk[0],
     claimed, actual, wage: rint(role.wage[0], role.wage[1]), look: randomLook(), weld: roleId === 'moldmaker' && Math.random() < 0.25,
     morale: 0.72, startDay: null, revealed: false, daysWorked: 0, daysIdle: 0, grievance: null, lastRaise: 0, crashes: 0, saidToday: false,
   };

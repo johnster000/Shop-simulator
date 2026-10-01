@@ -280,7 +280,10 @@ export function startJob(state, rfq) {
   job.paid = deposit;
   post(state, `Deposit, ${c.name}, job ${job.id}`, deposit);
   const steel = job.mold ? job.spec.steelCost : job.material;
-  if (steel > 0) post(state, `Steel for job ${job.id} (${job.steel})`, -steel);
+  if (steel > 0) {
+    if (state.steelTerms) { state.payables = state.payables || []; state.payables.push({ due: state.day + 30, amount: steel, text: `Steel for job ${job.id} (${job.steel}), net 30` }); }
+    else post(state, `Steel for job ${job.id} (${job.steel})`, -steel);
+  }
   message(state, c.name, `PO ${job.id}: ${job.title}`, `Your quote of $${job.price.toLocaleString()} is accepted. Deposit of $${deposit.toLocaleString()} sent. We need it by day ${job.dueDay}.${job.mold ? ' Send us the design for approval when it is done, and sample parts after tryout.' : steel > 0 ? ' Steel is ordered; it will be on the rack tomorrow.' : ' Parts are on the way to you.'}`);
   return job;
 }
@@ -490,6 +493,8 @@ export function endOfDay(state, byId) {
     }
     if (job.status === 'work' && state.day === job.dueDay) notes.push(`Job ${job.id} is due today.`);
   }
+  // money out, on terms. the steel supplier remembers the day.
+  for (const pay of (state.payables || []).slice()) if (state.day >= pay.due) { post(state, pay.text, -pay.amount); state.payables.splice(state.payables.indexOf(pay), 1); notes.push(`Paid: ${pay.text}, $${pay.amount.toLocaleString()}. ${state.cash < 0 ? 'The steel supplier noticed the cheque took a day to clear.' : ''}`.trim()); if (state.cash < 0 && Math.random() < 0.5) { state.steelTerms = false; notes.push('The steel supplier called. Terms are off until the account is current. Cash on delivery, like the first month.'); } }
   // money in
   for (const rcv of state.receivables.slice()) if (state.day >= rcv.due) { post(state, rcv.text, rcv.amount); state.receivables.splice(state.receivables.indexOf(rcv), 1); notes.push(`Paid: ${rcv.text}, $${rcv.amount.toLocaleString()}.`); }
   // new work. reputation sets how often the phone rings.

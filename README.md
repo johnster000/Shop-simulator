@@ -362,6 +362,12 @@ Then open http://localhost:8080/.
   truck is still late. Friday night's screen leads with the week in numbers (§14): money in,
   money out, shipped, POs, the crew's mood, and a line about it.
 
+- Terms, resumes, and the lamp. Ask the steel supplier for net 30 on the BANK tab once two jobs
+  have shipped and the name means something (§9): steel then goes on the books for a month
+  instead of out the door the day the PO lands, and bounces back to cash on delivery if the
+  account is overdrawn when it comes due. A name draws better resumes (§8.2). The moldmaker in
+  the polisher's corner is bent over the lamp now, not standing beside it.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
