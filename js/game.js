@@ -9,6 +9,7 @@ import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve } fro
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
+import { Items, ITEM_KINDS } from './items.js';
 
 const $ = (id) => document.getElementById(id);
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -60,6 +61,54 @@ export function startShop(T, audio, state) {
     say: (p, text) => { ui.toast(`${p.name}: "${text}"`, 2600); },
   });
   nav.rebuild(allColliders()); crew.sync();
+
+  // ---- things to throw
+  const items = new Items(T, scene, camera, audio, shop);
+  for (let i = 0; i < 3; i++) items.make('scrap', shop.binPos.x + (i - 1) * 0.25, shop.binPos.z + (i % 2 ? 0.15 : -0.1), { y: 0.82 });
+  items.make('coffee', shop.pcPos.x + 0.6, shop.pcPos.z + 0.1, { y: 0.77 });
+  items.make('hammer', shop.pcPos.x - 0.6, shop.pcPos.z + 0.2, { y: 0.77 });
+  items.make('key', shop.hx - 1.6, shop.hz - 1.9, { y: 0.0 });
+  let steelItem = null;
+  function syncSteel() {
+    const want = state.jobs.some((j) => j.status === 'work' || j.status === 'material' && state.day >= j.materialDay);
+    if (want && !steelItem) steelItem = items.make('steel', -shop.hx + 0.55, shop.hz * 0.45 - 0.6, { y: 1.24 });
+    if (!want && steelItem && !steelItem.flying && items.held !== steelItem) { items.remove(steelItem); steelItem = null; }
+  }
+  const binRect = { x: shop.binPos.x, z: shop.binPos.z, hw: 0.5, hd: 0.4 };
+  items.onHit = (it, what) => {
+    const kind = it.kind, heavy = kind === 'scrap' || kind === 'steel';
+    if (what.type === 'machine') {
+      const m = state.machines.find((q) => q.uid === what.uid); if (!m) return; const d = byId(m.id);
+      if (!heavy) { ui.toast(kind === 'coffee' ? `Coffee on the ${d.name.toLowerCase()}. It has had worse.` : `Clink. The ${d.name.toLowerCase()} did not notice.`); return; }
+      if (d.cnc && what.speed > 5) { post(state, `Glazier: ${d.name} window`, -650); m.condition = Math.max(0, m.condition - 0.06); unlock('window'); ui.toast(`CRACK. The window on the ${d.name}. $650. The glazier comes Thursday.`, 4000); }
+      else { m.condition = Math.max(0, m.condition - 0.02); ui.toast(pick([`CLANG. The ${d.name.toLowerCase()} has been hit by worse.`, `CLANG. A handwheel is slightly less round.`, 'CLANG. Nothing important. Probably.'])); if (Math.random() < 0.15) { post(state, 'Bent handwheel', -120); unlock('bent'); ui.toast('Bent a handwheel. $120. The crew saw. They will say they did not.', 3600); } }
+      return;
+    }
+    if (what.type === 'person') {
+      const p = state.people.find((q) => q.id === what.id); if (!p) return;
+      if (heavy) {
+        post(state, `WSIB: ${p.name}, claim and premium`, -2400); p.morale = Math.max(0, p.morale - 0.35); p.startDay = state.day + 3; p.crashes += 0;
+        for (const q of state.people) if (q !== p) q.morale = Math.max(0, q.morale - 0.1);
+        unlock('wsib'); ui.toast(`${p.name}: "OW. What is WRONG with you?" A WSIB claim, $2,400, and ${p.name} is off for three days. Everyone saw.`, 5000); crew.ouch(p);
+      } else if (kind === 'coffee') { p.morale = Math.max(0, p.morale - 0.1); ui.toast(`${p.name}: "...thanks." Wet, and thinking about it.`, 3000); }
+      else { post(state, 'First aid kit, restocked', -60); p.morale = Math.max(0, p.morale - 0.18); ui.toast(`${p.name}: "Hey!" A ${ITEM_KINDS[kind].label} to the shoulder. $60 of bandages and a long look.`, 3600); }
+      return;
+    }
+    if (what.type === 'tarp') { ui.toast(pick(['Through the tarp. The tarp did not mind.', 'The tarp flapped. It always flaps.'])); return; }
+    if (what.type === 'lot') { ui.toast(`${ITEM_KINDS[kind].label[0].toUpperCase() + ITEM_KINDS[kind].label.slice(1)}: now in the parking lot.${kind === 'steel' ? ' That was $90 of P20.' : ''}`, 3400); if (kind === 'steel') { post(state, 'A block of P20, in the parking lot', -90); items.remove(it); steelItem = null; } else if (kind !== 'scrap') items.remove(it); else { it.mesh.position.set(shop.binPos.x, 0.82, shop.binPos.z); } return; }
+    if (what.type === 'spill') { unlock('wet_floor'); ui.toast(pick(['Coffee on the floor. Somebody will slip on that.', 'The coffee is on the floor now. It was the good coffee.']), 3000); setTimeout(() => { it.mesh.position.set(shop.pcPos.x + 0.6, 0.77, shop.pcPos.z + 0.1); }, 20000); return; }
+    if (what.type === 'wall') { if (kind === 'coffee') ui.toast('Coffee on the block wall. It joins the others.'); return; }
+  };
+  function itemsAtRest() { for (const it of items.items) if (it.kind === 'scrap' && !it.flying && it.thrownBy && !it.scored) { it.scored = true; const m = it.mesh.position; if (Math.abs(m.x - binRect.x) < binRect.hw && Math.abs(m.z - binRect.z) < binRect.hd && it.throwDist > 4) { unlock('three_pointer'); ui.toast('Nothing but net. From downtown.', 3000); audio.ding(); } } }
+  // the hammer
+  function whack(m) {
+    const d = byId(m.id);
+    audio.thunk(); audio.noise(0.2, 2000, 0.12, 'bandpass', 2);
+    unlock('percussive');
+    if (m.running) { m.running = false; m.runLeft = 0; m.checklist = {}; const j = m.job; m.job = null; ui.toast(`WHACK. The ${d.name.toLowerCase()} stopped mid-cut. ${j && j.jobId ? `Job ${j.jobId}'s stage has to be reloaded.` : ''}`, 4000); return; }
+    if (Math.random() < 0.2) { m.condition = Math.min(1, m.condition + 0.08); ui.toast(pick(['WHACK. It... sounds better? Percussive maintenance. Do not ask why.', 'WHACK. Something inside clicked back into place. Nobody will ever know what.']), 3600); audio.ding(); }
+    else { const bill = d.cnc ? 1200 : 120; post(state, d.cnc ? 'Pendant screen, replaced' : 'Bent handwheel', -bill); m.condition = Math.max(0, m.condition - 0.08); ui.toast(d.cnc ? `WHACK. The pendant screen is a spiderweb now. ${money(bill)}.` : `WHACK. A handwheel is bent and the ${d.name.toLowerCase()} is sulking. ${money(bill)}.`, 4000); }
+  }
   shop.setCrates(state.crates || 0); shop.setScrap(state.scrapCount || 0);
   $('hud').classList.remove('hidden');
 
@@ -256,6 +305,8 @@ export function startShop(T, audio, state) {
         if (d < bestD && (dx * fx + dz * fz) / (d || 1) > 0.7) { best = v; bestD = d; }
       }
       if (best) lookAt = { type: 'machine', uid: best.m.uid };
+      // or a thing on the floor or a bench right in front of you
+      if (!lookAt && !items.held) { let bi = null, bd = 1.7; for (const it of items.items) { if (it.flying) continue; const dx = it.mesh.position.x - camera.position.x, dz = it.mesh.position.z - camera.position.z, d = Math.hypot(dx, dz); if (d < bd && (dx * fx + dz * fz) / (d || 1) > 0.75) { bd = d; bi = it; } } if (bi) lookAt = { type: 'item', kind: bi.kind, ref: bi, text: ITEM_KINDS[bi.kind].hint }; }
       // or the office PC, when you are standing at the desk
       if (!lookAt) { const dx = shop.pcPos.x - camera.position.x, dz = shop.pcPos.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 1.8 && (dx * fx + dz * fz) / (d || 1) > 0.6) lookAt = { type: 'pc', text: 'the office PC. quotes, bills, the inbox.' }; }
       // or a person standing right there
@@ -265,7 +316,10 @@ export function startShop(T, audio, state) {
         if (d < Math.min(bestD, 2.4) && (dx * fx + dz * fz) / (d || 1) > 0.8) { bestD = d; lookAt = { type: 'person', id: v.p.id }; }
       }
     }
-    if (!lookAt) { ui.hint(''); ui.tag(''); return; }
+    if (!lookAt) { ui.tag(''); ui.hint(items.held ? `holding ${ITEM_KINDS[items.held.kind].label} · click to throw · G to put it down` : ''); return; }
+    if (lookAt.type === 'item') { ui.tag(''); ui.hint(items.held ? 'click to throw' : `pick up the ${ITEM_KINDS[lookAt.kind].label}`); return; }
+    if (items.held && items.held.kind === 'hammer' && lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid), d = byId(m.id); ui.tag(`${d.brand.toUpperCase()} ${d.name.toUpperCase()}`); ui.hint('WHACK IT'); return; }
+    if (items.held) { ui.hint('click to throw'); ui.tag(lookAt.type === 'person' ? (state.people.find((q) => q.id === lookAt.id) || {}).name : ''); return; }
     if (lookAt.type === 'machine') {
       const m = state.machines.find((q) => q.uid === lookAt.uid), d = byId(m.id);
       const op = m.job && m.job.operator && m.job.operator !== 'owner' ? state.people.find((q) => q.id === m.job.operator) : null;
@@ -277,6 +331,12 @@ export function startShop(T, audio, state) {
     } else { ui.tag(''); ui.hint(lookAt.text || lookAt.type); }
   }
   function use() {
+    if (items.held) {
+      if (items.held.kind === 'hammer' && lookAt && lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid); whack(m); return; }
+      const it = items.throw(1); if (it) { it.throwDist = 0; it.from = { x: camera.position.x, z: camera.position.z }; }
+      return;
+    }
+    if (lookAt && lookAt.type === 'item') { items.pickUp(lookAt.ref); return; }
     if (!lookAt) return;
     audio.click();
     if (lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid); if (m.job && m.job.operator && m.job.operator !== 'owner' && !m.running) { ui.toast(`${state.people.find((q) => q.id === m.job.operator).name} is setting this one up.`); return; } if (player.locked) document.exitPointerLock(); ui.openPanel(m); return; }
@@ -339,6 +399,7 @@ export function startShop(T, audio, state) {
       return;
     }
     if (e.code === 'KeyE' && !modal && !iso.active) use();
+    if (e.code === 'KeyG' && !modal && !iso.active && items.held) { items.drop(); audio.tick(0.08, 500); }
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { if (!modal) ui.setSpeed({ Digit1: 1, Digit2: 2, Digit3: 3 }[e.code]); }
     if (e.code === 'KeyP' || e.code === 'Space') { if (!modal) ui.setSpeed(state.speed ? 0 : 1); }
     if (e.code === 'KeyN' && !modal && !night) { $('endDay').click(); }
@@ -379,6 +440,11 @@ export function startShop(T, audio, state) {
     }
     if (iso.active) iso.update(); else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
+    if (!paused && !modal) {
+      items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })));
+      for (const it of items.items) if (it.flying && it.from) it.throwDist = Math.hypot(it.mesh.position.x - it.from.x, it.mesh.position.z - it.from.z);
+      itemsAtRest(); syncSteel();
+    }
     shop.update(paused ? 0 : dt, audio.compOn); shop.setDoor(!!state.facility.door); shop.setAir(state.facility.air);
     for (const v of views) v.update(paused || modal ? 0 : dt * (state.speed || 0));
     audio.update(dt, {
@@ -391,6 +457,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, mods: { makeRfq, TEMPLATES, CUSTOMERS }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { state, camera, player, iso, views, crew, nav, items, mods: { makeRfq, TEMPLATES, CUSTOMERS }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

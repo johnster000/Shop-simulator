@@ -163,6 +163,8 @@ export class Crew {
   }
   lineFor(p) { const v = this.views.get(p.id); const ctx = v && (v.mode === 'work' || v.mode === 'setup') && v.machine && v.machine.job ? { working: true, job: v.machine.job.jobId, stage: v.machine.job.label } : {}; return line(p, ctx); }
   rebuildNav(colliders) { this.nav.rebuild(colliders); }
+  // a block of steel to the shoulder
+  ouch(p) { const v = this.views.get(p.id); if (!v) return; this.dropMachine(v); this.goTo(v, this.outside, 'leave'); this.hooks.say(p, pick(['OW. What is WRONG with you?', 'I am going to the clinic. And then to a lawyer.', 'You THREW that.'])); }
   // lights off: everyone is gone, whatever they were doing
   night() { for (const v of this.views.values()) { this.dropMachine(v); v.mode = 'offsite'; v.path = []; v.pos = { ...this.outside }; v.g.visible = false; } }
 }

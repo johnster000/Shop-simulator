@@ -80,6 +80,12 @@ Then open http://localhost:8080/.
   floor, some with a heat-treat stage that goes to Quench & Sons and sometimes comes back in two pieces.
   Weekends exist. Achievements go on the wall in the BANK tab.
 
+- Things to throw. Scrap blocks in the bin, the block of P20 on the rack, the coffee on the desk,
+  the chuck key somebody left out, and a dead-blow hammer. Walk up, click to pick up, click to
+  throw, G to put it down. A block into a CNC window is a glazier's bill. A block into a person is
+  a WSIB claim, three days off, and a crew that saw. Coffee on the floor is a wet floor. The hammer
+  on a machine is percussive maintenance: usually a bent handwheel or a spiderwebbed pendant,
+  occasionally it works and nobody knows why. Scrap into the bin from downtown is nothing but net.
 - Real molds. Once a CNC is on the floor and the reputation is there, consumer customers send RFQs
   for new tools: single and multi-cavity, P20 to stainless, B to A finishes, slides, cold or hot
   runners. A mold is a set of work items (the base from DMV, the cavity, the core, each slide, a hot
@@ -112,6 +118,7 @@ js/people.js      the crew as numbers: roles, resumes, wages, morale, grievances
 js/person.js      a person as shapes: capsule limbs, a face, hair, caps, beards, vests; the poses
 js/crew.js        the crew on the floor: arriving, finding work, walking, setting up, lunch, leaving
 js/nav.js         a half-metre grid and A*, so nobody walks through the lathe
+js/items.js       things you pick up and throw, and what happens when they land
 js/game.js        render loop, interaction, keys, pause, autosave
 js/audio.js       every sound, synthesized. the compressor is most of them.
 js/textures.js    canvas textures: concrete, block, tarp, nameplates, the sign
