@@ -89,12 +89,24 @@ export function sign(T, text) {
   });
 }
 
-export function whiteboard(T, lines) {
+export function whiteboard(T, lines, doodle = null) {
   return canvasTexture(T, 512, 320, (x, w, h) => {
     x.fillStyle = '#f7f7f4'; x.fillRect(0, 0, w, h);
     x.fillStyle = '#1c3a8a'; x.font = '26px "Comic Sans MS", "Chalkboard SE", cursive';
     lines.forEach((l, i) => { x.save(); x.translate(26, 46 + i * 44); x.rotate((Math.random() - 0.5) * 0.04); x.fillText(l, 0, 0); x.restore(); });
     x.strokeStyle = '#c0392b'; x.lineWidth = 3; x.beginPath(); x.moveTo(300, 60); x.lineTo(470, 60); x.stroke();
+    if (doodle) {
+      // somebody drew the foreman. big head, small body, the eyebrows. nobody will admit to it. it has been there a week.
+      x.save(); x.translate(400, 200); x.strokeStyle = '#1c3a8a'; x.lineWidth = 3; x.lineCap = 'round';
+      x.beginPath(); x.arc(0, -40, 34, 0, Math.PI * 2); x.stroke();                      // the head
+      x.beginPath(); x.moveTo(0, -6); x.lineTo(0, 40); x.moveTo(-28, 10); x.lineTo(28, 10); x.moveTo(0, 40); x.lineTo(-18, 75); x.moveTo(0, 40); x.lineTo(18, 75); x.stroke(); // the body
+      x.beginPath(); x.moveTo(-20, -56); x.lineTo(-6, -48); x.moveTo(20, -56); x.lineTo(6, -48); x.stroke();   // the eyebrows
+      x.beginPath(); x.arc(-11, -42, 3, 0, Math.PI * 2); x.arc(11, -42, 3, 0, Math.PI * 2); x.fill();          // the eyes
+      x.beginPath(); x.moveTo(-12, -22); x.lineTo(12, -22); x.stroke();                                         // the mouth
+      x.beginPath(); x.moveTo(-34, -40); x.lineTo(-44, -32); x.moveTo(34, -40); x.lineTo(44, -32); x.stroke();  // the hair, what is left
+      x.font = '20px "Comic Sans MS", "Chalkboard SE", cursive'; x.fillStyle = '#c0392b'; x.textAlign = 'center'; x.fillText(doodle, 0, 100);
+      x.restore();
+    }
   });
 }
 

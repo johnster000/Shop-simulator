@@ -58,7 +58,7 @@ export function startShop(T, audio, state) {
     goHome() { leaveForTheNight(); },
     shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (j && j.program) { const line = programShipped(state, j, Math.max(0, state.day - j.dueDay)); if (line) { setTimeout(() => ui.toast(line, 6000), 1500); if (state.program && state.program.finished && state.program.late === 0) unlock('the_program'); } } if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); state.cake = { day: state.day, job: j.id }; syncCake(); unlock('cake'); setTimeout(() => ui.toast(pick(['A mold shipped. There is cake on the table. The grocery store had one left. It is not for us, strictly, but it is cake.', 'Ship day. Cake. The crew have already found it.']), 4500), 800); for (const q of state.people) if (Math.random() < 0.6) crew.say(q, pick(['Cake.', 'Corner piece is mine.', 'Who is Barb?', 'Is there a plate? There is no plate.', 'I will have a small one. Three small ones.']), 3.5); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
     crew() { return crew; },
-    crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
+    crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.returned && p.startDay != null)) unlock('boomerang'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
     achievement(a) { showAchievement(a); },
   });
   function showAchievement(a) { if (!a) return; ui.toast(`ACHIEVEMENT: ${a[0].toUpperCase()}`, 3400); audio.ding(); }
@@ -69,7 +69,7 @@ export function startShop(T, audio, state) {
     say: (p, text) => { crew.say(p, text); },
     whistle: (p, pos) => { const d = Math.hypot(camera.position.x - pos.x, camera.position.z - pos.z); audio.whistle(iso.active ? 0.4 : 1 / (1 + (d / 4) * (d / 4))); },
     quit: (p) => {
-      state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left'); unlock('the_speech');
+      state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left'); unlock('the_speech'); state.alumni = (state.alumni || []).filter((a) => a.id !== p.id); if (p.morale > 0.02 && !p.returned) state.alumni.push(Object.assign({}, p, { leftDay: state.day, quitting: false }));
       for (const q of state.people) q.morale = Math.max(0, q.morale - 0.05);
       let extra = '';
       const shipped = state.jobs.filter((j) => j.status === 'shipped');
@@ -79,7 +79,7 @@ export function startShop(T, audio, state) {
     },
     vendSulk: (p) => { state.vendSulks = (state.vendSulks || 0) + 1; if (state.vendSulks >= 3) unlock('vending_sulk'); },
   });
-  visitor = new Visitor(T, scene, shop, nav, state, crew, { say: (p, t, secs) => crew.say(p, t, secs), toast: (t, ms) => ui.toast(t, ms), unlock });
+  visitor = new Visitor(T, scene, shop, nav, state, crew, { say: (p, t, secs) => crew.say(p, t, secs), toast: (t, ms) => ui.toast(t, ms), unlock, crewSay: (t) => { const q = state.people.filter((x) => { const v = crew.views.get(x.id); return v && v.g.visible; }); if (q.length && Math.random() < 0.7) crew.say(pick(q), t, 3); } });
   nav.rebuild(allColliders()); crew.sync();
 
   // ---- things to throw
@@ -350,6 +350,8 @@ export function startShop(T, audio, state) {
     const who = p ? p.name : 'You';
     const jobNow = m.job.jobId ? state.jobs.find((j) => j.id === m.job.jobId) : null;
     if (jobNow && def.kind === 'spot') jobNow.spotted = true;
+    if (p && (def.kind === 'press' || /spot/i.test(m.job.label))) { p.blueUntil = state.day + 2; crew.sync(); if (Math.random() < 0.4) crew.say(p, pick(['Blue hands. Again.', 'It does not come off. It is not supposed to.', 'My wife asked. I said spotting. She said that is not an answer.']), 3.5); unlock('blue_hands'); }
+    if (p && p.role === 'apprentice' && def.kind === 'bench' && Math.random() < 0.12) { m.runTotal *= 1.6; m.runLeft = m.runTotal; unlock('wrong_edge'); setTimeout(() => { crew.say(p, pick(['I deburred it. The whole edge.', 'Which edge? I did an edge.', 'It looked like it needed it.']), 3.5); ui.toast(`${p.name} deburred the wrong edge. Beautifully. It will take a while longer now, and a print.`, 4000); }, 1500); }
     if (jobNow && def.kind === 'bench' && m.job.label === 'Fit and spot') { jobNow.risk = (jobNow.risk || 0) + 0.1; ui.toast('Fit and spot at the bench, with bluing and a straightedge. A press would be better. The flash will tell you.', 3600); }
     if (def.kind === 'vmc' && /electrode/i.test(m.job.label) && !state.facility.dust) { m.condition = Math.max(0, m.condition - 0.03); for (const q of state.people) q.morale = Math.max(0, q.morale - 0.02); ui.toast('Graphite on the VMC. Black dust in the ways, the coffee, and everyone\'s nose. A vacuum is $2,800.', 4200); }
     if ((m.oil <= 0 || m.taped) && !def.manual && def.kind !== 'press' && def.kind !== 'heat' && Math.random() < 0.08) {
@@ -403,7 +405,7 @@ export function startShop(T, audio, state) {
     lines.push(pick(['- coffee', '- radio: NO', '- sweep', '- call Rick back (no)', '- order end mills']));
     return lines.slice(0, 6);
   }
-  shop.setWhiteboard(whiteboardLines());
+  shop.setWhiteboard(whiteboardLines(), state.doodle || null);
   syncWalked(); syncCake();
   audio.setStation(state.radio || 0);
 
@@ -563,7 +565,8 @@ export function startShop(T, audio, state) {
     setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
     camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
     syncWalked(); syncCake(); if (!jarItem) { jarItem = items.make('jar', shop.jarPos.x, shop.jarPos.z, { y: shop.jarPos.y }); } jarShake();
-    shop.setWhiteboard(whiteboardLines());
+    if ((state.day - 1) % 7 === 0) { state.doodle = null; const sour = state.people.filter((p) => p.morale < 0.45 && p.startDay != null && p.startDay <= state.day); if (sour.length && Math.random() < 0.5) { state.doodle = pick(['THE BOSS', 'YOU', '"management"', state.shopName.split(' ')[0].toUpperCase()]); unlock('the_foreman'); setTimeout(() => ui.toast('Somebody drew you on the whiteboard. The eyebrows are accurate. Nobody saw anything.', 4000), 3000); } }
+    shop.setWhiteboard(whiteboardLines(), state.doodle || null);
     if (state.fatigue >= 0.25) ui.toast(state.fatigue >= 0.6 ? 'Day ' + state.day + '. You are wrecked. Read every button twice.' : 'Day ' + state.day + '. Tired. Coffee first.', 3500);
     else if ((state.day - 1) % 7 === 0) ui.toast('Monday. ' + pick(['The rent went out before you did.', 'Resumes on the desk.', 'The tarp survived the weekend.']), 2800);
     else ui.toast('Day ' + state.day + '. ' + pick(['The compressor is already going.', 'Fresh. For now.', 'The tarp let the night in.']), 2600);
@@ -873,6 +876,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped) => runMachine(m, skipped, null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped, p) => runMachine(m, skipped, p || null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

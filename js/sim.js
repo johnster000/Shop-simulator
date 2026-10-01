@@ -297,6 +297,8 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  blue_hands: ['Blue Hands', 'A day at the spotting press. It does not come off. It is not supposed to.'], boomerang: ['Barrie Did Not Work Out', 'Somebody quit, and came back, and you took them.'],
+  touches: ['Please Do Not Touch', 'A customer touched three machines. There is no poster about this. There should be.'], wrong_edge: ['The Wrong Edge', 'The apprentice deburred the wrong edge. Beautifully.'], the_foreman: ['Portrait', 'Somebody drew you on the whiteboard. The eyebrows are accurate.'],
   the_jar: ['The Coffee Fund', 'Put a twenty in the jar. Five times. Nobody else has, ever.'], jar_broke: ['Thirty-One Dollars and a Button', 'Threw the coffee fund. The change went everywhere. The button did not.'],
   cake: ['Cake on Ship Day', 'A mold shipped and there was cake. It said HAPPY RETIREMENT BARB. Nobody knows Barb.'], cake_floor: ['Floor Cake', 'Threw the cake. The apprentice ate some of it anyway.'],
   walked: ['Tools That Walk', 'The dead-blow hammer left. It came back with a different handle.'],

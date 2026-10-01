@@ -49,6 +49,7 @@ export function buildPerson(T, look) {
   const g = new T.Group();
   const H = look.height / 1.75, B = look.build;              // height and build scales
   const skinMat = new T.MeshStandardMaterial({ color: look.skin, roughness: 0.75 });
+  const handMat = new T.MeshStandardMaterial({ color: look.skin, roughness: 0.75 }); // the hands: blue after a day at the press
   const shirtMat = new T.MeshStandardMaterial({ color: look.coveralls ? look.pants : look.shirt, roughness: 0.85 });
   const pantsMat = new T.MeshStandardMaterial({ color: look.pants, roughness: 0.85 });
   const bootMat = new T.MeshStandardMaterial({ color: look.boots, roughness: 0.6 });
@@ -84,7 +85,7 @@ export function buildPerson(T, look) {
     const upper = capsule(0.052 * B, 0.2 * H, shirtMat); upper.position.y = -0.13 * H; sh.add(upper);
     const elbow = new T.Group(); elbow.position.y = -0.28 * H; sh.add(elbow);
     const fore = capsule(0.046 * B, 0.19 * H, look.coveralls ? shirtMat : skinMat); fore.position.y = -0.13 * H; elbow.add(fore);
-    const hand = new T.Mesh(new T.SphereGeometry(0.05 * B, 10, 8), skinMat); hand.scale.set(0.8, 1.1, 0.6); hand.position.y = -0.28 * H; elbow.add(hand);
+    const hand = new T.Mesh(new T.SphereGeometry(0.05 * B, 10, 8), handMat); hand.scale.set(0.8, 1.1, 0.6); hand.position.y = -0.28 * H; elbow.add(hand);
     parts[side < 0 ? 'lShoulder' : 'rShoulder'] = sh; parts[side < 0 ? 'lElbow' : 'rElbow'] = elbow;
     sh.rotation.z = side * 0.08; // arms hang a touch out from the body
   }
@@ -121,6 +122,7 @@ export function buildPerson(T, look) {
     for (const side of [-1, 1]) { const arm = new T.Mesh(new T.BoxGeometry(0.005, 0.005, 0.12), gm); arm.position.set(side * 0.075, 0.125, 0.05); headG.add(arm); }
   }
   g.userData.parts = parts; g.userData.look = look; g.userData.H = H;
+  g.userData.setHands = (blue) => { handMat.color.set(blue ? 0x2f4f9c : look.skin); };
   g.userData.setMood = (mood) => { head.material.map = faceTexture(T, look, mood); head.material.needsUpdate = true; };
   return g;
 }

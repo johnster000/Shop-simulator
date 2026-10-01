@@ -293,6 +293,14 @@ Then open http://localhost:8080/.
   chuck key and the good calipers leave overnight and turn up days later in somebody's box, with a
   different handle, and the whiteboard asks who has them.
 
+- The comedy engine, part two (§8.3 and §8.7). Morale spreads: the disgruntled talk to the others
+  by the saw, about you, and stop when you walk past. Some quit and come back: a resume turns up
+  weeks later with a familiar name on it and "Barrie did not work out" under it. Blue hands after a
+  day at the spotting press (it does not come off; it is not supposed to). The apprentice deburrs
+  the wrong edge, beautifully, and the bench stage takes longer. The customer who visits touches
+  everything, and the crew say so. And on a bad Monday somebody draws you on the whiteboard; the
+  eyebrows are accurate and nobody saw anything.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

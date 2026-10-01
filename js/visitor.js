@@ -62,6 +62,7 @@ export class Visitor {
     if (m) {
       const d = byId(m.id);
       if (m.fire) { note('fire', -3, 'Is that... on FIRE?'); this.leaveNow('fire'); return; }
+      if (!m.running && !m.down && !m.fire && !this.seen.has('touch' + m.uid) && Math.random() < 0.45) { m.condition = Math.max(0, m.condition - 0.004); m.touched = (m.touched || 0) + 1; this.touched = (this.touched || 0) + 1; note('touch' + m.uid, 0, pick(['What does this do?', `*touches the ${d.name.toLowerCase()}*`, 'Is this the on button?', 'Ooh. Heavy.', '*spins the handwheel*', 'Can I press this? I pressed it.'])); if (this.touched >= 3) this.hooks.unlock && this.hooks.unlock('touches'); if (this.hooks.crewSay) this.hooks.crewSay(pick([`They touched the ${d.name}.`, 'Do not touch that.', 'He is touching everything.', 'Somebody get them a coffee. And a chair. Far away.'])); }
       if (m.down) note('down', -1, pick([`Is the ${d.name.toLowerCase()} down?`, 'That one has a sign on it.', 'Does that one work?']));
       else if (m.taped) note('tape', -1, pick(['Is that duct tape?', 'Is the tape structural?']));
       else if (m.running) note('running', 1, pick(['Busy. Good.', 'What is that one cutting?', 'Nice. Ours is louder.']));

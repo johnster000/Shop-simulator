@@ -58,7 +58,16 @@ export function makeCandidate(state) {
   };
 }
 
-export function refreshCandidates(state) { state.candidates = [makeCandidate(state), makeCandidate(state), makeCandidate(state)]; }
+export function refreshCandidates(state) {
+  state.candidates = [makeCandidate(state), makeCandidate(state), makeCandidate(state)];
+  // some quit and come back. barrie did not work out.
+  const back = (state.alumni || []).find((a) => a.leftDay + 15 <= state.day && Math.random() < 0.35);
+  if (back) {
+    state.alumni.splice(state.alumni.indexOf(back), 1);
+    const p = Object.assign({}, back, { morale: 0.55, startDay: null, revealed: true, grievance: null, quitting: false, returned: true, daysIdle: 0, saidToday: false, blurb: pick(['Back. Barrie did not work out.', 'Back. The airport job was nights. All of them.', 'Back. Lakeshore laid off the whole second shift.', 'Back. Would rather not talk about it. Will talk about it.']) });
+    delete p.leftDay; state.candidates[0] = p;
+  }
+}
 
 export function hire(state, cand) {
   state.candidates = state.candidates.filter((c) => c.id !== cand.id);
@@ -141,11 +150,15 @@ export function endOfDay(state) {
       else { p.quitting = true; notes.push(`${p.name} is quitting. ${p.grievance ? `It is about ${p.grievance.label}. ` : ''}There will be a speech, on the floor, around half past nine.`); }
     }
   }
+  // morale spreads. the disgruntled talk to the others, by the saw, about you.
+  const here = state.people.filter((p) => p.startDay != null && p.startDay <= state.day && !p.quitting && p.role !== 'nightshift');
+  const sour = here.filter((p) => p.morale < 0.35);
+  if (sour.length && here.length >= 2) { for (const p of here) if (!sour.includes(p)) p.morale = Math.max(0, p.morale - 0.012 * sour.length); if (Math.random() < 0.25) { const other = pick(here.filter((p) => p !== sour[0])); notes.push(`${sour[0].name} and ${other.name} were talking by the saw. About you. They stopped when you walked past.`); } }
   if ((state.day - 1) % 7 === 4) { // Friday
     let total = 0; for (const p of state.people) if (p.startDay <= state.day) total += p.wage * 40;
     if (total) { post(state, 'Payroll', -total); notes.push(`Payroll: $${total.toLocaleString()}.`); if (state.cash < 0) { for (const p of state.people) p.morale = Math.max(0, p.morale - 0.2); notes.push('The cheques bounced. Everyone knows.'); } }
   }
-  if ((state.day - 1) % 7 === 0) { refreshCandidates(state); notes.push('New resumes on the desk.'); }
+  if ((state.day - 1) % 7 === 0) { refreshCandidates(state); const r = state.candidates.find((c) => c.returned); notes.push(r ? `New resumes on the desk. One of them is ${r.name}'s. ${r.blurb}` : 'New resumes on the desk.'); }
   return notes;
 }
 

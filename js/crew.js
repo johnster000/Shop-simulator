@@ -55,6 +55,8 @@ export class Crew {
       this.views.set(p.id, { p, g, mode: 'offsite', path: [], pos: { ...this.outside }, yaw: 0, walk: 0, wait: 0, machine: null, setupLeft: 0, think: Math.random() * 2, said: 0 });
     }
     for (const [id, v] of this.views) if (!this.state.people.find((p) => p.id === id)) { this.scene.remove(v.g); this.views.delete(id); }
+    // blue hands. spotting. it does not come off. it is not supposed to.
+    for (const [id, v] of this.views) { const blue = (v.p.blueUntil || 0) > this.state.day; if (v.blue !== blue) { v.blue = blue; v.g.userData.setHands && v.g.userData.setHands(blue); } }
   }
 
   spotFor(m) { // where you stand to run a machine: in front of it

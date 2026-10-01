@@ -335,7 +335,7 @@ export class Shop {
     }
     this.rollup.visible = real; this.tarpGroup.visible = !real;
   }
-  setWhiteboard(lines) { if (!this.wbMat) return; this.wbMat.map = TX.whiteboard(this.T, lines); this.wbMat.needsUpdate = true; }
+  setWhiteboard(lines, doodle = null) { if (!this.wbMat) return; this.wbMat.map = TX.whiteboard(this.T, lines, doodle); this.wbMat.needsUpdate = true; }
 
   // the overhead crane: runway beams along both long walls, a bridge, a trolley and a hook
   setCrane(on) {
