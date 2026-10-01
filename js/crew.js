@@ -159,6 +159,11 @@ export class Crew {
 
       // ---- doing things
       if (p.role === 'estimator' && here && v.mode === 'idle' && !lunch && !v.path.length && Math.hypot(v.pos.x - this.officeSpot.x, v.pos.z - this.officeSpot.z) > 0.6) { this.goTo(v, this.officeSpot, 'toBreak'); v.wait = 9999; }
+      // ---- cake. a mold shipped. everybody goes once, for a corner piece, and comes back with crumbs on the apron.
+      if (s.cake && s.cake.day === s.day && here && !lunch && v.hadCake !== s.cake.job && (v.mode === 'idle' || v.mode === 'sweep' || v.mode === 'vend') && Math.random() < dt * 0.4) {
+        v.hadCake = s.cake.job; this.setBroom(v, false); this.goTo(v, { x: this.breakSpot.x + (Math.random() - 0.5) * 0.8, z: this.breakSpot.z + (Math.random() - 0.5) * 0.5 }, 'toBreak'); v.wait = 6 + Math.random() * 4;
+        this.hooks.say(p, pick(['Cake.', 'Corner piece.', 'Is it the good bakery? It is not the good bakery.', 'Who is Barb?', 'Just a sliver.']), 3);
+      }
       if (v.mode === 'idle' && here && !lunch && !p.quitting && p.role !== 'estimator') {
         if (Math.random() < dt * 0.012) this.hooks.say(p, line(p, {}));
         v.idleMin = (v.idleMin || 0) + shopDt;

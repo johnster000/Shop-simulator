@@ -209,6 +209,7 @@ export class Shop {
     const phone = this.box(0.18, 0.06, 0.2, new T.MeshStandardMaterial({ color: 0x222 }), 0.5, 0.79, -0.15, desk);
     s.add(desk); this.tag(desk, 'pc', 'the office PC. quotes, bills, the inbox.'); this.solid(x0 + 1.4, z0 + 1.0, 0.9, 0.45);
     this.pc = desk; this.pcPos = { x: x0 + 1.4, z: z0 + 1.0 };
+    this.jarPos = { x: x0 + 1.4 + 0.8, y: 0.77, z: z0 + 1.0 - 0.25 }; this.cakePos = { x: x0 + 1.4 + 0.15, y: 0.77, z: z0 + 1.0 + 0.2 }; // the desk, until there is a break room
     // the office phone. beige. a cord. a red light for when it rings and nobody is in the office.
     const ph = new T.Group(); ph.position.set(x0 + 1.4 - 0.45, 0.77, z0 + 1.0 - 0.3); s.add(ph);
     const beige = new T.MeshStandardMaterial({ color: 0xd9d2bd, roughness: 0.7 });
@@ -274,6 +275,7 @@ export class Shop {
       const coffee = this.box(0.3, 0.4, 0.3, new T.MeshStandardMaterial({ color: 0x222 }), bx1 - 0.5, 0.95, bz0 + 0.4); this.tag(coffee, 'coffeemaker', 'the coffee machine. a real one. morale lives here.');
       this.box(1.0, 0.75, 0.5, grey, bx1 - 0.5, 0.375, bz0 + 0.4); this.solid(bx1 - 0.5, bz0 + 0.4, 0.5, 0.25);
       this.rooms.push({ x0: bx0, x1: bx1, z0: bz0, z1: bz1, name: 'breakroom' });
+      this.jarPos = { x: bx1 - 0.2, y: 0.75, z: bz0 + 0.45 }; this.cakePos = { x: (bx0 + bx1) / 2 + 0.1, y: 0.775, z: (bz0 + bz1) / 2 };
       this.vending(bx1 - 1.4, bz0 + 0.45);
     }
   }

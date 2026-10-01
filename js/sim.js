@@ -40,6 +40,7 @@ export function newState(shopName) {
     software: { cad: null, cam: null, pirated: false, auditDay: null, camDownUntil: 0 },
     loans: [],
     achievements: [],
+    jar: 0, jarGiven: 0, walked: [], cake: null, // the coffee fund, the tools that walk, the cake on ship day
   };
 }
 function upgradeState(s) {
@@ -51,6 +52,7 @@ function upgradeState(s) {
   if (!s.yr) s.yr = { hired: 0, left: 0, onTime: 0, late: 0, crashes: 0, wsib: 0 };
   for (const m of s.machines) { if (m.oil == null) m.oil = 1; if (m.down === undefined) m.down = null; m.alarm = false; m.estopped = false; m.fire = false; }
   if (s.redDays == null) s.redDays = 0;
+  if (s.jar == null) s.jar = 0; if (s.jarGiven == null) s.jarGiven = 0; if (!s.walked) s.walked = [];
 }
 // the running tally for the year-end summary. reset when the year turns.
 export function tally(state, key, n = 1) { if (!state.yr) state.yr = { hired: 0, left: 0, onTime: 0, late: 0, crashes: 0, wsib: 0 }; state.yr[key] = (state.yr[key] || 0) + n; }
@@ -295,6 +297,9 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  the_jar: ['The Coffee Fund', 'Put a twenty in the jar. Five times. Nobody else has, ever.'], jar_broke: ['Thirty-One Dollars and a Button', 'Threw the coffee fund. The change went everywhere. The button did not.'],
+  cake: ['Cake on Ship Day', 'A mold shipped and there was cake. It said HAPPY RETIREMENT BARB. Nobody knows Barb.'], cake_floor: ['Floor Cake', 'Threw the cake. The apprentice ate some of it anyway.'],
+  walked: ['Tools That Walk', 'The dead-blow hammer left. It came back with a different handle.'],
   welded: ['The Flag', 'Welded an end mill into a cavity. It stood up like a flag.'], bumped: ['Two Thou', 'A machine was out for a week and the CMM finally said so.'], glasses: ['Safety Culture', 'After the injury, everyone wore safety glasses. For ten days.'],
   night_shift: ['Second Shift', 'Somebody you have never met ran a machine all night and it was fine.'],
   estimator: ['Somebody Else Quotes', 'Hired an estimator. The phone rings more. So do the opinions.'],

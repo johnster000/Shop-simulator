@@ -56,7 +56,7 @@ export function startShop(T, audio, state) {
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
     goHome() { leaveForTheNight(); },
-    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (j && j.program) { const line = programShipped(state, j, Math.max(0, state.day - j.dueDay)); if (line) { setTimeout(() => ui.toast(line, 6000), 1500); if (state.program && state.program.finished && state.program.late === 0) unlock('the_program'); } } if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
+    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (j && j.program) { const line = programShipped(state, j, Math.max(0, state.day - j.dueDay)); if (line) { setTimeout(() => ui.toast(line, 6000), 1500); if (state.program && state.program.finished && state.program.late === 0) unlock('the_program'); } } if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); state.cake = { day: state.day, job: j.id }; syncCake(); unlock('cake'); setTimeout(() => ui.toast(pick(['A mold shipped. There is cake on the table. The grocery store had one left. It is not for us, strictly, but it is cake.', 'Ship day. Cake. The crew have already found it.']), 4500), 800); for (const q of state.people) if (Math.random() < 0.6) crew.say(q, pick(['Cake.', 'Corner piece is mine.', 'Who is Barb?', 'Is there a plate? There is no plate.', 'I will have a small one. Three small ones.']), 3.5); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
     crew() { return crew; },
     crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
     achievement(a) { showAchievement(a); },
@@ -86,8 +86,24 @@ export function startShop(T, audio, state) {
   const items = new Items(T, scene, camera, audio, shop);
   for (let i = 0; i < 3; i++) items.make('scrap', shop.binPos.x + (i - 1) * 0.25, shop.binPos.z + (i % 2 ? 0.15 : -0.1), { y: 0.82 });
   items.make('coffee', shop.pcPos.x + 0.6, shop.pcPos.z + 0.1, { y: 0.77 });
-  items.make('hammer', shop.pcPos.x - 0.6, shop.pcPos.z + 0.2, { y: 0.77 });
-  items.make('key', shop.hx - 1.6, shop.hz - 1.9, { y: 0.0 });
+  const hammerItem = items.make('hammer', shop.pcPos.x - 0.6, shop.pcPos.z + 0.2, { y: 0.77 });
+  const keyItem = items.make('key', shop.hx - 1.6, shop.hz - 1.9, { y: 0.0 });
+  let jarItem = items.make('jar', shop.jarPos.x, shop.jarPos.z, { y: shop.jarPos.y }), cakeItem = null;
+  // tools that walk: the hammer and the chuck key leave overnight (events.js) and turn up in somebody's box
+  function syncWalked() {
+    for (const [kind, it] of [['hammer', hammerItem], ['key', keyItem]]) { const gone = (state.walked || []).some((w) => w.kind === kind); if (gone && items.held === it) items.drop(); it.mesh.visible = !gone; if (gone) { it.flying = false; it.mesh.position.set(it.home.x, -200, it.home.z); } else if (it.mesh.position.y < -100) it.mesh.position.set(it.home.x, it.home.y, it.home.z); }
+  }
+  // the cake: on the table the day a mold ships. gone in the morning. the plate stays in the sink.
+  const CAKES = [['HAPPY RETIREMENT', 'BARB'], ['CONGRATS', 'GRADS'], ['GET WELL', 'SOON'], ['HAPPY 40TH', 'AGAIN'], ['WELCOME', 'BACK DOUG'], ['IT\'S A', 'BOY']];
+  function syncCake() {
+    const want = !!(state.cake && state.cake.day === state.day);
+    if (want && !cakeItem) { const c = CAKES[(state.cake.job || 0) % CAKES.length]; cakeItem = items.make('cake', shop.cakePos.x, shop.cakePos.z, { y: shop.cakePos.y, text: c[0], text2: c[1] }); }
+    if (!want && cakeItem) { if (items.held === cakeItem) items.drop(); items.remove(cakeItem); cakeItem = null; }
+  }
+  function jarShake() { if (!jarItem || !jarItem.mesh.userData.change) return; const c = jarItem.mesh.userData.change, h = Math.max(0.004, Math.min(0.12, 0.03 + state.jar * 0.0012)); c.scale.y = h / 0.03; c.position.y = h / 2 + 0.008; }
+  jarShake();
+  // broken glass and a cake on the floor: a flat thing on the floor for a while
+  function splat(x, z, color, r = 0.3, ms = 40000) { const m = new T.Mesh(new T.CircleGeometry(r, 18), new T.MeshStandardMaterial({ color, roughness: 0.9, transparent: true, opacity: 0.85 })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.012, z); scene.add(m); setTimeout(() => scene.remove(m), ms); return m; }
   const extItem = items.make('extinguisher', shop.extPos.x, shop.extPos.z, { y: shop.extPos.y });
   const hoseItem = items.make('airhose', shop.hosePos.x, shop.hosePos.z, { y: shop.hosePos.y });
   let coffeeItem = items.items.find((it) => it.kind === 'coffee');
@@ -148,6 +164,23 @@ export function startShop(T, audio, state) {
         unlock('wsib'); tally(state, 'wsib'); ui.toast(`${p.name}: "OW. What is WRONG with you?" A WSIB claim, $2,400, and ${p.name} is off for three days. Everyone saw.`, 5000); crew.ouch(p);
       } else if (kind === 'coffee') { p.morale = Math.max(0, p.morale - 0.1); ui.toast(`${p.name}: "...thanks." Wet, and thinking about it.`, 3000); }
       else { post(state, 'First aid kit, restocked', -60); p.morale = Math.max(0, p.morale - 0.18); ui.toast(`${p.name}: "Hey!" A ${ITEM_KINDS[kind].label} to the shoulder. $60 of bandages and a long look.`, 3600); }
+      return;
+    }
+    if (what.type === 'smash') {
+      const x = it.mesh.position.x, z = it.mesh.position.z;
+      if (kind === 'jar') {
+        const had = Math.max(0, state.jar); audio.noise(0.5, 3500, 0.35, 'highpass'); audio.noise(0.3, 900, 0.15, 'bandpass', 3);
+        items.remove(it); jarItem = null; splat(x, z, 0xb8b0a0, 0.28, 60000);
+        for (let i = 0; i < 8; i++) { const c = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.002, 10), new T.MeshStandardMaterial({ color: i % 3 ? 0xb8a060 : 0xc8c8c8, metalness: 0.8, roughness: 0.4 })); c.position.set(x + (Math.random() - 0.5) * 0.9, 0.013, z + (Math.random() - 0.5) * 0.9); scene.add(c); setTimeout(() => scene.remove(c), 60000); }
+        state.jar = Math.min(state.jar, 0); unlock('jar_broke');
+        ui.toast(`The coffee fund. On the floor. $${had} in change${had ? ' and a button' : ', which is to say a button'}. Glass everywhere. The jar was a pickle jar and it is now a story.`, 5000);
+        for (const q of state.people) if (Math.random() < 0.8) crew.say(q, pick(['That was the FUND.', 'There goes my toonie.', 'I am not sweeping that.', 'Was that the jar? That was the jar.', 'Rick never paid in anyway.']), 3.5);
+        for (const q of state.people) q.morale = Math.max(0, q.morale - 0.04);
+      } else if (kind === 'cake') {
+        audio.noise(0.2, 300, 0.2, 'lowpass'); items.remove(it); cakeItem = null; splat(x, z, 0xf2ece2, 0.32, 60000); state.cake = null; unlock('cake_floor');
+        ui.toast('The cake. On the floor. Icing side down, the way it goes. The apprentice is looking at it like it is still cake.', 4500);
+        for (const q of state.people) { q.morale = Math.max(0, q.morale - 0.05); if (Math.random() < 0.8) crew.say(q, pick(['NO.', 'That was Barb\'s.', 'Five second rule.', 'I had not had a piece.', 'Floor cake is still cake.']), 3.5); }
+      }
       return;
     }
     if (what.type === 'tarp') { ui.toast(pick(['Through the tarp. The tarp did not mind.', 'The tarp flapped. It always flaps.'])); return; }
@@ -366,10 +399,12 @@ export function startShop(T, audio, state) {
     const g = state.people.find((p) => p.grievance); if (g) lines.push(`- talk to ${g.name}`);
     if (!state.machines.length) lines.push('- buy a mill');
     if (state.cash < 5000) lines.push('- MONEY');
+    if (state.jar < -10) lines.push('- COFFEE FUND. PAY.'); if ((state.walked || []).length) lines.push(`- WHO HAS THE ${state.walked[0].kind === 'hammer' ? 'HAMMER' : state.walked[0].kind === 'key' ? 'CHUCK KEY' : 'CALIPERS'}`);
     lines.push(pick(['- coffee', '- radio: NO', '- sweep', '- call Rick back (no)', '- order end mills']));
     return lines.slice(0, 6);
   }
   shop.setWhiteboard(whiteboardLines());
+  syncWalked(); syncCake();
   audio.setStation(state.radio || 0);
 
   // ---- lights out. CNC machines keep cutting after you lock up. Manual ones wait for a person.
@@ -527,6 +562,7 @@ export function startShop(T, audio, state) {
     if (isSaturday(state)) setTimeout(() => ui.toast(`Saturday. ${(state.satCrew || []).length ? `${(state.satCrew || []).length} came in. The radio is louder than usual.` : 'Just you and the compressor.'} No trucks, no phone, no visitors. Just the ship date.`, 5000), 1500);
     setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
     camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
+    syncWalked(); syncCake(); if (!jarItem) { jarItem = items.make('jar', shop.jarPos.x, shop.jarPos.z, { y: shop.jarPos.y }); } jarShake();
     shop.setWhiteboard(whiteboardLines());
     if (state.fatigue >= 0.25) ui.toast(state.fatigue >= 0.6 ? 'Day ' + state.day + '. You are wrecked. Read every button twice.' : 'Day ' + state.day + '. Tired. Coffee first.', 3500);
     else if ((state.day - 1) % 7 === 0) ui.toast('Monday. ' + pick(['The rent went out before you did.', 'Resumes on the desk.', 'The tarp survived the weekend.']), 2800);
@@ -588,6 +624,8 @@ export function startShop(T, audio, state) {
     }
     if (!lookAt) { ui.tag(''); ui.hint(items.held ? `holding ${ITEM_KINDS[items.held.kind].label}${items.held.empty ? ' (empty)' : ''} · ${items.held.kind === 'airhose' ? 'click: PSSSHT' : items.held.kind === 'traveller' ? 'click to read it' : items.held.kind === 'broom' ? 'click to sweep' : 'click to throw'} · G to put it down` : ''); return; }
     if (lookAt.type === 'item' && lookAt.kind === 'traveller' && !items.held) { const j = state.jobs.find((q) => q.id === lookAt.ref.jobId); ui.tag(j ? `JOB ${j.id} · ${j.title.toUpperCase()}` : 'TRAVELLER'); ui.hint(j ? `${nextLabel(j)} · due day ${j.dueDay}${state.day > j.dueDay ? ' (LATE)' : ''} · pick it up` : 'pick it up'); return; }
+    if (lookAt.type === 'item' && lookAt.kind === 'jar' && !items.held) { ui.tag(`THE COFFEE FUND · $${state.jar}${state.jar < 0 ? ' (IOU)' : ''}`); ui.hint('click to put in a twenty · G to pick it up (why)'); return; }
+    if (lookAt.type === 'item' && lookAt.kind === 'cake' && !items.held) { ui.tag('CAKE. SHIP DAY.'); ui.hint('click to have a piece · G to pick it up (why)'); return; }
     if (lookAt.type === 'item') { ui.tag(''); ui.hint(items.held ? 'click to throw' : `pick up the ${ITEM_KINDS[lookAt.kind].label}`); return; }
     if (items.held && items.held.kind === 'hammer' && lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid), d = byId(m.id); ui.tag(`${d.brand.toUpperCase()} ${d.name.toUpperCase()}`); ui.hint('WHACK IT'); return; }
     if (items.held) {
@@ -629,6 +667,20 @@ export function startShop(T, audio, state) {
       }
       if (hk === 'traveller' && !pAt && !mAt) { if (player.locked) document.exitPointerLock(); ui.openClip('jobs'); return; }
       const it = items.throw(1); if (it) { it.throwDist = 0; it.from = { x: camera.position.x, z: camera.position.z }; }
+      return;
+    }
+    if (lookAt && lookAt.type === 'item' && lookAt.kind === 'jar') {
+      if (state.cash < 20) { ui.toast('You looked in your wallet. The jar looked back.'); return; }
+      post(state, 'Coffee fund', -20); state.jar += 20; state.jarGiven = (state.jarGiven || 0) + 1; jarShake(); audio.tick(0.1, 2600); setTimeout(() => audio.tick(0.08, 2100), 90);
+      if (state.jarGiven >= 5) unlock('the_jar');
+      for (const q of state.people) if (Math.random() < 0.3) crew.say(q, pick(['Did he just put money IN it?', 'Write it down. Nobody will believe it.', 'Big spender.', 'That is the first twenty that jar has seen.']), 3);
+      ui.toast(pick(['A twenty in the jar. The jar is surprised.', 'Twenty dollars. The good coffee is $18 a can. Do the math. Nobody else will.', 'You put in a twenty. You will get back a coffee, eventually, from the bottom of the can.', `The jar: $${state.jar}. The list on the fridge still has Rick on it.`]), 3200);
+      return;
+    }
+    if (lookAt && lookAt.type === 'item' && lookAt.kind === 'cake') {
+      const app = state.people.find((p) => p.role === 'apprentice') || state.people[0];
+      for (const q of state.people) q.morale = Math.min(1, q.morale + 0.03); audio.tick(0.06, 500);
+      ui.toast(pick([`You had a corner piece. ${app ? app.name + ' had three.' : 'Nobody else is here. You had three.'}`, 'Cake for breakfast is cake for breakfast. It is 2 p.m.', `Vanilla. The ${app ? 'crew' : 'compressor'} approves.`, 'You ate the B in BARB. Nobody knows Barb.']), 3400);
       return;
     }
     if (lookAt && lookAt.type === 'item') { items.pickUp(lookAt.ref); return; }
@@ -729,6 +781,7 @@ export function startShop(T, audio, state) {
     }
     if (e.code === 'KeyE' && !modal && !iso.active) use();
     if (e.code === 'KeyH' && forklift.driving) { forklift.honk(); for (const q of state.people) if (Math.random() < 0.5) crew.say(q, pick(['WHAT.', 'We heard you.', 'Very mature.']), 2); }
+    if (e.code === 'KeyG' && !modal && !iso.active && !items.held && lookAt && lookAt.type === 'item' && (lookAt.kind === 'jar' || lookAt.kind === 'cake')) { items.pickUp(lookAt.ref); ui.toast(lookAt.kind === 'jar' ? 'You picked up the coffee fund. The crew noticed. The crew always notices.' : 'You picked up the cake. Think about what you are doing.', 2600); return; }
     if (e.code === 'KeyG' && !modal && !iso.active && items.held) { const wasHose = items.held.kind === 'airhose'; if (items.held.kind === 'traveller') items.held.moved = true; items.drop(); audio.tick(0.08, 500); if (wasHose) { hoseItem.mesh.position.set(shop.hosePos.x, shop.hosePos.y, shop.hosePos.z); hoseItem.mesh.rotation.set(0, 0, 0); audio.noise(0.6, 1200, 0.05, 'bandpass', 2); ui.toast('The hose reeled itself back. Loudly.', 2000); } }
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { if (!modal) ui.setSpeed({ Digit1: 1, Digit2: 2, Digit3: 3 }[e.code]); }
     if (e.code === 'KeyP' || e.code === 'Space') { if (!modal) ui.setSpeed(state.speed ? 0 : 1); }
@@ -820,6 +873,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped) => runMachine(m, skipped, null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped) => runMachine(m, skipped, null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

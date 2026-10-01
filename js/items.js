@@ -14,6 +14,8 @@ const KINDS = {
   wetsign: { label: 'wet floor sign', mass: 0.8, hint: 'the wet floor sign. CAUTION, in two languages and a drawing.' },
   broom: { label: 'broom', mass: 1.2, hint: 'the broom. the apprentice\'s. you can use it.' },
   traveller: { label: 'job traveller', mass: 0.3, hint: 'a traveller. where the job is, in pen, with a coffee ring.' },
+  jar: { label: 'coffee fund jar', mass: 1.0, hint: 'the coffee fund. a pickle jar. $2 a cup. that means YOU, Rick.' },
+  cake: { label: 'the cake', mass: 0.9, hint: 'cake. ship day. the grocery store had one left.' },
 };
 
 export class Items {
@@ -59,6 +61,29 @@ export class Items {
       const clip = new T.Mesh(new T.BoxGeometry(0.1, 0.02, 0.03), new T.MeshStandardMaterial({ color: 0xb8bcc0, metalness: 0.8, roughness: 0.3 })); clip.position.set(0, 0.014, -0.14); mesh.add(clip);
       const ring = new T.Mesh(new T.RingGeometry(0.03, 0.038, 20), new T.MeshBasicMaterial({ color: 0x8a5a2a, transparent: true, opacity: 0.6, side: T.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.set(0.05 - Math.random() * 0.1, 0.009, 0.06 + Math.random() * 0.05); mesh.add(ring);
     }
+    else if (kind === 'jar') {
+      // a pickle jar with the label soaked off and a new one taped on. change in the bottom. a button.
+      mesh = new T.Group();
+      const glass = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, 0.17, 18, 1, true), new T.MeshPhysicalMaterial({ color: 0xdfe8e0, transparent: true, opacity: 0.35, roughness: 0.1, metalness: 0.0, side: T.DoubleSide })); glass.position.y = 0.085; mesh.add(glass);
+      const bottom = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, 0.008, 18), new T.MeshStandardMaterial({ color: 0xcfd8d0, transparent: true, opacity: 0.5 })); bottom.position.y = 0.004; mesh.add(bottom);
+      const lid = new T.Mesh(new T.CylinderGeometry(0.063, 0.063, 0.02, 18), new T.MeshStandardMaterial({ color: 0xc8a020, metalness: 0.6, roughness: 0.4 })); lid.position.y = 0.18; mesh.add(lid);
+      const slot = new T.Mesh(new T.BoxGeometry(0.05, 0.004, 0.008), new T.MeshStandardMaterial({ color: 0x111 })); slot.position.y = 0.191; mesh.add(slot);
+      const change = new T.Mesh(new T.CylinderGeometry(0.055, 0.055, 0.03, 18), new T.MeshStandardMaterial({ color: 0xb8a878, metalness: 0.7, roughness: 0.5 })); change.position.y = 0.023; mesh.add(change); mesh.userData.change = change;
+      const lbl = new T.Mesh(new T.PlaneGeometry(0.1, 0.07), new T.MeshBasicMaterial({ map: TX.label(T, ['COFFEE', 'FUND', '$2/cup'], { size: 22, bg: '#f4f1e6', fg: '#222', border: '#999' }) })); lbl.position.set(0, 0.1, 0.061); mesh.add(lbl);
+      const tape = new T.Mesh(new T.PlaneGeometry(0.11, 0.012), new T.MeshBasicMaterial({ color: 0xd8d2b0, transparent: true, opacity: 0.8 })); tape.position.set(0, 0.138, 0.0615); mesh.add(tape);
+    }
+    else if (kind === 'cake') {
+      // a round white cake on a cardboard circle. sprinkles. one slice already gone. somebody's name on it, not yours.
+      mesh = new T.Group();
+      const board = new T.Mesh(new T.CylinderGeometry(0.19, 0.19, 0.006, 24), new T.MeshStandardMaterial({ color: 0xc9b58a, roughness: 0.9 })); board.position.y = 0.003; mesh.add(board);
+      const icing = new T.MeshStandardMaterial({ color: 0xf6f1ea, roughness: 0.7 });
+      const body = new T.Mesh(new T.CylinderGeometry(0.15, 0.15, 0.09, 24, 1, false, 0.5, Math.PI * 2 - 0.5), icing); body.position.y = 0.051; mesh.add(body);
+      const cut1 = new T.Mesh(new T.PlaneGeometry(0.15, 0.09), new T.MeshStandardMaterial({ color: 0xe8c48a, roughness: 0.9, side: T.DoubleSide })); cut1.position.set(Math.sin(0.5) * 0.075, 0.051, Math.cos(0.5) * 0.075); cut1.rotation.y = 0.5 + Math.PI / 2; mesh.add(cut1);
+      const cut2 = cut1.clone(); cut2.position.set(0, 0.051, 0.075); cut2.rotation.y = Math.PI / 2; mesh.add(cut2);
+      for (let i = 0; i < 26; i++) { const a = 0.7 + Math.random() * (Math.PI * 2 - 0.9), r = 0.03 + Math.random() * 0.11; const sp = new T.Mesh(new T.BoxGeometry(0.012, 0.004, 0.004), new T.MeshStandardMaterial({ color: [0xe04040, 0x3a8ae0, 0xf0c020, 0x40b060][i % 4] })); sp.position.set(Math.sin(a) * r, 0.098, Math.cos(a) * r); sp.rotation.y = Math.random() * 3; mesh.add(sp); }
+      const text = new T.Mesh(new T.PlaneGeometry(0.2, 0.075), new T.MeshBasicMaterial({ map: TX.label(T, [opts.text || 'HAPPY RETIREMENT', opts.text2 || 'BARB'], { size: 26, bg: '#f6f1ea', fg: '#2a62c8', border: '#f6f1ea' }), transparent: true })); text.rotation.x = -Math.PI / 2; text.position.set(-0.03, 0.097, -0.02); mesh.add(text);
+      const knife = new T.Mesh(new T.BoxGeometry(0.02, 0.004, 0.16), new T.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.3 })); knife.position.set(0.18, 0.01, 0.06); knife.rotation.y = 0.4; mesh.add(knife);
+    }
     else if (kind === 'airhose') {
       mesh = new T.Group();
       const yel = new T.MeshStandardMaterial({ color: 0xd9b530, roughness: 0.6 }), chrome = new T.MeshStandardMaterial({ color: 0xc8ccd0, metalness: 0.8, roughness: 0.25 }), blk = new T.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
@@ -86,6 +111,8 @@ export class Items {
     if (item.kind === 'traveller') { item.mesh.position.set(0.3, -0.28, -0.55); item.mesh.rotation.set(-0.9, -0.3, 0.1); }
     if (item.kind === 'broom') { item.mesh.position.set(0.35, 0.1, -0.5); item.mesh.rotation.set(0.1, -0.5, 0.2); }
     if (item.kind === 'wetsign') { item.mesh.position.set(0.4, -0.55, -0.7); item.mesh.rotation.set(0, -0.6, 0); }
+    if (item.kind === 'jar') { item.mesh.position.set(0.32, -0.36, -0.7); item.mesh.rotation.set(0.1, -0.3, 0); }
+    if (item.kind === 'cake') { item.mesh.position.set(0.1, -0.42, -0.75); item.mesh.rotation.set(0.1, 0, 0); }
     this.audio.tick(0.08, 600);
     return true;
   }
@@ -151,7 +178,7 @@ export class Items {
       // the floor
       if (m.position.y <= it.rest) {
         m.position.y = it.rest;
-        if (Math.abs(it.v.y) > 1.2) { it.v.y = -it.v.y * 0.35; it.v.x *= 0.7; it.v.z *= 0.7; this.clang(it, 0.6); if (!it.hit && this.onHit) { it.hit = true; this.onHit(it, { type: 'floor' }); } }
+        if (Math.abs(it.v.y) > 1.2) { it.v.y = -it.v.y * 0.35; it.v.x *= 0.7; it.v.z *= 0.7; this.clang(it, 0.6); if (!it.hit && this.onHit) { it.hit = true; this.onHit(it, { type: 'floor' }); } if ((it.kind === 'jar' || it.kind === 'cake') && this.onHit) { it.v.set(0, 0, 0); it.flying = false; this.onHit(it, { type: 'smash' }); return; } }
         else { it.v.set(0, 0, 0); it.w.set(0, 0, 0); it.flying = false; m.rotation.set(0, m.rotation.y, 0); if (it.kind === 'coffee') { if (this.onHit) this.onHit(it, { type: 'spill' }); } }
       }
     }
@@ -159,6 +186,8 @@ export class Items {
   clang(it, k = 1) {
     if (it.kind === 'coffee') { this.audio.noise(0.12, 2500, 0.05 * k, 'highpass'); return; }
     if (it.kind === 'traveller') { this.audio.noise(0.1, 3000, 0.04 * k, 'highpass'); return; }
+    if (it.kind === 'jar') { this.audio.noise(0.25, 3200, 0.2 * k, 'highpass'); this.audio.noise(0.15, 1400, 0.1 * k, 'bandpass', 4); return; }
+    if (it.kind === 'cake') { this.audio.noise(0.08, 400, 0.05 * k, 'lowpass'); return; }
     if (it.kind === 'hammer' || it.kind === 'key') { this.audio.noise(0.08, 1800, 0.08 * k, 'bandpass', 2); return; }
     this.audio.noise(0.25, 900 + Math.random() * 600, 0.2 * k, 'bandpass', 3); this.audio.noise(0.3, 160, 0.15 * k, 'lowpass');
   }

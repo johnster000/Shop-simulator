@@ -283,6 +283,16 @@ Then open http://localhost:8080/.
   or a geological scrap bin. $600 an order and a letter; no orders goes on the wall, because
   nobody will believe it.
 
+- The small life, part two. The coffee fund jar (a pickle jar, $2 a cup, that means YOU, Rick):
+  click it to put in a twenty, the crew drink from it nightly and some of them pay, an empty jar
+  means the coffee from the bottom of the can and a list on the fridge. Press G to pick it up and
+  throw it if you must; the change goes everywhere and the button does not. Cake on ship day: a
+  mold ships and a grocery-store cake nobody ordered appears on the table (HAPPY RETIREMENT BARB,
+  nobody knows Barb); everyone goes for a corner piece, the apprentice has three, and in the
+  morning the plate is in the sink, where it will stay. Tools that walk: the dead-blow hammer, the
+  chuck key and the good calipers leave overnight and turn up days later in somebody's box, with a
+  different handle, and the whiteboard asks who has them.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

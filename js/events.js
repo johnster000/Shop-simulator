@@ -18,6 +18,30 @@ export function nightlyEvents(state) {
   if (!state.storyDraw) { const j = state.jobs.find((q) => q.defects && q.defects.includes('Stuck part')); if (j) { state.storyDraw = j.id; const a = state.people[0], b = state.people[1]; notes.push(`The part on job ${j.id} would not come out of the cavity. ${a ? `${a.name} is certain the polish was fine.` : 'The polish was fine, you are certain.'} ${b ? `${b.name} is certain it was not.` : 'The moldmaker at the press is certain it was not.'} The press was charging by the hour. The Draw. Every shop has one.`); state.achievements && !state.achievements.includes('the_draw') && state.achievements.push('the_draw'); } }
   const jobs = state.jobs.filter((j) => j.status === 'work');
   const roll = (p) => Math.random() < p;
+  const crew = state.people.filter((p) => p.startDay != null && p.startDay <= state.day && p.role !== 'nightshift');
+
+  // THE JAR. the coffee fund. the crew drinks; some of them pay. when it is empty, the coffee is the coffee from the bottom of the can.
+  if (crew.length) {
+    const drank = crew.length * 2, paid = crew.reduce((a, p) => a + (p.morale > 0.6 || p.quirkId === 'coffee' ? 0 : Math.random() < 0.6 ? 2 : 0), 0);
+    const was = state.jar; state.jar = Math.max(-40, state.jar - drank + paid);
+    if (was > 0 && state.jar <= 0 && roll(0.7)) notes.push(pick(['The coffee fund is empty. The coffee is now the coffee from the bottom of the can.', 'The jar is empty. Somebody wrote IOU on a sticky note and put the note in the jar.', 'The jar has a button in it and nothing else. The button is not currency.']));
+    if (state.jar >= 60 && roll(0.25)) { state.jar -= 40; for (const p of crew) p.morale = Math.min(1, p.morale + 0.03); notes.push(pick(['Somebody bought the good coffee with the jar money. The jar is lighter and the morning is better.', 'The jar bought a can of the good stuff. Everyone noticed. Nobody said thanks.'])); }
+    if (state.jar < -20 && roll(0.3)) notes.push(`The coffee fund is $${-state.jar} in the hole. There is a list on the fridge now. ${pick(crew).name}'s name is on it twice.`);
+  }
+  // THE CAKE. it was on the table at five. the plate is in the sink. the plate will stay in the sink.
+  if (state.cake && state.cake.day < state.day) { notes.push(pick(['The cake is gone. The plate is in the sink. It will stay in the sink.', 'Somebody took the rest of the cake home. The knife is still on the table.', 'The cake box is in the recycling. The recycling is the scrap bin.'])); state.cake = null; }
+  // TOOLS THAT WALK. the dead-blow hammer, the chuck key, the 6-inch calipers. they turn up. in a toolbox. with a different handle.
+  if (!state.walked) state.walked = []; if (state.jar == null) state.jar = 0;
+  for (const w of state.walked.slice()) if (w.back <= state.day) { state.walked.splice(state.walked.indexOf(w), 1); const who = crew.length ? pick(crew).name : 'nobody'; notes.push(w.kind === 'hammer' ? `The dead-blow hammer is back. It was in ${who}'s box. ${who} says it was always ${who}'s. It has a different handle now.` : w.kind === 'key' ? `The chuck key turned up. In the chuck. Where it has been for ${state.day - w.day} days.` : `The 6-inch calipers came back. The battery is dead and the jaws have a nick. ${who} says that was there before.`); }
+  if (crew.length >= 2 && roll(0.035)) {
+    const kind = pick(['hammer', 'hammer', 'key', 'calipers']);
+    if (!state.walked.some((w) => w.kind === kind)) {
+      const w = { kind, day: state.day, back: state.day + 3 + Math.floor(Math.random() * 5) }; state.walked.push(w);
+      if (kind === 'calipers') { post(state, '6-inch calipers, the second pair', -180); w.back = state.day + 2 + Math.floor(Math.random() * 7); }
+      notes.push(kind === 'hammer' ? 'The dead-blow hammer walked. It will turn up. It always turns up. In a toolbox.' : kind === 'key' ? 'The chuck key is missing. Everybody looked everywhere except the one place.' : 'The good 6-inch calipers walked. $180 for a second pair, which will also walk.');
+      state.achievements && !state.achievements.includes('walked') && state.achievements.push('walked');
+    }
+  }
 
   // "Just a small change." A mold in work gets a revision from the customer. Before design approval it is free; after, you bill it, and they argue.
   const molds = jobs.filter((j) => j.mold && j.jobStages[0].done && !j.jobStages.some((q) => q.kind === 'tryout' && q.out));
