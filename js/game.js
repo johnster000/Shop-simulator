@@ -515,9 +515,9 @@ export function startShop(T, audio, state) {
     }
     // the night shift: each one takes an idle CNC with work waiting and runs it until morning. you never see them.
     for (const p of nightShift(state)) {
-      const m = state.machines.find((q) => q.placed && !q.running && !q.down && byId(q.id).cnc && !q.job && runnableStages(state, byId(q.id).kind).length);
+      const m = state.machines.find((q) => q.placed && !q.running && !q.down && byId(q.id).cnc && !q.job && runnableStages(state, byId(q.id).kind, !!byId(q.id).big).length);
       if (!m) { notes.push(`${p.name} came in at six, found nothing loaded on a CNC, swept, and left a note: "??"`); p.morale = Math.max(0, p.morale - 0.02); continue; }
-      const def = byId(m.id), o = runnableStages(state, def.kind)[0];
+      const def = byId(m.id), o = runnableStages(state, def.kind, !!def.big)[0];
       m.job = { jobId: o.job.id, itemIndex: o.itemIndex, item: o.item ? o.item.name : null, index: o.index, label: o.stage.label, min: o.stage.min || 60, kind: o.stage.kind, operator: p.id };
       let skipped = 0; for (let k = 0; k < 3; k++) if (!setupRoll(p, def.kind)) skipped++;
       practice(p, def.kind); p.workedToday = true;

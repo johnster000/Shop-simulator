@@ -156,6 +156,73 @@ export function buildMachine(T, def, ghost = false) {
       if (!ghost) { nameplate(T, def, g, -0.9, 2.9, 1.21, 0, 0.5); parts.lamps = lightStack(T, g, -1.3, 3.2, -0.9); parts.button = greenButton(T, g, 1.9, 1.05, 1.06); }
       break;
     }
+    case 'bigsinker': {
+      // Sodiak large sinker: a C-frame, a tank you could bathe in, the ram with a big holder, and a twelve-station electrode changer on the left.
+      const fluid = ghost ? gm : new T.MeshStandardMaterial({ color: 0x6a7a3a, transparent: true, opacity: 0.6, roughness: 0.1 });
+      box(3.0, 0.7, 2.4, steelDark, 0, 0.35, 0);                             // base
+      box(1.0, 2.3, 0.9, steel, 0.6, 1.85, -0.9);                             // the C-frame column, right of centre
+      box(0.9, 0.7, 1.6, steel, 0.6, 2.65, -0.2);                             // the head, reaching forward
+      box(0.4, 0.9, 0.4, steelDark, 0.6, 1.85, 0.3);                          // the ram
+      box(0.2, 0.14, 0.2, chrome, 0.6, 1.33, 0.3); box(0.12, 0.2, 0.12, dark, 0.6, 1.16, 0.3); // holder and electrode
+      box(2.4, 0.02, 1.8, grey, 0, 0.71, 0.2);                                // tank floor
+      box(2.4, 0.7, 0.04, grey, 0, 1.05, 1.1); box(2.4, 0.7, 0.04, grey, 0, 1.05, -0.7);
+      box(0.04, 0.7, 1.8, grey, -1.2, 1.05, 0.2); box(0.04, 0.7, 1.8, grey, 1.2, 1.05, 0.2);
+      box(2.32, 0.02, 1.72, fluid, 0, 1.3, 0.2);                              // dielectric
+      box(0.9, 0.5, 0.7, grey, 0.6, 0.97, 0.3);                               // the XL block under the ram
+      box(0.6, 0.04, 0.04, chrome, 0, 1.42, 1.12);                            // door latch
+      // the electrode changer: a rack of twelve holders on the left side
+      box(0.5, 1.4, 0.4, steelDark, -1.65, 1.4, -0.6);
+      for (let k = 0; k < 6; k++) { box(0.1, 0.08, 0.1, chrome, -1.78, 0.85 + k * 0.2, -0.45); box(0.1, 0.08, 0.1, chrome, -1.52, 0.85 + k * 0.2, -0.45); }
+      box(0.9, 1.0, 0.7, steelDark, 1.6, 0.5, -1.3);                          // dielectric unit, right rear
+      tube(0.025, dark, [1.6, 1.0, -1.3], [0.9, 1.3, 0.2]);
+      box(0.55, 0.7, 0.08, dark, -1.6, 1.75, 0.6); box(0.05, 0.05, 1.0, grey, -1.4, 1.45, 0.1); // pendant on an arm, left front
+      const scr = new T.Mesh(new T.PlaneGeometry(0.38, 0.3), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x2a9a6a, emissiveIntensity: 0.6 })); scr.position.set(-1.6, 1.85, 0.645); g.add(scr);
+      if (!ghost) { nameplate(T, def, g, 0.6, 2.75, 0.61, 0, 0.4); parts.lamps = lightStack(T, g, 0.9, 3.0, -0.9); parts.button = greenButton(T, g, -1.6, 1.5, 0.65); }
+      break;
+    }
+    case 'bigwire': {
+      // Bitsumishi large wire: a long tank with a wide window, a bridge over it, a spool like a tire up top, two cabinets.
+      const glass = ghost ? gm : new T.MeshStandardMaterial({ color: 0x334455, transparent: true, opacity: 0.5, roughness: 0.1 });
+      box(3.0, 0.8, 2.2, steelDark, 0, 0.4, 0);                               // base
+      box(0.6, 1.9, 0.6, steel, -0.9, 1.75, -0.8); box(0.6, 1.9, 0.6, steel, 0.9, 1.75, -0.8); // two columns
+      box(2.6, 0.4, 0.5, steel, 0, 2.5, -0.8);                                // the bridge
+      box(0.4, 0.4, 1.4, steel, 0, 2.3, -0.1);                                // upper arm forward
+      box(0.3, 0.6, 0.3, steelDark, 0, 1.8, 0.45);                            // upper head
+      cyl(0.012, 0.9, chrome, 0, 1.4, 0.45);                                  // the wire
+      box(2.0, 0.05, 1.4, grey, 0, 1.08, 0.25);                               // table
+      box(1.0, 0.1, 0.6, grey, 0, 1.15, 0.35);                                // a plate the size of a door
+      box(2.4, 0.8, 0.04, grey, 0, 1.45, 1.0); box(2.4, 0.8, 0.04, grey, 0, 1.45, -0.5);
+      box(0.04, 0.8, 1.5, grey, -1.2, 1.45, 0.25); box(0.04, 0.8, 1.5, grey, 1.2, 1.45, 0.25);
+      box(1.6, 0.5, 0.04, glass, 0, 1.45, 1.01);                              // the window
+      const spool = cyl(0.3, 0.2, grey, 0.9, 3.0, -0.8, g, Math.PI / 2); parts.spin.push({ mesh: spool, axis: 'x' }); // the tire
+      box(0.14, 0.14, 0.14, dark, 0.9, 2.75, -0.8);
+      box(0.7, 2.0, 0.7, steelDark, 1.95, 1.0, -0.5); box(0.7, 1.4, 0.7, steelDark, -1.95, 0.7, -0.5); // cabinets both sides
+      const scr = new T.Mesh(new T.PlaneGeometry(0.4, 0.3), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x9a6a2a, emissiveIntensity: 0.6 })); scr.position.set(1.95, 1.7, -0.145); g.add(scr);
+      box(0.45, 0.3, 0.02, grey, 1.95, 1.25, -0.14);                          // keypad
+      if (!ghost) { nameplate(T, def, g, -0.5, 2.05, -0.49, 0, 0.4); parts.lamps = lightStack(T, g, -0.9, 2.75, -0.8); parts.button = greenButton(T, g, 1.95, 1.0, -0.14); }
+      break;
+    }
+    case 'gantry': {
+      // Pappas gantry 5-axis: two columns, a crossbeam, a ram with a tilting head, a table you could park two cars on, a fence, a stair.
+      const enc = mat('gantryEnc', { color: 0xe8e6dc, roughness: 0.55, metalness: 0.2 }), yel = mat('gantryYel', { color: 0xe0b020, roughness: 0.5 });
+      box(5.0, 0.3, 4.0, steelDark, 0, 0.15, 0);                              // the foundation plinth
+      box(3.2, 0.5, 2.4, grey, 0, 0.55, 0.2);                                 // the table
+      box(1.8, 0.7, 1.2, grey, 0, 1.15, 0.2);                                 // the block on it
+      for (const x of [-2.1, 2.1]) box(0.7, 3.4, 1.0, enc, x, 2.0, -0.6);     // the columns
+      box(5.0, 0.7, 0.9, enc, 0, 3.6, -0.6);                                  // the crossbeam
+      box(0.8, 0.8, 1.2, steel, 0, 3.5, 0.1);                                 // the saddle on the beam
+      box(0.5, 1.6, 0.5, steelDark, 0, 2.5, 0.1);                             // the ram
+      const head = box(0.6, 0.5, 0.7, steel, 0, 1.75, 0.2); head.rotation.x = 0.35; // the head, tilted
+      const spindle = cyl(0.08, 0.4, chrome, 0, 1.45, 0.35, g); spindle.rotation.x = 0.35; parts.spin.push({ mesh: spindle, axis: 'y' });
+      for (const z of [1.95, -1.95]) box(5.0, 1.2, 0.05, yel, 0, 0.9, z);     // the fence, front and back
+      for (const x of [-2.45, 2.45]) box(0.05, 1.2, 4.0, yel, x, 0.9, 0);     // the fence, sides
+      for (let k = 0; k < 4; k++) box(0.5, 0.05, 0.3, grey, 2.0, 0.45 + k * 0.3, 1.6 - k * 0.3); box(0.06, 1.4, 0.06, grey, 2.25, 1.0, 1.7); // the stair and its rail
+      box(0.6, 1.0, 0.1, dark, 2.6, 1.6, 1.0); box(0.05, 0.05, 0.6, grey, 2.5, 1.2, 1.3);  // pendant on an arm by the stair
+      const scr = new T.Mesh(new T.PlaneGeometry(0.42, 0.34), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x2a6ad0, emissiveIntensity: 0.6 })); scr.position.set(2.6, 1.8, 1.055); g.add(scr);
+      box(1.2, 0.8, 1.0, steelDark, -1.0, 0.7, -1.8); box(0.6, 0.6, 0.6, grey, 0.4, 0.6, -1.9); // the chip conveyor and its bin at the back
+      if (!ghost) { nameplate(T, def, g, -1.5, 3.5, -0.14, 0, 0.6); parts.lamps = lightStack(T, g, -2.1, 3.9, -0.6); parts.button = greenButton(T, g, 2.6, 1.15, 1.06); }
+      break;
+    }
     case 'gundrill': {
       // UNISIGH gun drill: a long bed, a headstock at one end with the whip guides and the drill tube, a work carriage
       // with the block clamped on it at the other, a coolant tank underneath with a high-pressure pump, a control pendant.
@@ -586,7 +653,7 @@ export class MachineView {
     }
     this.chipMesh.material.opacity = Math.min(1, (m.chips || 0) * 1.1); this.chipMesh.visible = (m.chips || 0) > 0.03;
     // work in progress: a block on the table while a job is loaded. the sinker always has one in the tank.
-    const PART = { gundrill: [-1.5, 1.35, 0.0, 0.5, 0.1, 0.4], bigvmc: [0, 1.36, 0.0, 0.5, 0.12, 0.4], vmc: [0, 1.13, 0.25, 0.26, 0.16, 0.2], mill: [-0.1, 1.2, 0.05, 0.22, 0.1, 0.16], lathe: [0.12, 1.17, -0.05, 0.3, 0.05, 0.05], grinder: [0, 1.0, 0.15, 0.3, 0.06, 0.14], wire: [0, 1.09, 0.2, 0.3, 0.14, 0.24], drill: [0, 1.05, 0.1, 0.16, 0.06, 0.12], saw: [0.2, 0.95, 0, 0.5, 0.1, 0.1], graphite: [0, 1.1, 0.2, 0.18, 0.12, 0.14] }[this.def.kind];
+    const PART = { gantry: [0, 1.6, 0.2, 1.4, 0.3, 1.0], bigsinker: [0.6, 1.27, 0.3, 0.9, 0.12, 0.7], bigwire: [0, 1.24, 0.35, 1.0, 0.06, 0.6], gundrill: [-1.5, 1.35, 0.0, 0.5, 0.1, 0.4], bigvmc: [0, 1.36, 0.0, 0.5, 0.12, 0.4], vmc: [0, 1.13, 0.25, 0.26, 0.16, 0.2], mill: [-0.1, 1.2, 0.05, 0.22, 0.1, 0.16], lathe: [0.12, 1.17, -0.05, 0.3, 0.05, 0.05], grinder: [0, 1.0, 0.15, 0.3, 0.06, 0.14], wire: [0, 1.09, 0.2, 0.3, 0.14, 0.24], drill: [0, 1.05, 0.1, 0.16, 0.06, 0.12], saw: [0.2, 0.95, 0, 0.5, 0.1, 0.1], graphite: [0, 1.1, 0.2, 0.18, 0.12, 0.14] }[this.def.look] || { gundrill: [-1.5, 1.35, 0.0, 0.5, 0.1, 0.4], bigvmc: [0, 1.36, 0.0, 0.5, 0.12, 0.4], vmc: [0, 1.13, 0.25, 0.26, 0.16, 0.2], mill: [-0.1, 1.2, 0.05, 0.22, 0.1, 0.16], lathe: [0.12, 1.17, -0.05, 0.3, 0.05, 0.05], grinder: [0, 1.0, 0.15, 0.3, 0.06, 0.14], wire: [0, 1.09, 0.2, 0.3, 0.14, 0.24], drill: [0, 1.05, 0.1, 0.16, 0.06, 0.12], saw: [0.2, 0.95, 0, 0.5, 0.1, 0.1], graphite: [0, 1.1, 0.2, 0.18, 0.12, 0.14] }[this.def.kind];
     if (PART && !this.part) { const T = this.T, geo = this.def.kind === 'lathe' ? new T.CylinderGeometry(PART[4], PART[4], PART[3], 14) : new T.BoxGeometry(PART[3], PART[4], PART[5]); this.part = new T.Mesh(geo, new T.MeshStandardMaterial({ color: 0x7a8088, metalness: 0.6, roughness: 0.4 })); if (this.def.kind === 'lathe') this.part.rotation.z = Math.PI / 2; this.part.position.set(PART[0], PART[1], PART[2]); this.part.raycast = () => {}; this.group.add(this.part); }
     if (this.part) this.part.visible = !!m.job;
     // the EDMs spark when they run; the VMCs spray coolant

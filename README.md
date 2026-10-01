@@ -416,6 +416,13 @@ Then open http://localhost:8080/.
   on quotes starts calling your best moldmaker: the offer lands in the inbox with two buttons and
   two days. Match it and the others do math; wish them luck and there is probably a speech.
 
+- Stage 3, the rest of the iron (§4.2). The Sodiak large sinker with a tank you could bathe in and
+  a twelve-station electrode changer; the Bitsumishi large wire with a spool like a tire; and the
+  Pappas gantry 5-axis: two columns, a crossbeam, a tilting head, a fenced table, a stair to the
+  deck and a bill with two commas. XL molds burn their detail and wire their gibs on the big EDMs
+  (or at Bramalea), and a bumper fascia mold with six slides and a D-2 texture arrives for the
+  shops that can hold it.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

@@ -79,7 +79,7 @@ export class Crew {
     for (const mv of views) {
       const m = mv.m; if (!m.placed || m.running || m.job || m.down || taken.has(m.uid)) continue;
       const d = byId(m.id); if (!canRun(p, d.kind)) continue;
-      for (const o of runnableStages(s, d.kind)) {
+      for (const o of runnableStages(s, d.kind, !!d.big)) {
         // a stage already loaded on another machine is spoken for
         if (views.some((q) => q.m.job && q.m.job.jobId === o.job.id && q.m.job.itemIndex === o.itemIndex)) continue;
         if (!best || o.job.dueDay < best.o.job.dueDay) best = { m, o };
@@ -95,7 +95,7 @@ export class Crew {
     for (const mv of views) {
       const m = mv.m; if (!m.placed || m.running || m.job) continue;
       const d = byId(m.id); if (!canRun(p, d.kind)) continue;
-      const opts = runnableStages(this.state, d.kind).filter((o) => !views.some((q) => q.m.job && q.m.job.jobId === o.job.id && q.m.job.itemIndex === o.itemIndex));
+      const opts = runnableStages(this.state, d.kind, !!d.big).filter((o) => !views.some((q) => q.m.job && q.m.job.jobId === o.job.id && q.m.job.itemIndex === o.itemIndex));
       if (opts.length) out.push({ m, d, o: opts[0] });
     }
     return out;
@@ -103,7 +103,7 @@ export class Crew {
   // the owner points at a machine and says "that one"
   assign(p, m) {
     const v = this.views.get(p.id); if (!v || !this.present(p)) return false;
-    const d = byId(m.id); const opts = runnableStages(this.state, d.kind).filter((o) => !this.hooks.machineViews().some((q) => q.m.job && q.m.job.jobId === o.job.id && q.m.job.itemIndex === o.itemIndex));
+    const d = byId(m.id); const opts = runnableStages(this.state, d.kind, !!d.big).filter((o) => !this.hooks.machineViews().some((q) => q.m.job && q.m.job.jobId === o.job.id && q.m.job.itemIndex === o.itemIndex));
     if (!opts.length || m.running || m.job) return false;
     const o = opts[0];
     m.job = { jobId: o.job.id, itemIndex: o.itemIndex, item: o.item ? o.item.name : null, index: o.index, label: o.stage.label, min: o.stage.min || IN_HOUSE_MIN[o.stage.kind] || 30, kind: o.stage.kind, operator: p.id }; m.checklist = {};

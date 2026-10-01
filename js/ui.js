@@ -371,7 +371,7 @@ export class UI {
     }
     // what is there to do on this machine?
     if (!m.job) {
-      const opts = runnableStages(s, d.kind);
+      const opts = runnableStages(s, d.kind, !!d.big);
       const oil = m.oil == null ? 1 : m.oil, sc = serviceCost(d);
       body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}${m.taped ? ' · <b style="color:var(--red)">TAPED</b>' : ''}${m.capped ? ' · <b style="color:var(--red)">USED PART, accuracy suspect</b>' : ''}</span></div>
         <div class="bar"><i style="width:${Math.round(m.condition * 100)}%"></i></div>

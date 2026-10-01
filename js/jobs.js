@@ -92,6 +92,7 @@ export const TEMPLATES = [
   { title: '32-cavity cap mold, stainless, hot runner', mold: true, cnc: true, packaging: true, size: 'L', cav: 32, geo: 2, slides: 0, steel: '420 SS', finish: 'A-2', runner: 'hot', manifold: 22000, hard: true, base: 16000, steelCost: 12500 },
   { title: 'Medical mold, syringe barrel, 8 cavities, Stavax', mold: true, cnc: true, medical: true, size: 'S', cav: 8, geo: 2, slides: 0, steel: 'Stavax', finish: 'A-1', runner: 'hot', manifold: 9000, hard: true, base: 7000, steelCost: 6200 },
   { title: 'Medical mold, pipette tip, 4 cavities, Stavax', mold: true, cnc: true, medical: true, size: 'S', cav: 4, geo: 3, slides: 0, steel: 'Stavax', finish: 'A-1', runner: 'hot', manifold: 7000, hard: true, base: 5500, steelCost: 4100 },
+  { title: 'Automotive mold, bumper fascia, 6 slides', mold: true, cnc: true, five: true, size: 'XL', cav: 1, geo: 3, slides: 6, steel: 'P20', finish: 'D-2', runner: 'hot', manifold: 28000, hard: false, base: 42000, steelCost: 31000 },
   { title: 'Automotive mold, door handle bezel, 2 slides + lifter', mold: true, cnc: true, five: true, size: 'L', cav: 2, geo: 3, slides: 2, steel: 'H13', finish: 'A-2', runner: 'hot', manifold: 12000, hard: true, base: 9000, steelCost: 6500 },
   { title: 'Automotive mold, instrument cluster bezel, 4 slides', mold: true, cnc: true, five: true, size: 'L', cav: 1, geo: 3, slides: 4, steel: 'H13', finish: 'A-1', runner: 'hot', manifold: 16000, hard: true, base: 14000, steelCost: 9000 },
   { title: '4-cavity mold, cap, hot runner', mold: true, cnc: true, size: 'S', cav: 4, geo: 2, slides: 0, steel: '420 SS', finish: 'A-3', runner: 'hot', hard: true, base: 5200, steelCost: 3400, manifold: 9800 },
@@ -101,11 +102,12 @@ export const TEMPLATES = [
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 
-export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench', vmc: 'VMC', sinker: 'sinker EDM', wire: 'wire EDM', heat: 'oven (or Quench & Sons)', base: 'DMV (vendor)', manifold: 'Mould-Majors (vendor)', tryout: 'sampling press (or the molder)', press: 'sampling press', design: 'office PC', fitspot: 'bench or spotting press', electrode: 'graphite mill (or a dusty VMC)', weld: 'laser welder', spot: 'spotting press', graphite: 'graphite mill', cmm: 'CMM', laser: 'laser welder', texture: 'texture house (Mold-Tex)', gundrill: 'gun drill', bigvmc: 'large VMC'}[kind] || kind; }
+export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench', vmc: 'VMC', sinker: 'sinker EDM', wire: 'wire EDM', heat: 'oven (or Quench & Sons)', base: 'DMV (vendor)', manifold: 'Mould-Majors (vendor)', tryout: 'sampling press (or the molder)', press: 'sampling press', design: 'office PC', fitspot: 'bench or spotting press', electrode: 'graphite mill (or a dusty VMC)', weld: 'laser welder', spot: 'spotting press', graphite: 'graphite mill', cmm: 'CMM', laser: 'laser welder', texture: 'texture house (Mold-Tex)', gundrill: 'gun drill', bigvmc: 'large VMC', bigsinker: 'large sinker EDM', bigwire: 'large wire EDM'}[kind] || kind; }
 // which stations can run which stage kinds
 export function matches(stageKind, stationKind) {
   if (stageKind === stationKind) return true;
   if (stageKind === 'vmc') return stationKind === 'bigvmc'; // the big machine runs the small work too, expensively
+  if (BIG_STAGE[stageKind]) return stationKind === BIG_STAGE[stageKind]; // a big burn on a sinker: only a big sinker (runnableStages checks the size)
   if (stageKind === 'fitspot') return stationKind === 'bench' || stationKind === 'spot';
   if (stageKind === 'electrode') return stationKind === 'graphite' || stationKind === 'vmc';
   if (stageKind === 'weld') return stationKind === 'laser';
@@ -170,7 +172,7 @@ export function moldItems(t) {
     if (t.size === 'L' || t.size === 'XL') stages.push(st('gundrill', 'Gun drill the water lines', 90 * sizeK)); // long straight lines through a big block: a gun drill, or Deep Hole Drilling Inc.
     if (t.hard) { stages.push(st('heat', 'Heat treat', 0)); stages.push(st('grinder', 'Grind after heat treat', 90 * sizeK)); }
     stages.push(st('vmc', 'Finish', 540 * sizeK * geoK * k));
-    if (t.geo >= 2) { stages.push(st('electrode', 'Cut the electrodes', 90 * geoK * k)); stages.push(st('sinker', 'Burn the detail', 300 * geoK * k)); }
+    if (t.geo >= 2) { stages.push(st('electrode', 'Cut the electrodes', 90 * geoK * k)); stages.push(st(t.size === 'XL' ? 'bigsinker' : 'sinker', t.size === 'XL' ? 'Burn the detail (a big sinker, or Bramalea)' : 'Burn the detail', 300 * geoK * k)); }
     stages.push(st('grinder', 'Grind the parting line', 60 * sizeK));
     if (t.finish && t.finish.startsWith('D')) { stages.push(st('bench', 'Polish to B-2, for the texture', 90 * 3 * sizeK * k)); stages.push(st('texture', `Texture ${t.finish} at Mold-Tex`, 0)); }
     else stages.push(st('bench', `Polish to ${t.finish}`, 90 * polish * sizeK * k));
@@ -179,7 +181,7 @@ export function moldItems(t) {
   const cavK = t.cav >= 16 ? 2.2 + (t.cav - 16) * 0.05 : Math.sqrt(t.cav); // high cavitation is inserts, not one block; it scales, but not forever
   items.push(block('Cavity (A-side)', 1.0 * cavK));
   items.push(block('Core (B-side)', 0.9 * cavK));
-  for (let i = 0; i < t.slides; i++) items.push({ name: `Slide ${i + 1}`, stages: [st('vmc', 'Rough', 150), ...(t.hard ? [st('heat', 'Heat treat', 0)] : []), st('wire', 'Wire the gib', 120), st('grinder', 'Grind the fit', 60), st('bench', 'Fit the slide', 120)] });
+  for (let i = 0; i < t.slides; i++) items.push({ name: `Slide ${i + 1}`, stages: [st('vmc', 'Rough', 150), ...(t.hard ? [st('heat', 'Heat treat', 0)] : []), st(t.size === 'XL' ? 'bigwire' : 'wire', t.size === 'XL' ? 'Wire the gib (a big wire, or Bramalea)' : 'Wire the gib', 120), st('grinder', 'Grind the fit', 60), st('bench', 'Fit the slide', 120)] });
   if (t.runner === 'hot') items.push({ name: 'Hot runner', stages: [st('manifold', 'Manifold from Mould-Majors', 0)] });
   const jobStages = [
     st('design', 'Mold design', 420 * sizeK * (1 + t.slides * 0.2)),
@@ -230,7 +232,7 @@ export function customerOf(id) { return CUSTOMERS.find((c) => c.id === id); }
 
 export function shopHas(state, kind, byId) { if (VENDOR_KINDS.has(kind) || kind === 'design') return true; if (kind === 'electrode') return state.machines.some((m) => m.placed && (byId(m.id).stations.includes('graphite') || byId(m.id).stations.includes('cnc'))); if (kind === 'fitspot') return state.machines.some((m) => m.placed && (byId(m.id).stations.includes('fit') || byId(m.id).stations.includes('spot'))); return state.machines.some((m) => m.placed && byId(m.id).stations.includes(stationKindToStation(kind))); }
 // station names on machine defs vs. stage kinds
-export function stationKindToStation(kind) { return { heat: 'heat', tryout: 'tryout', press: 'tryout', saw: 'saw', lathe: 'turn', mill: 'rough', drill: 'drill', grinder: 'grind', bench: 'fit', vmc: 'cnc', sinker: 'sinker', wire: 'wire', fitspot: 'fit', electrode: 'cnc', weld: 'weld', spot: 'spot', graphite: 'graphite', cmm: 'inspect', laser: 'weld', texture: 'texture', gundrill: 'gundrill', bigvmc: 'big' }[kind]; }
+export function stationKindToStation(kind) { return { heat: 'heat', tryout: 'tryout', press: 'tryout', saw: 'saw', lathe: 'turn', mill: 'rough', drill: 'drill', grinder: 'grind', bench: 'fit', vmc: 'cnc', sinker: 'sinker', wire: 'wire', fitspot: 'fit', electrode: 'cnc', weld: 'weld', spot: 'spot', graphite: 'graphite', cmm: 'inspect', laser: 'weld', texture: 'texture', gundrill: 'gundrill', bigvmc: 'big', bigsinker: 'bigsinker', bigwire: 'bigwire' }[kind]; }
 
 // the player sends a quote. decided the next morning.
 export function sendQuote(state, rfq, price) { rfq.price = Math.round(price); rfq.status = 'quoted'; rfq.read = true; if (rfq.quotedLead) rfq.lead = rfq.quotedLead; if (rfq.theirTerms && state.achievements && !state.achievements.includes('their_terms')) state.achievements.push('their_terms'); }
@@ -311,7 +313,8 @@ export function startJob(state, rfq) {
 
 // Every stage that could run right now on a station of this kind. An item's stages run in order;
 // a mold's job-level stages wait for every item; design comes first on a mold.
-export function runnableStages(state, kind) {
+export const BIG_STAGE = { bigsinker: 'sinker', bigwire: 'wire' }; // stage kinds only a big machine of that family runs
+export function runnableStages(state, kind, big = false) {
   const out = [];
   for (const job of state.jobs) {
     if (job.status !== 'work' && !(job.mold && job.status === 'material')) continue; // a mold can be designed while its steel is on a truck
@@ -320,7 +323,7 @@ export function runnableStages(state, kind) {
       if (!designDone || job.status !== 'work') return;
       const i = item.stages.findIndex((q) => !q.done); if (i < 0) return;
       const q = item.stages[i];
-      if (matches(q.kind, kind) && !q.out) out.push({ job, item, itemIndex, stage: q, index: i });
+      if (matches(q.kind, kind) && !q.out && (!BIG_STAGE[q.kind] || big)) out.push({ job, item, itemIndex, stage: q, index: i });
     });
     const itemsDone = job.items.every((it) => it.stages.every((q) => q.done));
     const j = job.jobStages.findIndex((q) => !q.done);
@@ -552,10 +555,10 @@ export function schedule(state, byId, days = 10) {
   const idx = (day) => cols.indexOf(day);
   // lanes: one per placed machine, keyed by the station kind it serves; vendors and the PC get one lane each
   const lanes = [];
-  for (const m of state.machines) if (m.placed && !m.down) { const dk = byId(m.id); lanes.push({ name: `${dk.name}${state.machines.filter((q) => q.placed && q.id === m.id).length > 1 ? ' #' + m.uid : ''}`, kind: dk.kind, free: 0, cells: [] }); }
+  for (const m of state.machines) if (m.placed && !m.down) { const dk = byId(m.id); lanes.push({ name: `${dk.name}${state.machines.filter((q) => q.placed && q.id === m.id).length > 1 ? ' #' + m.uid : ''}`, kind: dk.kind, big: !!dk.big, free: 0, cells: [] }); }
   for (const k of ['design', 'base', 'manifold', 'heat', 'texture', 'gundrill', 'tryout']) lanes.push({ name: stationName(k), kind: k, vendor: true, free: 0, cells: [] });
   const laneFor = (stageKind, from) => {
-    const fit = lanes.filter((l) => l.vendor ? l.kind === stageKind && !inHouse(state, stageKind, byId) : matches(stageKind, l.kind));
+    const fit = lanes.filter((l) => l.vendor ? l.kind === stageKind && !inHouse(state, stageKind, byId) : matches(stageKind, l.kind) && (!BIG_STAGE[stageKind] || l.big));
     if (!fit.length) return null;
     return fit.reduce((a, l) => (Math.max(l.free, from) < Math.max(a.free, from) ? l : a), fit[0]);
   };

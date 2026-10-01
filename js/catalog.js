@@ -87,6 +87,24 @@ export const MACHINES = [
     pads: true, crane: true, stations: ['cnc', 'big'], manual: false, tools: 40,
   },
   {
+    id: 'bigsinker', kind: 'sinker', look: 'bigsinker', big: true, name: 'Large sinker EDM', brand: 'Sodiak', model: 'AG-ish 100', cnc: true,
+    blurb: 'A tank you could bathe in, a C-frame that does not flex, and an electrode changer with twelve stations. Burns the XL cavities the small one cannot reach across. Also burns the small ones, slowly, like a bus doing a paper route.',
+    w: 3.4, d: 2.6, h: 3.0, priceNew: 250000, priceUsed: 110000, stage: 3, power: 3, air: false,
+    pads: true, crane: true, stations: ['sinker', 'bigsinker'], manual: false, tools: 12,
+  },
+  {
+    id: 'bigwire', kind: 'wire', look: 'bigwire', big: true, name: 'Large wire EDM', brand: 'Bitsumishi', model: 'MV-ish 2400', cnc: true,
+    blurb: 'A tank two metres long, a spool the size of a tire, and auto-threading that works most mornings. Wires the XL slides and plates all weekend. The small one is jealous.',
+    w: 3.6, d: 2.8, h: 2.8, priceNew: 280000, priceUsed: 120000, stage: 3, power: 3, air: false,
+    pads: true, crane: true, stations: ['wire', 'bigwire'], manual: false, tools: 1,
+  },
+  {
+    id: 'gantry', kind: 'bigvmc', look: 'gantry', big: true, name: 'Gantry 5-axis', brand: 'Pappas', model: 'G-ish 5000', cnc: true, five: true,
+    blurb: 'Two columns, a crossbeam, a ram with a head that tilts, and a table a bumper mold sits on. The automotive blocks. Sixty tools, a stair to the deck, and a bill with two commas. The crane sets it. The crane loads it. The crane is tired.',
+    w: 5.2, d: 4.2, h: 4.0, priceNew: 1400000, priceUsed: 600000, stage: 3, power: 5, air: true,
+    pads: true, crane: true, stations: ['cnc', 'big', 'gantry'], manual: false, tools: 60, speed: 0.45,
+  },
+  {
     id: 'gundrill', kind: 'gundrill', name: 'Gun drill', brand: 'UNISIGH', model: 'UNE-6ish',
     blurb: 'Long straight water lines through a block, eighteen inches deep, in one pass, with the coolant screaming through the tool. Until you own one, Deep Hole Drilling Inc. owns your schedule.',
     w: 4.2, d: 1.3, h: 1.7, priceNew: 120000, priceUsed: 50000, stage: 2, power: 2, air: true,
