@@ -68,6 +68,20 @@ export class Forklift {
     if (this.speed < -0.3) { this.beepT += dt; if (this.beepT > 0.8) { this.beepT = 0; this.audio.tone(1400, 0.25, 0.05, 'square'); } }
     if (Math.abs(this.speed) > 0.3) for (const q of people) { if (Math.hypot(q.x - nx, q.z - nz) < 1.6 && (!q.scaredAt || this.t - q.scaredAt > 4)) { q.scaredAt = this.t; this.hooks.scare(q.p); } }
   }
+  // the forks. a crate within reach of the tips comes up; F again puts it down where the forks are.
+  forkTip() { return { x: this.pos.x + Math.sin(this.yaw) * 1.4, z: this.pos.z + Math.cos(this.yaw) * 1.4 }; }
+  lift(crates, scene) {
+    if (this.carry) return null; const tip = this.forkTip(); let best = null, bd = 1.3;
+    for (const g of crates) { const d = Math.hypot(g.position.x - tip.x, g.position.z - tip.z); if (d < bd) { bd = d; best = g; } }
+    if (!best) return null;
+    scene.remove(best); this.g.add(best); best.position.set(0, 0.34, 1.25); best.rotation.set(0, 0, 0); this.carry = best; this.liftT = this.t;
+    this.audio.tone(90, 0.6, 0.08, 'sawtooth'); return best;
+  }
+  drop(scene) {
+    const g = this.carry; if (!g) return null; const tip = this.forkTip();
+    this.g.remove(g); scene.add(g); g.position.set(tip.x, 0, tip.z); g.rotation.set(0, this.yaw, 0); this.carry = null;
+    this.audio.thunk(); return g;
+  }
   honk() { this.audio.tone(330, 0.35, 0.09, 'sawtooth'); this.audio.tone(415, 0.35, 0.07, 'sawtooth'); }
   seat() { return { x: this.pos.x - Math.sin(this.yaw) * 0.5, y: 1.9, z: this.pos.z - Math.cos(this.yaw) * 0.5 }; }
 }

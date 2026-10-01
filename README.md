@@ -273,7 +273,7 @@ Then open http://localhost:8080/.
   all three on time and the bonus clears, reputation jumps, and the next program is yours to lose.
 
 - The forklift. Yellow, by the door, certified operators only (you are the certifying body).
-  Press E to get on, WASD to drive, H for the horn, E to get off. It lifts nothing in this build.
+  Press E to get on, WASD to drive, H for the horn, E to get off. It lifts crates now (F for the forks).
   It beeps in reverse, scatters the crew, and dents machines, which also bumps them out of true
   where nobody can see.
 
@@ -356,6 +356,11 @@ Then open http://localhost:8080/.
   triangular bandage from 1994 and a form. The eye wash station is a safety purchase on the SHOP
   tab: until you buy it the eye wash station is the sink and the sink is $800 at the clinic; the
   inspector asks about it, and somebody using the real one is an achievement.
+
+- The forks, and the week. The forklift lifts now: line the forks up with a crate and press F,
+  drive it to the door, press F again; the mast groans, the crew watch, nobody helps, and the
+  truck is still late. Friday night's screen leads with the week in numbers (§14): money in,
+  money out, shipped, POs, the crew's mood, and a line about it.
 
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.

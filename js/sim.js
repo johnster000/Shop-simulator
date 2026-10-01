@@ -298,6 +298,7 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  lifted: ['Certified', 'Lifted a crate with the forklift. Everyone watched. Nobody helped.'], dock: ['Staged', 'Put a crate down at the door with the forks. The truck still came late.'],
   eye_wash: ['Not the Sink', 'Somebody used the eye wash station. The real one. Fifteen minutes, like the sign says.'], textured: ['Grain', 'Sent a cavity out for texture and got it back. Nobody touched it. Nobody.'],
   seg_auto: ['Tier Two', 'Automotive called. The quality manual is thicker than the mold.'], seg_appliance: ['Big and Plain', 'Appliance called. Nothing they make fits on a pallet jack.'], seg_packaging: ['Sixteen or Do Not Bother', 'Packaging called. Stainless, hot runner, no patience at all.'], seg_medical: ['Wipe Your Feet', 'Medical called. Stavax, a tenth, and a binder. They asked if the shop was clean.'],
   to_see: ['To See What Happens', 'Rapided the spindle into the vise. On purpose. It did what you thought.'], no_dielectric: ['Dry Burn', 'Ran the sinker with no dielectric. To see. Now you have seen.'], interlock: ['The Interlock Was Optional', 'Cycled with the door open. Chips in places chips should not be.'],
@@ -388,6 +389,15 @@ export function goHome(state) {
     night.satLine = `Saturday. ${came.length ? `${came.length} coming in${many ? ', and this is the fourth one in two months, which was mentioned' : ''}.` : 'Nobody is coming in. Just you.'}${not.length ? ` ${not.join(' and ')} ${not.length === 1 ? 'has' : 'have'} a thing.` : ''}`;
   } else state.day += friday ? 3 : saturday ? 2 : 1;
   state.t = 0; state.closingShown = false; state.speed = 1;
+  if (friday) { // the end of the week, in numbers, before the weekend eats them
+    const from = night.dayDone - 4, led = state.ledger.filter((l) => l.day >= from && l.day <= night.dayDone);
+    const income = led.filter((l) => l.amount > 0).reduce((a, l) => a + l.amount, 0), spend = -led.filter((l) => l.amount < 0).reduce((a, l) => a + l.amount, 0);
+    const shipped = state.jobs.filter((j) => j.shippedDay != null && j.shippedDay >= from && j.shippedDay <= night.dayDone).length;
+    const won = state.jobs.filter((j) => j.poDay >= from && j.poDay <= night.dayDone).length;
+    const crew = state.people.filter((p) => p.startDay != null && p.startDay <= state.day), morale = crew.length ? crew.reduce((a, p) => a + p.morale, 0) / crew.length : null;
+    const net = income - spend;
+    night.weekly = { income, spend, net, shipped, won, morale, line: net > 5000 ? 'A good week. Do not say it out loud.' : net > 0 ? 'Ahead, barely. The compressor does not care.' : net === 0 ? 'Nothing in, nothing out. The compressor ran anyway.' : net > -5000 ? 'The week cost more than it made. Most of them do.' : 'A week like that is why the bank has your number.' };
+  }
   if ((friday && !night.saturday) || saturday) { night.weekend = true; night.sunday = saturday; night.fatigue = state.fatigue = Math.max(0, fatigue - (saturday ? 0.3 : 0.5)); }
   const extra = [];
   if ((state.day - 1) % 7 === 0) {
