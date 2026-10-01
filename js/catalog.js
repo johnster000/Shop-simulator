@@ -81,6 +81,18 @@ export const MACHINES = [
     pads: true, stations: ['cnc'], manual: false, tools: 30, speed: 0.75,
   },
   {
+    id: 'bigvmc', kind: 'bigvmc', name: 'Large 3-axis VMC, 50 taper', brand: 'Dozan', model: 'DNM-ish 6700', cnc: true,
+    blurb: 'The big one. A table you could park on, a 50-taper spindle that does not care, a chip conveyor out the side, and a step to climb so you can see what it is doing. Big bases and XL blocks stop going out to Bramalea. Needs the crane to set it, and to load it.',
+    w: 3.4, d: 2.8, h: 3.2, priceNew: 250000, priceUsed: 110000, stage: 2, power: 3, air: true,
+    pads: true, crane: true, stations: ['cnc', 'big'], manual: false, tools: 40,
+  },
+  {
+    id: 'gundrill', kind: 'gundrill', name: 'Gun drill', brand: 'UNISIGH', model: 'UNE-6ish',
+    blurb: 'Long straight water lines through a block, eighteen inches deep, in one pass, with the coolant screaming through the tool. Until you own one, Deep Hole Drilling Inc. owns your schedule.',
+    w: 4.2, d: 1.3, h: 1.7, priceNew: 120000, priceUsed: 50000, stage: 2, power: 2, air: true,
+    pads: true, stations: ['gundrill'], manual: false, tools: 0,
+  },
+  {
     id: 'cncgrind', kind: 'grinder', name: 'CNC surface grinder', brand: 'Okeymoto', model: 'ACC-CNC', cnc: true,
     blurb: 'Grinding you can walk away from. Plates flat and parallel overnight, dressed by itself. Runs lights-out and does not scream as much.',
     w: 1.8, d: 1.8, h: 2.0, priceNew: 90000, priceUsed: 40000, stage: 2, power: 2, air: true,

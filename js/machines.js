@@ -129,6 +129,56 @@ export function buildMachine(T, def, ghost = false) {
       if (!ghost) { nameplate(T, def, g, -0.5, 1.25, 0.16, 0, 0.3); parts.lamps = lightStack(T, g, -0.68, 1.43, -0.25); parts.button = greenButton(T, g, -0.35, 1.0, 0.16); }
       break;
     }
+    case 'bigvmc': {
+      // Dozan large VMC: a wide enclosure with two big sliding doors, a 50-taper head you can see through the window,
+      // a chip conveyor out the left side into a hopper, a pendant on a swing arm, and a step at the front.
+      const enc = mat('encBig', { color: 0xe4e6ea, roughness: 0.55, metalness: 0.2 }), trim = mat('trimBig', { color: 0x2a4a7a, roughness: 0.5, metalness: 0.3 });
+      const glass = ghost ? gm : new T.MeshStandardMaterial({ color: 0x223344, transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.3 });
+      box(3.4, 0.14, 2.7, steelDark, 0, 0.07, 0);                            // skid
+      box(3.4, 0.5, 2.7, trim, 0, 0.39, 0);                                  // casting band
+      box(3.4, 2.4, 2.6, enc, 0, 1.84, -0.1);                                // enclosure: 0.64 -> 3.04
+      box(3.4, 0.1, 2.6, trim, 0, 3.09, -0.1);                               // top rail
+      box(1.4, 0.5, 1.2, steel, 0, 3.35, -0.8);                              // the column cap and spindle motor up top
+      for (const side of [-1, 1]) {                                          // two doors, each with a tall window
+        box(1.5, 2.2, 0.06, enc, side * 0.78, 1.8, 1.23);
+        box(1.1, 1.3, 0.02, glass, side * 0.78, 1.9, 1.26);
+        box(0.05, 1.2, 0.04, dark, side * 0.1, 1.9, 1.27);                   // door handles, meeting in the middle
+      }
+      box(1.2, 0.08, 1.0, grey, 0, 1.0, 0.0); box(0.6, 0.25, 0.6, grey, 0, 1.17, 0.0); // the table and a block, behind the glass
+      const spindle = cyl(0.11, 0.5, chrome, 0, 1.75, 0.0, g); parts.spin.push({ mesh: spindle, axis: 'y' }); // the 50-taper head
+      box(0.5, 0.6, 0.5, steel, 0, 2.3, 0.0);                                // the head housing
+      box(0.5, 0.5, 1.6, steelDark, -1.95, 0.5, -0.3); box(0.5, 0.3, 0.6, steelDark, -1.95, 1.0, -0.9); // the chip conveyor out the side, rising at the back
+      box(0.6, 0.6, 0.6, grey, -2.0, 0.3, -1.6);                             // the hopper under its end
+      box(0.6, 1.0, 0.1, dark, 1.9, 1.5, 1.0); box(0.05, 0.05, 0.8, grey, 1.75, 1.2, 0.6); // pendant on a swing arm, right of the doors
+      const scr = new T.Mesh(new T.PlaneGeometry(0.42, 0.34), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x2a6ad0, emissiveIntensity: 0.6 })); scr.position.set(1.9, 1.7, 1.055); g.add(scr);
+      box(1.6, 0.22, 0.5, trim, 0, 0.11, 1.5); box(1.6, 0.03, 0.5, mat('tread', { color: 0x9a9a9a, roughness: 0.9 }), 0, 0.23, 1.5); // the step
+      if (!ghost) { nameplate(T, def, g, -0.9, 2.9, 1.21, 0, 0.5); parts.lamps = lightStack(T, g, -1.3, 3.2, -0.9); parts.button = greenButton(T, g, 1.9, 1.05, 1.06); }
+      break;
+    }
+    case 'gundrill': {
+      // UNISIGH gun drill: a long bed, a headstock at one end with the whip guides and the drill tube, a work carriage
+      // with the block clamped on it at the other, a coolant tank underneath with a high-pressure pump, a control pendant.
+      const bedMat = mat('gdBed', { color: 0x5a6a7a, roughness: 0.5, metalness: 0.3 }), guard = mat('gdGuard', { color: 0xe0b020, roughness: 0.5 });
+      box(4.0, 0.5, 0.9, bedMat, 0, 0.35, 0);                               // the bed
+      for (const x of [-1.7, 0, 1.7]) box(0.5, 0.1, 1.2, steelDark, x, 0.05, 0); // feet
+      box(3.6, 0.08, 0.5, chrome, 0, 0.64, 0.1);                            // the ways
+      box(0.9, 1.0, 1.0, steel, 1.55, 1.1, 0);                              // headstock
+      cyl(0.09, 0.3, chrome, 1.05, 1.25, 0.1, g, Math.PI / 2);              // spindle nose
+      const tubeM = chrome; const t = cyl(0.012, 2.4, tubeM, -0.3, 1.25, 0.1, g, Math.PI / 2); parts.spin.push({ mesh: t, axis: 'x' }); // the drill tube
+      for (const x of [0.3, -0.5, -1.2]) { box(0.08, 0.5, 0.3, guard, x, 1.0, 0.1); cyl(0.03, 0.1, dark, x, 1.25, 0.1, g, Math.PI / 2); } // whip guides
+      box(0.7, 0.3, 0.7, steelDark, -1.5, 0.8, 0.0);                        // the work carriage
+      box(0.5, 0.35, 0.4, grey, -1.5, 1.12, 0.0);                           // the clamped block
+      box(0.1, 0.12, 0.5, dark, -1.3, 1.2, 0.0); box(0.1, 0.12, 0.5, dark, -1.7, 1.2, 0.0); // clamps
+      box(1.2, 0.5, 0.8, steelDark, 1.2, 0.25, -0.9);                       // the coolant tank behind the headstock
+      cyl(0.12, 0.3, dark, 0.7, 0.65, -0.9, g);                             // the pump
+      tube(0.02, dark, [0.7, 0.8, -0.9], [1.4, 1.25, -0.4]);                // the high-pressure line
+      box(0.5, 0.9, 0.08, dark, 2.1, 1.3, 0.56);                            // control pendant on an arm
+      const scr = new T.Mesh(new T.PlaneGeometry(0.34, 0.26), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x2a9a4a, emissiveIntensity: 0.6 })); scr.position.set(2.1, 1.48, 0.605); g.add(scr);
+      box(0.06, 0.06, 0.6, grey, 2.1, 0.9, 0.3);                            // the arm
+      box(4.0, 0.03, 0.08, guard, 0, 0.9, 0.5); box(4.0, 0.03, 0.08, guard, 0, 0.9, -0.5); // yellow guard rails
+      if (!ghost) { nameplate(T, def, g, 1.55, 1.55, 0.51, 0, 0.36); parts.lamps = lightStack(T, g, 1.9, 1.9, -0.4); parts.button = greenButton(T, g, 2.1, 1.0, 0.61); }
+      break;
+    }
     case 'grinder': {
       if (def.id === 'cncgrind') {
         // Okeymoto CNC grinder: the same machine inside a splash enclosure with a window and a control on the side.
@@ -534,7 +584,7 @@ export class MachineView {
     }
     this.chipMesh.material.opacity = Math.min(1, (m.chips || 0) * 1.1); this.chipMesh.visible = (m.chips || 0) > 0.03;
     // work in progress: a block on the table while a job is loaded. the sinker always has one in the tank.
-    const PART = { vmc: [0, 1.13, 0.25, 0.26, 0.16, 0.2], mill: [-0.1, 1.2, 0.05, 0.22, 0.1, 0.16], lathe: [0.12, 1.17, -0.05, 0.3, 0.05, 0.05], grinder: [0, 1.0, 0.15, 0.3, 0.06, 0.14], wire: [0, 1.09, 0.2, 0.3, 0.14, 0.24], drill: [0, 1.05, 0.1, 0.16, 0.06, 0.12], saw: [0.2, 0.95, 0, 0.5, 0.1, 0.1], graphite: [0, 1.1, 0.2, 0.18, 0.12, 0.14] }[this.def.kind];
+    const PART = { gundrill: [-1.5, 1.35, 0.0, 0.5, 0.1, 0.4], bigvmc: [0, 1.36, 0.0, 0.5, 0.12, 0.4], vmc: [0, 1.13, 0.25, 0.26, 0.16, 0.2], mill: [-0.1, 1.2, 0.05, 0.22, 0.1, 0.16], lathe: [0.12, 1.17, -0.05, 0.3, 0.05, 0.05], grinder: [0, 1.0, 0.15, 0.3, 0.06, 0.14], wire: [0, 1.09, 0.2, 0.3, 0.14, 0.24], drill: [0, 1.05, 0.1, 0.16, 0.06, 0.12], saw: [0.2, 0.95, 0, 0.5, 0.1, 0.1], graphite: [0, 1.1, 0.2, 0.18, 0.12, 0.14] }[this.def.kind];
     if (PART && !this.part) { const T = this.T, geo = this.def.kind === 'lathe' ? new T.CylinderGeometry(PART[4], PART[4], PART[3], 14) : new T.BoxGeometry(PART[3], PART[4], PART[5]); this.part = new T.Mesh(geo, new T.MeshStandardMaterial({ color: 0x7a8088, metalness: 0.6, roughness: 0.4 })); if (this.def.kind === 'lathe') this.part.rotation.z = Math.PI / 2; this.part.position.set(PART[0], PART[1], PART[2]); this.part.raycast = () => {}; this.group.add(this.part); }
     if (this.part) this.part.visible = !!m.job;
     // the EDMs spark when they run; the VMCs spray coolant

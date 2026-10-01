@@ -232,7 +232,7 @@ canvas.mg{display:block;width:100%;max-width:420px;height:auto;border:2px solid 
 #hint.alarm{color:#ff3b3b;font-weight:bold;animation:blink .35s steps(2) infinite}
 @keyframes blink{to{opacity:.2}}
 .boardWrap{overflow-x:auto;margin:6px 0 4px}
-.board{border-collapse:collapse;font-size:11px;white-space:nowrap}
+table.board{border-collapse:collapse;font-size:11px;white-space:nowrap}
 .board th{font-weight:normal;color:#666;padding:2px 3px;letter-spacing:.05em;background:none;border:none;text-align:center}
 .boardNote{font-size:12px;color:#555;line-height:1.6;white-space:normal;margin:4px 0 10px}
 .board td{border:1px solid #d8d2c0;padding:0;height:18px;min-width:26px}
@@ -250,3 +250,13 @@ body.iso #isoTags{display:block}
 details.dumb { margin-top: 14px; border-top: 1px dashed rgba(0,0,0,.2); padding-top: 8px; }
 details.dumb summary { cursor: pointer; letter-spacing: .08em; }
 details.dumb .pacts { margin: 8px 0 4px; }
+
+/* the quote: lead time and terms */
+.leadrow { flex-basis: 100%; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 12px; margin-top: 6px; }
+.leadrow input.lead { width: 140px; }
+.leadrow label.terms { opacity: .85; }
+
+/* the bank: a cash-flow chart and a rough P&L */
+svg.cashflow { width: 100%; height: 110px; display: block; background: rgba(0,0,0,.03); border: 1px solid rgba(0,0,0,.12); }
+table.pl td { padding: 2px 6px; font-size: 12px; }
+table.pl tr.total td { border-top: 1px solid rgba(0,0,0,.3); font-weight: bold; padding-top: 4px; }

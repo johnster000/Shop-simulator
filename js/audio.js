@@ -117,7 +117,7 @@ export class ShopAudio {
     let near = 0, kind = null;
     for (const p of scene.running || []) { const k = falloff(p, 2.2); if (k > near) { near = k; kind = p.kind; } }
     const spinning = (scene.running || []).length > 0;
-    const prof = { vmc: [900, 0.055, 'sawtooth', 1800], mill: [180, 0.05, 'sawtooth', 900], lathe: [120, 0.045, 'sawtooth', 700], grinder: [1400, 0.04, 'sawtooth', 2600], drill: [300, 0.04, 'triangle', 1200], saw: [90, 0.05, 'sawtooth', 500], sinker: [55, 0.045, 'square', 400], wire: [70, 0.035, 'square', 500], bench: [0, 0, 'sine', 400], press: [95, 0.05, 'sawtooth', 450], heat: [48, 0.03, 'triangle', 260] }[kind] || [180, 0.05, 'sawtooth', 900];
+    const prof = { gundrill: [520, 0.05, 'sawtooth', 2200], bigvmc: [600, 0.07, 'sawtooth', 1200], vmc: [900, 0.055, 'sawtooth', 1800], mill: [180, 0.05, 'sawtooth', 900], lathe: [120, 0.045, 'sawtooth', 700], grinder: [1400, 0.04, 'sawtooth', 2600], drill: [300, 0.04, 'triangle', 1200], saw: [90, 0.05, 'sawtooth', 500], sinker: [55, 0.045, 'square', 400], wire: [70, 0.035, 'square', 500], bench: [0, 0, 'sine', 400], press: [95, 0.05, 'sawtooth', 450], heat: [48, 0.03, 'triangle', 260] }[kind] || [180, 0.05, 'sawtooth', 900];
     this.spinG.gain.setTargetAtTime(spinning && prof[1] ? 0.004 + prof[1] * near : 0, now, 0.25);
     if (kind && this.spin.type !== prof[2]) { this.spin.type = prof[2]; }
     const f = spinning ? prof[0] : 60;

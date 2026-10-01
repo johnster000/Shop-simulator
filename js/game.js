@@ -91,6 +91,7 @@ export function startShop(T, audio, state) {
   const hammerItem = items.make('hammer', shop.pcPos.x - 0.6, shop.pcPos.z + 0.2, { y: 0.77 });
   const keyItem = items.make('key', shop.hx - 1.6, shop.hz - 1.9, { y: 0.0 });
   let craneKey = null; // the crane honks when it moves to a new job
+  let frameNo = 0;
   let jarItem = items.make('jar', shop.jarPos.x, shop.jarPos.z, { y: shop.jarPos.y }), cakeItem = null;
   let phoneItem = items.make('phone', shop.cribPos.phone.x, shop.cribPos.phone.z, { y: shop.cribPos.phone.y }), phoneBuzzT = 0;
   let pinsItem = items.make('pins', shop.cribPos.pins.x, shop.cribPos.pins.z, { y: shop.cribPos.pins.y }), electrodeItem = items.make('electrode', shop.cribPos.electrode.x, shop.cribPos.electrode.z, { y: shop.cribPos.electrode.y });
@@ -962,7 +963,7 @@ export function startShop(T, audio, state) {
     look(); ui.update(); crew.projectBubbles(iso.active ? iso.camera : camera, iso.active); if (iso.active) projectTags(); else if (tagEls.size) { for (const [, el] of tagEls) el.remove(); tagEls.clear(); }
     if (ui.panelOpen && ui.panelM && ui.panelM.running) ui.renderPanel();
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
-    renderer.render(scene, iso.active ? iso.camera : camera);
+    frameNo++; if (!(night || paused) || frameNo % 4 === 0) renderer.render(scene, iso.active ? iso.camera : camera); // behind an opaque overlay, one frame in four is plenty
   }
   window.__dbg = { ui, get phoneItem() { return phoneItem; }, get pins() { return pinsItem; }, get electrode() { return electrodeItem; }, get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped, p) => runMachine(m, skipped, p || null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);

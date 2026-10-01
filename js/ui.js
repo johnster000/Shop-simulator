@@ -3,7 +3,7 @@ import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
 import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor, insuranceWeekly, askSteelTerms } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
-import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel, canCheapSteel, cheapSteel, canInspect, inspect, canShipEarly, shipEarly, CHEAP_STEELS, VENDORS, vendorFor, CUSTOMERS, customerOpen } from './jobs.js';
+import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel, canCheapSteel, cheapSteel, canInspect, inspect, canShipEarly, shipEarly, CHEAP_STEELS, VENDORS, vendorFor, CUSTOMERS, customerOpen, confidence, SEGMENT_NORMS } from './jobs.js';
 import { hire, fire, raise, fixGrievance, tough, moraleWord, SKILLS } from './people.js';
 import { hasCad as hasCadFn } from './sim.js';
 import { hasEstimator } from './people.js';
@@ -82,8 +82,8 @@ export class UI {
         <div class="note">${c.blurb}</div>
         ${r.mold ? `<div class="note"><b>A new tool.</b> ${r.spec.cav}-cavity, ${r.spec.steel}, ${r.spec.finish} finish, ${r.spec.slides ? r.spec.slides + ' slide' + (r.spec.slides > 1 ? 's' : '') + ', ' : ''}${r.spec.runner} runner${r.spec.hard ? ', hardened' : ''}. Items: ${r.items.map((it) => it.name).join(', ')}. Then fit and spot, assembly, tryout.</div>` : ''}
         <ul class="stages">${(r.mold ? r.items.flatMap((it) => it.stages.map((q) => ({ ...q, label: it.name === 'Part' ? q.label : it.name.split(' ')[0] + ': ' + q.label }))).concat(r.jobStages) : r.stages).map((st) => `<li class="${has(st.kind) ? '' : 'missing'}" title="${stationName(st.kind)}">${st.label}${st.min ? ' · ' + (st.min >= 120 ? (st.min / 60).toFixed(1) + ' h' : st.min + ' min') : ''}</li>`).join('')}</ul>
-        <div class="note">${r.minutes >= 600 ? (r.minutes / 60).toFixed(0) + ' hours' : r.minutes + ' min'} of work at $${r.rate}/hr + $${r.material.toLocaleString()} ${r.mold ? 'steel, base' + (r.spec.manifold ? ', manifold' : '') : r.steel}${r.mold ? ' + tryout' : ''} = estimate <b>${money(r.estimate)}</b>. Lead time ${r.lead} days.${missing.length ? ` <span style="color:var(--red)">You have no ${[...new Set(missing)].map(stationName).join(' or ')}: those stages would go out to Bramalea at $110/hr.</span>` : ''}</div>
-        ${r.status === 'open' ? `<div class="quote"><input type="range" min="${Math.round(r.estimate * 0.5)}" max="${Math.round(r.estimate * 2)}" step="5" value="${r.price}" id="q${r.id}"><span class="price" id="p${r.id}">${money(r.price)}</span><span class="est" id="w${r.id}"></span><button data-send="${r.id}">SEND QUOTE</button><button class="ghost" data-decline="${r.id}">DECLINE</button></div>` : `<div class="note">You quoted <b>${money(r.price)}</b>. They will let you know tomorrow.</div>`}
+        <div class="note">${r.minutes >= 600 ? (r.minutes / 60).toFixed(0) + ' hours' : r.minutes + ' min'} of work at $${r.rate}/hr + $${r.material.toLocaleString()} ${r.mold ? 'steel, base' + (r.spec.manifold ? ', manifold' : '') : r.steel}${r.mold ? ' + tryout' : ''} = estimate <b>${money(r.estimate)}</b> (${(() => { const cf = confidence(s); return `${money(Math.round(r.estimate * (1 - cf.band)))}–${money(Math.round(r.estimate * (1 + cf.band)))}, ${cf.word}`; })()}). They want it in ${r.lead} days. <span class="note">${SEGMENT_NORMS[c.kind] || ''}.</span>${missing.length ? ` <span style="color:var(--red)">You have no ${[...new Set(missing)].map(stationName).join(' or ')}: those stages would go out to Bramalea at $110/hr.</span>` : ''}</div>
+        ${r.status === 'open' ? `<div class="quote"><input type="range" min="${Math.round(r.estimate * 0.5)}" max="${Math.round(r.estimate * 2)}" step="5" value="${r.price}" id="q${r.id}"><span class="price" id="p${r.id}">${money(r.price)}</span><span class="est" id="w${r.id}"></span><button data-send="${r.id}">SEND QUOTE</button><div class="leadrow"><label>lead time <input type="range" min="${Math.max(2, Math.round(r.lead * 0.6))}" max="${Math.round(r.lead * 1.5)}" step="1" value="${r.quotedLead || r.lead}" id="l${r.id}" class="lead"> <b id="ld${r.id}">${r.quotedLead || r.lead} days</b></label>${r.mold ? ` <label class="terms"><input type="checkbox" id="t${r.id}" ${r.theirTerms ? 'checked' : ''}> their terms (0/0/100: no deposit, better odds, your bank's problem)</label>` : ''}</div><button class="ghost" data-decline="${r.id}">DECLINE</button></div>` : `<div class="note">You quoted <b>${money(r.price)}</b>. They will let you know tomorrow.</div>`}
       </div>`;
     };
     el.innerHTML = `${open.length ? open.map(rfqHtml).join('') : '<p class="note">No requests for quote. The phone will ring. Reputation makes it ring more.</p>'}
@@ -91,7 +91,9 @@ export class UI {
       ${s.inbox.slice(0, 20).map((m) => `<div class="msg ${m.read ? '' : 'unread'}"><div class="from">${m.from} · day ${m.day}</div><div class="subj">${m.subj || m.subject}</div><div class="body">${m.body}</div></div>`).join('') || '<p class="note">Nothing.</p>'}`;
     for (const r of open) { r.read = true; }
     for (const m of s.inbox) m.read = true;
-    el.querySelectorAll('input[type=range]').forEach((inp) => {
+    el.querySelectorAll('input.lead').forEach((inp) => { const r = s.rfqs.find((q) => q.id === +inp.id.slice(1)); inp.addEventListener('input', () => { r.quotedLead = +inp.value; $('ld' + r.id).textContent = `${r.quotedLead} days${r.quotedLead < r.lead ? ' (faster than asked)' : r.quotedLead > r.lead ? ' (slower than asked)' : ''}`; const q = $('q' + r.id); if (q) q.dispatchEvent(new Event('input')); }); });
+    el.querySelectorAll('input[type=checkbox][id^=t]').forEach((cb) => { const r = s.rfqs.find((q) => q.id === +cb.id.slice(1)); if (!r) return; cb.addEventListener('change', () => { r.theirTerms = cb.checked; const q = $('q' + r.id); if (q) q.dispatchEvent(new Event('input')); }); });
+    el.querySelectorAll('input[type=range]:not(.lead)').forEach((inp) => {
       const r = s.rfqs.find((q) => q.id === +inp.id.slice(1));
       const upd = () => { r.price = +inp.value; $('p' + r.id).textContent = money(r.price); const w = winChance(s, r); const mem = memoryOf(s, r.customer); const memTxt = mem.late >= 2 ? ' They remember the late ones.' : mem.onTime + mem.firstRight >= 3 ? ' They like you.' : ''; const est = hasEstimator(s) ? ` ${s.people.find((p) => p.role === 'estimator').name.split(' ')[0]} says ${money(Math.round(r.expected * (1.02 + ((r.id * 7) % 5) * 0.015) / 50) * 50)}.` : ''; $('w' + r.id).textContent = (w > 0.7 ? 'they will probably bite' : w > 0.4 ? 'could go either way' : w > 0.15 ? 'a stretch' : 'they will laugh') + memTxt + est; };
       inp.addEventListener('input', upd); upd();
@@ -272,6 +274,26 @@ export class UI {
     const rcv = (s.receivables || []).reduce((a, r) => a + r.amount, 0);
     el.innerHTML = `<div class="row2"><div><div class="note">CASH</div><div class="big">${money(s.cash)}</div></div>
       <div class="note">Rent $850/wk · hydro $200/wk + $60 per circuit · software $${softwareWeekly(s)}/wk · due Monday morning.<br>Owed to you: ${money(rcv)} on terms.</div></div>
+      <h4 class="sect">CASH FLOW</h4>
+      ${(() => { // the last sixty days of cash, as a line, from the ledger backwards
+        const days = 60, d0 = Math.max(1, s.day - days + 1), series = []; let cash = s.cash;
+        for (let d = s.day; d >= d0; d--) { series.unshift([d, cash]); for (const l of s.ledger) if (l.day === d) cash -= l.amount; }
+        const lo = Math.min(0, ...series.map((q) => q[1])), hi = Math.max(1, ...series.map((q) => q[1])); const W = 720, H = 110, px = (d) => 30 + ((d - d0) / Math.max(1, s.day - d0)) * (W - 40), py = (v) => 8 + (1 - (v - lo) / (hi - lo || 1)) * (H - 24);
+        const path = series.map((q, i) => `${i ? 'L' : 'M'}${px(q[0]).toFixed(1)},${py(q[1]).toFixed(1)}`).join(' ');
+        const zero = lo < 0 ? `<line x1="30" x2="${W - 10}" y1="${py(0).toFixed(1)}" y2="${py(0).toFixed(1)}" stroke="#c0392b" stroke-dasharray="3 3"/>` : '';
+        return `<svg class="cashflow" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><line x1="30" x2="${W - 10}" y1="${H - 16}" y2="${H - 16}" stroke="#999"/>${zero}<path d="${path}" fill="none" stroke="#2a4a7a" stroke-width="2"/><text x="2" y="14" font-size="10" fill="#666">${money(hi)}</text><text x="2" y="${H - 20}" font-size="10" fill="#666">${money(lo)}</text><text x="30" y="${H - 4}" font-size="10" fill="#666">day ${d0}</text><text x="${W - 60}" y="${H - 4}" font-size="10" fill="#666">day ${s.day}</text></svg>`;
+      })()}
+      <h4 class="sect">THIS MONTH, ROUGHLY</h4>
+      ${(() => { // a P&L a bookkeeper would sigh at: the last twenty working days, by what the ledger line says
+        const from = s.day - 19, led = s.ledger.filter((l) => l.day >= from);
+        const cat = (l) => /Deposit|balance|T1 payment|Paid:|payment,/i.test(l.text) && l.amount > 0 ? 'Customers' : l.amount > 0 ? 'Other in' : /Payroll|Overtime|Saturday/i.test(l.text) ? 'Wages' : /Rent|Hydro|Software|Insurance|Loan|payment/i.test(l.text) ? 'Overhead and the bank' : /Steel|base|heat treat|Mold-Tex|Press time|Mould-Majors|Bramalea|designer/i.test(l.text) ? 'Steel, vendors, press time' : /Used |New |Finance|down payment/i.test(l.text) ? 'Machines' : /Tech|Service|oil|Crash|Glazier|cutter|tape/i.test(l.text) ? 'Repairs and maintenance' : 'Everything else';
+        const sums = {}; for (const l of led) sums[cat(l)] = (sums[cat(l)] || 0) + l.amount;
+        const inn = Object.entries(sums).filter(([, v]) => v > 0), outt = Object.entries(sums).filter(([, v]) => v < 0); const tot = Object.values(sums).reduce((a, v) => a + v, 0);
+        return `<table class="ledger pl">${inn.map(([k, v]) => `<tr><td>${k}</td><td class="num">${money(v)}</td></tr>`).join('')}${outt.map(([k, v]) => `<tr><td>${k}</td><td class="num" style="color:var(--red)">−${money(-v)}</td></tr>`).join('')}<tr class="total"><td>${tot >= 0 ? 'Ahead' : 'Behind'}, since day ${Math.max(1, from)}</td><td class="num">${tot >= 0 ? '' : '−'}${money(Math.abs(tot))}</td></tr></table>`;
+      })()}
+      <h4 class="sect">REPUTATION</h4>
+      <div class="bar"><i style="width:${Math.round(s.rep * 100)}%"></i></div>
+      <div class="note">${Math.round(s.rep * 100)} of 100. ${s.rep >= 0.75 ? 'A name. Medical and packaging call.' : s.rep >= 0.6 ? 'Known. Packaging will call once there is a CMM.' : s.rep >= 0.4 ? 'A shop people have heard of.' : 'Nobody has heard of you. The phone rings anyway, slowly.'}${Object.keys(s.memory || {}).length ? '<br>' + Object.entries(s.memory).map(([cid, m]) => { const c = CUSTOMERS.find((q) => q.id === cid); return c ? `${c.name}: ${m.onTime} on time, ${m.late} late${m.firstRight ? `, ${m.firstRight} first-time-right` : ''}${s.sour && s.sour[cid] > s.day ? ' · <b style="color:var(--red)">not calling</b>' : ''}` : ''; }).filter(Boolean).join('<br>') : ''}</div>
       <h4 class="sect">WHAT IT IS WORTH</h4>
       <div class="note">${(() => { const v = valuation(s); return `<b>${money(v.total)}</b> · cash ${money(v.cash)} + iron ${money(v.machines)} + owed to you ${money(v.receivables)} + half the backlog ${money(v.backlog)} − the bank ${money(v.debt)}. That is the score. ${canRetire(s) ? 'You could retire. The night screen has the button.' : `Retirement is on the table after ten years. It is day ${s.day}.`}`; })()}</div>
       ${(s.receivables || []).length ? `<h4 class="sect">OWED TO YOU</h4><table class="ledger"><tr><th>WHO</th><th>DUE</th><th class="num">AMOUNT</th><th></th></tr>${s.receivables.map((r, i) => `<tr><td>${r.text}</td><td>day ${r.due}${r.due < s.day ? ' <b style="color:var(--red)">LATE</b>' : ''}</td><td class="num">${money(r.amount)}</td><td class="num"><button class="btn sm ghost" data-factor="${i}">FACTOR · ${money(Math.round(r.amount * 0.85))} NOW</button></td></tr>`).join('')}</table>
@@ -324,6 +346,8 @@ export class UI {
       laser: [['indicate', 'Line up the ding', 'indicate'], ['speed', 'Set the pulse', 'speed']],
       press: [['clamp', 'Clamp the mold in', 'clamp'], ['speed', 'Set the shot size', 'speed']],
       heat: [['clamp', 'Load the basket', 'clamp'], ['speed', 'Set the temperature', 'speed']],
+      bigvmc: [['clamp', 'Crane the block on and clamp it', 'clamp'], ['probe', 'Probe the block', 'probe'], ['program', 'Select the program', 'program']],
+      gundrill: [['clamp', 'Clamp the block square', 'clamp'], ['indicate', 'Line up the start hole', 'indicate'], ['speed', 'Set the coolant pressure', 'speed']],
       bench: [],
     })[d.kind] || [];
     const cl = m.checklist || (m.checklist = {});

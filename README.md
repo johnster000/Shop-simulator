@@ -381,6 +381,35 @@ Then open http://localhost:8080/.
   the red for two days and the office phone starts showing the bank's number: answer it and
   lose six minutes and some dignity; miss it and it counts as a week, in their book.
 
+- The quote screen (§7.4, §7.5, §7.7). The estimate now comes with a confidence band that
+  narrows with every mold shipped and with an estimator on staff, and a line about the segment
+  (what they pay, how patient they are, their terms). You set the lead time as well as the price:
+  faster than asked wins more and risks being late. Molds can be quoted on their terms (0/0/100:
+  no deposit, nothing at T1, better odds, all of it on approval). Automotive charges a per-day
+  penalty and holds the final payment a month when you are late; twice late to anybody and the
+  next program goes across town. Engineering changes (§6.6) now come more often from automotive
+  and consumer, rarely from packaging; a change to a polished cavity is a weld and a re-cut and a
+  week, a change after texture is a new insert and a trip back to Mold-Tex, and purchasing argues
+  the bill down to forty percent when the PO says they can.
+
+- The bank tab, per §13.2: a cash-flow chart of the last sixty days drawn from the ledger (with
+  the red dashed line where zero is, when you have been below it), a rough P&L of the last
+  twenty working days by what the ledger line says (customers in; wages, overhead and the bank,
+  steel and vendors, machines, repairs out), and a reputation section with the bar, what it
+  unlocks, and what every customer remembers about you.
+
+- The gun drill (§4.2, §4.5). Large and XL molds now carry a water-lines stage on each block:
+  long straight holes, eighteen inches deep, that go out to Deep Hole Drilling Inc. (three days,
+  one machine, one guy, sometimes fishing) until you buy the UNISIGH: a four-metre bed, a
+  headstock, a drill tube through three whip guides, the high-pressure coolant line, a pendant on
+  an arm, and yellow guard rails you will walk into.
+
+- The big machine (§4.2, §3.6). XL molds rough their blocks on a 'big' station: the Dozan large
+  VMC, fifty taper, two sliding doors with tall windows, a chip conveyor out the side into a
+  hopper, a pendant on a swing arm and a step at the front so you can see what it is doing. It
+  needs the pads and the crane to set it, and it runs the small work too, expensively. Until it
+  arrives, XL roughing goes out to Bramalea at their rate.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

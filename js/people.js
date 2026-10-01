@@ -86,7 +86,7 @@ export function fire(state, p) {
   return sev;
 }
 
-export function skillKey(kind) { return { mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench', saw: 'general', drill: 'general', vmc: 'mill', sinker: 'mill', wire: 'mill', spot: 'bench', cmm: 'general', graphite: 'mill', laser: 'bench', press: 'bench', heat: 'general' }[kind] || 'general'; }
+export function skillKey(kind) { return { mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench', saw: 'general', drill: 'general', vmc: 'mill', sinker: 'mill', wire: 'mill', spot: 'bench', cmm: 'general', graphite: 'mill', laser: 'bench', press: 'bench', heat: 'general', gundrill: 'mill', bigvmc: 'mill' }[kind] || 'general'; }
 export function skillFor(p, kind) { return p.actual[skillKey(kind)] || 0; }
 // a cycle run is practice. fifteen of them on one kind of machine and the hands know something the resume did not.
 export function practice(p, kind) { const k = skillKey(kind); p.practice = p.practice || {}; p.practice[k] = (p.practice[k] || 0) + 1; }
@@ -106,8 +106,8 @@ export function growSkills(state, p) {
   return notes;
 }
 // CNC wants a machinist or a moldmaker; an apprentice on a VMC is how you learn what a VMC costs
-export const MANUAL_KINDS = ['mill', 'lathe', 'drill', 'saw', 'grinder'], SCREEN_KINDS = ['vmc', 'sinker', 'wire', 'graphite', 'cmm'];
-export function canRun(p, kind) { if (p.role === 'estimator' || p.role === 'nightshift') return false; if (p.quirkId === 'cncOnly' && MANUAL_KINDS.includes(kind)) return false; if (p.quirkId === 'manualOnly' && SCREEN_KINDS.includes(kind)) return false; if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'press') return p.role === 'moldmaker' || (p.role === 'machinist' && skillFor(p, 'general') >= 3); if (kind === 'heat') return true; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
+export const MANUAL_KINDS = ['mill', 'lathe', 'drill', 'saw', 'grinder'], SCREEN_KINDS = ['vmc', 'bigvmc', 'sinker', 'wire', 'graphite', 'cmm'];
+export function canRun(p, kind) { if (p.role === 'estimator' || p.role === 'nightshift') return false; if (p.quirkId === 'cncOnly' && MANUAL_KINDS.includes(kind)) return false; if (p.quirkId === 'manualOnly' && SCREEN_KINDS.includes(kind)) return false; if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'press') return p.role === 'moldmaker' || (p.role === 'machinist' && skillFor(p, 'general') >= 3); if (kind === 'heat') return true; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'bigvmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
 // one setup step: pass or skip
 export function setupRoll(p, kind) { const sk = skillFor(p, kind); return Math.random() < 0.42 + sk * 0.115 + (p.morale - 0.5) * 0.12; }
 export function moraleWord(m) { return m >= 0.85 ? 'happy' : m >= 0.6 ? 'fine' : m >= 0.4 ? 'grumbling' : m >= 0.2 ? 'disgruntled' : 'done'; }

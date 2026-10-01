@@ -122,6 +122,7 @@ export function airSlots(state) { return state.facility ? state.facility.air : S
 export function canPower(state, def) { return def.power === 0 || poweredCount(state) + def.power <= circuits(state); }
 export function canAir(state, def) { return !def.air || airCount(state) < airSlots(state); }
 export function whyNot(state, def) {
+  if (def.crane && !state.facility.crane) return 'needs the crane to set it';
   if (!canPower(state, def)) return `the panel has ${circuits(state) - poweredCount(state)} circuit${circuits(state) - poweredCount(state) === 1 ? '' : 's'} free and this needs ${def.power}`;
   if (!canAir(state, def)) return 'the compressor cannot feed another machine';
   if (def.cnc && !hasCam(state)) return 'you have no CAM software to program it';
@@ -313,6 +314,8 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  small_change: ['Just a Small Change', 'Three revisions on one mold. Each one small. Each one with a print.'],
+  their_terms: ['0/0/100', 'Took their terms. No deposit, nothing at T1, all of it on approval, net whatever. The steel still wants paying today.'],
   the_display: ['The Display Says Bank', 'Answered the bank. Said fine. They could see the balance.'],
   band_aid: ['It\'ll Run', 'Had the local guy fix it with a used part. It runs. It does not run true.'], samples: ['On the Bench', 'Sample parts from a tryout, on the bench, where everyone can see what went wrong.'],
   net_thirty: ['Net Thirty', 'The steel supplier gave you terms. The invoice still comes. Later.'],

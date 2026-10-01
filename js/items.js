@@ -101,7 +101,7 @@ export class Items {
       const box = new T.Mesh(new T.BoxGeometry(0.22, 0.08, 0.16), card); box.position.y = 0.04; mesh.add(box);
       const foam = new T.Mesh(new T.BoxGeometry(0.2, 0.02, 0.14), new T.MeshStandardMaterial({ color: 0x5a5a60, roughness: 1 })); foam.position.y = 0.09; mesh.add(foam);
       const pinMat = new T.MeshStandardMaterial({ color: 0xd8dce0, metalness: 0.85, roughness: 0.25 });
-      for (let i = 0; i < 6; i++) for (let k = 0; k < 4; k++) { const pin = new T.Mesh(new T.CylinderGeometry(0.004, 0.004, 0.14, 6), pinMat); pin.position.set(-0.08 + i * 0.032, 0.16, -0.05 + k * 0.034); pin.rotation.x = (Math.random() - 0.5) * 0.1; mesh.add(pin); const head = new T.Mesh(new T.CylinderGeometry(0.008, 0.008, 0.006, 8), pinMat); head.position.set(pin.position.x, 0.23, pin.position.z); mesh.add(head); }
+      for (let i = 0; i < 5; i++) for (let k = 0; k < 3; k++) { const pin = new T.Mesh(new T.CylinderGeometry(0.007, 0.004, 0.14, 5), pinMat); pin.position.set(-0.07 + i * 0.035, 0.16, -0.04 + k * 0.04); pin.rotation.x = (Math.random() - 0.5) * 0.1; mesh.add(pin); } // fifteen on show; the other hundred and eighty-five are under the foam
       const lbl = new T.Mesh(new T.PlaneGeometry(0.14, 0.05), new T.MeshBasicMaterial({ map: TX.label(T, ['EJECTOR PINS', 'H13 · 200 pc'], { size: 20, bg: '#f4f1e6', fg: '#222', border: '#999' }) })); lbl.position.set(0, 0.04, 0.081); mesh.add(lbl);
     }
     else if (kind === 'electrode') {

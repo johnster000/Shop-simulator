@@ -53,14 +53,22 @@ export function nightlyEvents(state) {
 
   // "Just a small change." A mold in work gets a revision from the customer. Before design approval it is free; after, you bill it, and they argue.
   const molds = jobs.filter((j) => j.mold && j.jobStages[0].done && !j.jobStages.some((q) => q.kind === 'tryout' && q.out));
-  if (molds.length && roll(0.06)) {
+  if (molds.length) {
     const j = pick(molds), c = customerOf(j.customer);
-    const change = pick([['a hole through the slide', 'bench', 'Add the hole they forgot', 90], ['two more ribs on the core', 'sinker', 'Burn two more ribs', 160], ['a logo in the cavity', 'sinker', 'Burn the logo', 120], ['the draft angle', 'vmc', 'Re-cut the draft', 180], ['the gate location', 'vmc', 'Move the gate', 90]]);
-    const billed = Math.round(change[3] / 60 * 110);
-    j.jobStages.splice(j.jobStages.findIndex((q) => q.kind === 'tryout'), 0, { kind: change[1], label: `ECN: ${change[2].toLowerCase()}`, min: change[3], done: false, out: null });
-    j.price += billed; j.dueDay += 1;
-    message(state, c.name, `Re: ${j.title}: just a small change`, `Hi! Just a small change: ${change[0]}. Print attached. Should not affect the schedule. Thanks!`);
-    notes.push(`${c.name}: "just a small change" to job ${j.id}. ${change[0]}. You added $${billed.toLocaleString()} and a day. They will argue about both.`);
+    const freq = { auto: 0.1, consumer: 0.09, packaging: 0.02, medical: 0.04 }[c.kind] || 0.06; // bible §6.6: more on automotive and consumer, few on packaging
+    if (roll(freq)) {
+      const cav = j.items.find((it) => /cavity/i.test(it.name)), polished = cav && cav.stages.some((q) => /polish/i.test(q.label) && q.done), textured = cav && cav.stages.some((q) => q.kind === 'texture' && q.done);
+      let change = pick([['a hole through the slide', 'bench', 'Add the hole they forgot', 90], ['two more ribs on the core', 'sinker', 'Burn two more ribs', 160], ['a logo in the cavity', 'sinker', 'Burn the logo', 120], ['the draft angle', 'vmc', 'Re-cut the draft', 180], ['the gate location', 'vmc', 'Move the gate', 90]]);
+      let extraDays = 1, note = '';
+      if (textured) { change = ['a boss moved on the textured face', 'vmc', 'New insert: rough, finish, polish, back to Mold-Tex', 900]; extraDays = 8; note = ' After texture, a change is a new insert. A week, and another trip to Mold-Tex.'; }
+      else if (polished) { change = [change[0], 'laser', `Weld and re-cut: ${change[2].toLowerCase()}`, change[3] + 300]; extraDays = 5; note = ' On a polished cavity that is a weld and a re-cut. A week.'; }
+      const billed = Math.round(change[3] / 60 * 110), argued = roll(c.kind === 'auto' || c.kind === 'packaging' ? 0.55 : 0.3);
+      j.jobStages.splice(j.jobStages.findIndex((q) => q.kind === 'tryout'), 0, { kind: change[1], label: `ECN: ${change[2].toLowerCase()}`, min: change[3], done: false, out: null });
+      j.price += argued ? Math.round(billed * 0.4) : billed; j.dueDay += extraDays; j.ecns = (j.ecns || 0) + 1;
+      message(state, c.name, `Re: ${j.title}: just a small change`, `Hi! Just a small change: ${change[0]}. Print attached. Should not affect the schedule. Thanks!${argued ? ' PS: purchasing says the PO covers reasonable revisions. This is reasonable.' : ''}`);
+      notes.push(`${c.name}: "just a small change" to job ${j.id}. ${change[0]}.${note} You added $${(argued ? Math.round(billed * 0.4) : billed).toLocaleString()} and ${extraDays} day${extraDays === 1 ? '' : 's'}.${argued ? ' They argued the bill down to forty percent. The PO terms won. Theirs.' : ' They will argue about both.'}`);
+      if (j.ecns >= 3 && state.achievements && !state.achievements.includes('small_change')) state.achievements.push('small_change');
+    }
   }
   // Steel late. The truck did not come.
   const waiting = state.jobs.filter((j) => j.status === 'material' && j.materialDay === state.day);
