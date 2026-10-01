@@ -5,7 +5,8 @@ import { MachineView } from './machines.js';
 import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
-import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building } from './sim.js';
+import { crewVerdict } from './events.js';
+import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
@@ -90,7 +91,7 @@ export function startShop(T, audio, state) {
       if (heavy) {
         post(state, `WSIB: ${p.name}, claim and premium`, -2400); p.morale = Math.max(0, p.morale - 0.35); p.startDay = state.day + 3; p.crashes += 0;
         for (const q of state.people) if (q !== p) q.morale = Math.max(0, q.morale - 0.1);
-        unlock('wsib'); ui.toast(`${p.name}: "OW. What is WRONG with you?" A WSIB claim, $2,400, and ${p.name} is off for three days. Everyone saw.`, 5000); crew.ouch(p);
+        unlock('wsib'); tally(state, 'wsib'); ui.toast(`${p.name}: "OW. What is WRONG with you?" A WSIB claim, $2,400, and ${p.name} is off for three days. Everyone saw.`, 5000); crew.ouch(p);
       } else if (kind === 'coffee') { p.morale = Math.max(0, p.morale - 0.1); ui.toast(`${p.name}: "...thanks." Wet, and thinking about it.`, 3000); }
       else { post(state, 'First aid kit, restocked', -60); p.morale = Math.max(0, p.morale - 0.18); ui.toast(`${p.name}: "Hey!" A ${ITEM_KINDS[kind].label} to the shoulder. $60 of bandages and a long look.`, 3600); }
       return;
@@ -252,7 +253,30 @@ export function startShop(T, audio, state) {
 
   // ---- five o'clock, and the night
   const closingEl = $('closing'), nightEl = $('night');
-  let nightTimer = 0;
+  let nightTimer = 0, retireNow = false;
+  // ---- the retirement paper. ten years in, every year-end offers it. the pause screen does too.
+  const retireEl = $('retire');
+  function openRetire() {
+    const v = valuation(state), y = Math.floor((state.day - 1) / 260), shipped = state.jobs.filter((j) => j.status === 'shipped'), molds = shipped.filter((j) => j.mold).length;
+    const row = (k, n, cls = '') => `<tr class="${cls}"><td>${k}</td><td class="num">${money(n)}</td></tr>`;
+    $('retireShop').textContent = `${state.shopName} · ${y} year${y === 1 ? '' : 's'} · day ${state.day}`;
+    $('retireBody').innerHTML = `<h4>THE NUMBERS</h4><table>${row('Cash', v.cash)}${row('Machines, at what a dealer would give you', v.machines)}${row('Owed to you, on terms', v.receivables)}${row('Half of what is still on the floor', v.backlog)}${row('The bank', -v.debt)}${row('THE SHOP IS WORTH', v.total, 'total')}</table>
+      <h4>THE RECORD</h4><div>${shipped.length} job${shipped.length === 1 ? '' : 's'} shipped, ${molds} mold${molds === 1 ? '' : 's'}. ${state.stats.cycleStarts} cycle starts. ${state.scrapCount} scrapped block${state.scrapCount === 1 ? '' : 's'}. ${state.stats.skipped} setup step${state.stats.skipped === 1 ? '' : 's'} skipped and regretted. ${state.people.length} on the crew at the end. Reputation ${Math.round(state.rep * 100)}. ${(state.achievements || []).length} thing${(state.achievements || []).length === 1 ? '' : 's'} on the wall.</div>
+      <h4>WHAT THE CREW SAID AT THE PARTY</h4><ul class="verdict">${crewVerdict(state).map((l) => `<li>${l}</li>`).join('')}</ul>
+      <h4>THE OFFER</h4><div>${v.total > 2000000 ? 'A group from out of town wants the shop, the name, and the crew. They will change the name.' : v.total > 500000 ? 'Your best moldmaker and the bank have an offer. It is low. It is also real.' : v.total > 0 ? 'The guy with the flatbed will take the machines. The landlord will take the keys.' : 'The bank has an offer. It is not for you.'}</div>`;
+    retireEl.classList.remove('hidden'); modal = true; audio.paper();
+  }
+  $('retireBtn').addEventListener('click', openRetire);
+  $('retireNo').addEventListener('click', () => { retireEl.classList.add('hidden'); audio.click(); if (!night) { modal = false; } });
+  $('retireYes').addEventListener('click', () => {
+    achieve(state, 'retired'); const kept = (state.achievements || []).slice();
+    try { localStorage.removeItem(SAVE_KEY); localStorage.setItem('shopsim.wall', JSON.stringify(kept)); } catch (e) { /* fine */ }
+    retireEl.classList.add('hidden'); nightEl.classList.remove('hidden'); nightEl.classList.remove('fade');
+    $('nightShop').textContent = state.shopName.toUpperCase(); nightEl.querySelector('h2').textContent = 'SOLD.'; $('nightClock').textContent = money(valuation(state).total); $('wakeBtn').classList.add('hidden'); $('retireBtn').classList.add('hidden');
+    $('nightLine').textContent = pick(['The new owner painted over the sign on the first day. The compressor did not notice.', 'You drove past the shop on Sunday to check the door. Habit. It was fine.', 'The crew kept the radio station. That was the condition.']) + ' Thank you for playing.';
+    setTimeout(() => location.reload(), 7000);
+  });
+  $('pauseRetire').addEventListener('click', () => { openRetire(); });
   function closingTime() {
     if (modal || paused) return;
     ui.setSpeed(0);
@@ -274,12 +298,17 @@ export function startShop(T, audio, state) {
     const lightsOut = runLightsOut();
     const n = goHome(state); save(state);
     if (lightsOut.length) n.notes = (n.notes || []).concat(lightsOut);
-    $('nightShop').textContent = state.shopName.toUpperCase();
+    $('nightShop').textContent = state.shopName.toUpperCase(); nightEl.querySelector('h2').textContent = 'HOME.';
     $('nightClock').textContent = n.leftAt;
     const line = n.fatigue >= 0.6 ? `You left at ${n.leftAt}. ${n.sleep.toFixed(1)} hours of sleep. Tomorrow is going to be a day.`
       : n.fatigue >= 0.25 ? `You left at ${n.leftAt}. ${n.sleep.toFixed(1)} hours of sleep. Not enough. You will feel it.`
       : n.overtime > 0 ? `You left at ${n.leftAt}. Late, but you slept.` : pick(['You left at five. The compressor kept going.', 'Dinner. Television. A thought about the mill. Sleep.', 'You dreamed about the tarp door. It flapped.']);
-    if (n.year) { const y = n.year; $('nightLine').textContent = `YEAR ${y.year} IS DONE. ${y.shipped} job${y.shipped === 1 ? '' : 's'} shipped, ${y.molds} mold${y.molds === 1 ? '' : 's'}. ${money(y.revenue)} in. ${y.people} on the crew, ${y.machines} machine${y.machines === 1 ? '' : 's'}, ${y.crashes} scrapped block${y.crashes === 1 ? '' : 's'}. Reputation ${y.rep}. ${y.line}`; unlock('year'); }
+    retireNow = false; $('retireBtn').classList.add('hidden');
+    if (n.year) {
+      const y = n.year, onTime = y.onTime + y.late ? `${Math.round((100 * y.onTime) / (y.onTime + y.late))}% on time. ` : '';
+      $('nightLine').textContent = `YEAR ${y.year} IS DONE. ${y.shipped} job${y.shipped === 1 ? '' : 's'} shipped, ${y.molds} mold${y.molds === 1 ? '' : 's'}. ${onTime}${money(y.revenue)} in. ${y.hired} hired, ${y.left} quit; ${y.people} on the crew, ${y.machines} machine${y.machines === 1 ? '' : 's'}, ${y.crashes} scrapped block${y.crashes === 1 ? '' : 's'}. Reputation ${y.rep}.${y.best ? ` Best day: ${y.best}.` : ''}${y.worst ? ` Worst: ${y.worst}.` : ''} The shop is worth ${money(y.valuation.total)}. ${y.line}${y.retire ? ' Ten years. There is a second button tonight.' : ''}`;
+      unlock('year'); if (y.retire) retireNow = true;
+    }
     else $('nightLine').textContent = (n.weekend ? pick(['The weekend. Two days. You thought about the shop both of them. ', 'Saturday: errands. Sunday: the drive past the shop to check the door. ', 'The weekend. The compressor ran the whole time, for nobody. ']) : '') + line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '') + (n.notes && n.notes.length ? ' Overnight: ' + n.notes.join(' ') : '');
     $('wakeBtn').classList.add('hidden');
     nightEl.classList.remove('hidden'); nightEl.classList.remove('fade');
@@ -289,7 +318,7 @@ export function startShop(T, audio, state) {
       const k = Math.min(1, (performance.now() - start) / dur);
       const mins = from + (to - from) * (k * k * (3 - 2 * k));
       $('nightClock').textContent = hourText(mins % (24 * 60));
-      if (k < 1) nightTimer = requestAnimationFrame(run); else { $('nightClock').textContent = '7:00'; $('wakeBtn').classList.remove('hidden'); }
+      if (k < 1) nightTimer = requestAnimationFrame(run); else { $('nightClock').textContent = '7:00'; $('wakeBtn').classList.remove('hidden'); if (retireNow) { $('wakeBtn').textContent = 'ONE MORE YEAR'; $('retireBtn').classList.remove('hidden'); } else $('wakeBtn').textContent = 'BACK TO WORK'; }
     };
     run();
   }
@@ -400,7 +429,7 @@ export function startShop(T, audio, state) {
   enter.addEventListener('click', () => { enter.classList.add('hidden'); audio.init(); audio.resume(); player.enabled = true; player.requestLock(); });
   player.onDragFallback = () => ui.toast('No pointer lock here. Drag to look.', 3000);
   player.onLockRetry = () => { if (!modal && !paused && !iso.active) ui.toast('click to look around again', 1500); };
-  function pause() { if (paused) return; paused = true; if (player.locked) document.exitPointerLock(); player.enabled = false; pauseEl.classList.remove('hidden'); $('pauseShop').textContent = state.shopName.toUpperCase(); $('pauseWall').innerHTML = (state.achievements || []).length ? `<b>THE WALL</b> · ${state.achievements.map((id) => (ACH[id] || [id])[0]).join(' · ')}` : 'The wall is empty. Press a green button.'; $('pauseNote').textContent = `day ${state.day} · ${state.machines.length} machine${state.machines.length === 1 ? '' : 's'} · ${money(state.cash)}`; }
+  function pause() { if (paused) return; paused = true; if (player.locked) document.exitPointerLock(); player.enabled = false; pauseEl.classList.remove('hidden'); $('pauseShop').textContent = state.shopName.toUpperCase(); $('pauseWall').innerHTML = (state.achievements || []).length ? `<b>THE WALL</b> · ${state.achievements.map((id) => (ACH[id] || [id])[0]).join(' · ')}` : 'The wall is empty. Press a green button.'; $('pauseNote').textContent = `day ${state.day} · ${state.machines.length} machine${state.machines.length === 1 ? '' : 's'} · ${money(state.cash)} · worth ${money(valuation(state).total)}`; $('pauseRetire').classList.toggle('hidden', !canRetire(state)); }
   function resume() { paused = false; pauseEl.classList.add('hidden'); if (!iso.active) { player.enabled = true; player.requestLock(); } }
   $('resumeBtn').addEventListener('click', resume);
   $('saveBtn').addEventListener('click', () => { $('pauseNote').textContent = save(state) ? 'saved. the shop will be here tomorrow.' : 'could not save. this browser is being difficult.'; audio.paper(); });

@@ -3,7 +3,7 @@
 // run the stages on your machines, you ship it, and the money arrives on terms, later.
 // Pure simulation: no three.js, no DOM.
 
-import { post } from './sim.js';
+import { tally, post } from './sim.js';
 
 export const SHOP_RATE = 55;      // $/hr, Stage 0 work (design bible §4.1)
 export const CNC_RATE = 95;       // $/hr, work that needs a CNC
@@ -237,7 +237,7 @@ export function stageDone(state, job, itemIndex, index) {
 
 // a scrapped item: its steel is gone, its stages start over. on a component job, that is the job.
 export function scrapJob(state, job, itemIndex = 0) {
-  job.scrap++; state.scrapCount++; job.risk = (job.risk || 0) + 0.03;
+  job.scrap++; state.scrapCount++; tally(state, 'crashes'); job.risk = (job.risk || 0) + 0.03;
   const item = job.items[Math.max(0, itemIndex)] || job.items[0];
   for (const q of item.stages) { if (q.kind === 'base' || q.kind === 'manifold') continue; q.done = false; q.out = null; }
   const steel = job.mold ? Math.round(job.spec.steelCost / Math.max(1, job.items.length - 1)) : job.material;
@@ -312,6 +312,7 @@ export function ship(state, job) {
   const late = Math.max(0, state.day - job.dueDay);
   let balance = job.price - (job.paid || Math.round(job.price * 0.5));
   let note = '';
+  tally(state, late > 0 ? 'late' : 'onTime');
   if (late > 0) { const pen = Math.round(job.price * Math.min(0.3, 0.05 * late)); balance -= pen; note = ` ${late} day${late === 1 ? '' : 's'} late. They knocked $${pen.toLocaleString()} off and will remember.`; state.rep = Math.max(0, state.rep - 0.08); }
   else { state.rep = Math.min(1, state.rep + (job.mold ? 0.1 : 0.04)); }
   if (job.mold && job.tryouts === 1 && !job.defects.length) state.firstTimeRight = (state.firstTimeRight || 0) + 1;

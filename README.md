@@ -121,7 +121,16 @@ Then open http://localhost:8080/.
   weekend; everything comes off the trucks unplaced and you lay the floor out again from the
   clipboard. The crew carried it and would like that noted.
 
-Not yet: year-end valuation, the retirement ending. Next.
+- The score. The BANK tab says what the shop is worth: cash, the iron at what a dealer would give
+  you, what is owed to you on terms, half of what is still on the floor, less the bank. The
+  year-end summary now counts hires and quits, the on-time rate, the best day and the worst one,
+  and the valuation. After ten years the night screen grows a second button. The retirement paper
+  has the numbers, the record, what the crew said at the party (it is not a roast; it is close),
+  and an offer that depends on the number. ONE MORE YEAR is always there. SELL THE SHOP ends the
+  game; the wall of achievements comes with you into the next one.
+
+Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
+turns up.
 
 ## Layout
 

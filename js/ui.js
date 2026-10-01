@@ -1,6 +1,6 @@
 // HUD, the clipboard, the machine panel. Honest HTML. No 3D UI.
 import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
-import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve } from './sim.js';
+import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
 import { customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel } from './jobs.js';
@@ -249,6 +249,8 @@ export class UI {
     const rcv = (s.receivables || []).reduce((a, r) => a + r.amount, 0);
     el.innerHTML = `<div class="row2"><div><div class="note">CASH</div><div class="big">${money(s.cash)}</div></div>
       <div class="note">Rent $850/wk · hydro $200/wk + $60 per circuit · software $${softwareWeekly(s)}/wk · due Monday morning.<br>Owed to you: ${money(rcv)} on terms.</div></div>
+      <h4 class="sect">WHAT IT IS WORTH</h4>
+      <div class="note">${(() => { const v = valuation(s); return `<b>${money(v.total)}</b> · cash ${money(v.cash)} + iron ${money(v.machines)} + owed to you ${money(v.receivables)} + half the backlog ${money(v.backlog)} − the bank ${money(v.debt)}. That is the score. ${canRetire(s) ? 'You could retire. The night screen has the button.' : `Retirement is on the table after ten years. It is day ${s.day}.`}`; })()}</div>
       <h4 class="sect">THE BANK</h4>
       <div class="note">${s.loans.length ? s.loans.map((l) => `${l.name}: ${money(l.balance)} left, ${money(l.weekly)}/wk`).join('<br>') : 'No loans.'}</div>
       <div class="pacts">${s.loans.some((l) => l.kind === 'startup') ? '' : `<button data-loan="startup">START-UP LOAN · $100,000 at 11%</button>`}${s.stats.shipped >= 3 && !s.loans.some((l) => l.kind === 'loc') ? `<button data-loan="loc">LINE OF CREDIT · $50,000 at 9%</button>` : `<span class="note">${s.stats.shipped >= 3 ? '' : 'A line of credit after three shipped jobs. The bank wants to see something leave the building.'}</span>`}</div>

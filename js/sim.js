@@ -48,8 +48,28 @@ function upgradeState(s) {
   if (!s.loans) s.loans = [];
   if (!s.achievements) s.achievements = [];
   if (!s.stats.shipped) s.stats.shipped = 0;
+  if (!s.yr) s.yr = { hired: 0, left: 0, onTime: 0, late: 0, crashes: 0, wsib: 0 };
 }
-export function fresh(shopName) { const s = newState(shopName); initJobs(s); initPeople(s); return s; }
+// the running tally for the year-end summary. reset when the year turns.
+export function tally(state, key, n = 1) { if (!state.yr) state.yr = { hired: 0, left: 0, onTime: 0, late: 0, crashes: 0, wsib: 0 }; state.yr[key] = (state.yr[key] || 0) + n; }
+export const RETIRE_DAY = 10 * 260 + 1; // ten years of 52 five-day weeks
+export function canRetire(state) { return state.day >= RETIRE_DAY; }
+// what the shop is worth, the way the accountant would say it: cash, the iron at used prices, what is owed
+// to you, half of what is still to be billed on the floor, less what the bank is owed. that is the score.
+export function valuation(state) {
+  const machines = state.machines.reduce((a, m) => { const d = byId(m.id); return a + Math.round((m.used ? d.priceUsed : d.priceNew) * 0.6 * (0.5 + 0.5 * m.condition)); }, 0);
+  const receivables = (state.receivables || []).reduce((a, r) => a + r.amount, 0);
+  const backlog = state.jobs.filter((j) => j.status !== 'shipped' && j.status !== 'dead' && j.status !== 'scrapped').reduce((a, j) => a + Math.round((j.price - (j.paid || 0)) * 0.5), 0);
+  const debt = state.loans.reduce((a, l) => a + l.balance, 0);
+  const building = state.building === 'large' ? 0 : 0; // rented. the landlord has the valuation on the building.
+  return { cash: state.cash, machines, receivables, backlog, debt, building, total: state.cash + machines + receivables + backlog - debt };
+}
+export function fresh(shopName) {
+  const s = newState(shopName); initJobs(s); initPeople(s);
+  // the wall comes with you from the shop you sold
+  try { const wall = JSON.parse(localStorage.getItem('shopsim.wall') || '[]'); if (Array.isArray(wall)) for (const id of wall) if (ACHIEVEMENTS[id] && !s.achievements.includes(id)) s.achievements.push(id); } catch (e) { /* fine */ }
+  return s;
+}
 
 export function load() {
   try {
@@ -193,6 +213,7 @@ export function auditCheck(state) {
 
 // ---- achievements. most are for disasters.
 export const ACHIEVEMENTS = {
+  gold_watch: ['The Gold Watch', 'Ten years. You could retire. You did not.'], retired: ['Sold the Shop', 'Somebody else\'s compressor now.'],
   first_cycle: ['First Cycle Start', 'Press the button.'], one_out: ['One Out the Door', 'Ship a mold. Or a pin. It counts.'], oops: ['OOPS', 'First scrapped block. There will be more.'],
   hired: ['Somebody Else\'s Problem', 'Hire a person.'], lights_out: ['Lights Out, Nobody Home', 'An unattended run that worked.'], lights_wrong: ['Lights Out, Something\'s Wrong', 'An unattended run that did not.'],
   genuine: ['Genuine Advantage', 'Buy the software after the letter.'], letter: ['The Letter', 'Registered mail from a software company.'], first_cnc: ['Cycle Start, For Real', 'Press the green button on a CNC.'],
@@ -250,7 +271,7 @@ export function goHome(state) {
   night.notes = upgradeDue(state).concat(extra, endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state), nightlyEvents(state));
   // the year turns every 52 weeks
   const yearBefore = Math.floor((night.dayDone - 1) / 260), yearAfter = Math.floor((state.day - 1) / 260);
-  if (yearAfter > yearBefore) night.year = yearSummary(state);
+  if (yearAfter > yearBefore) { night.year = yearSummary(state); if (canRetire(state)) { achieve(state, 'gold_watch'); night.year.retire = true; } }
   return night;
 }
 

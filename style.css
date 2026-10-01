@@ -210,3 +210,17 @@ canvas.mg{display:block;width:100%;max-width:420px;height:auto;border:2px solid 
 .bar i{display:block;height:100%;background:var(--steel)}
 .btn.sm{padding:6px 12px;font-size:12px}
 @media (max-width:600px){.paper{padding:26px 20px}.tab{padding:14px 12px 20px}#clipTabs{margin:0 12px}#cash{font-size:18px}}
+
+/* the retirement paper */
+#retire{z-index:9}
+#retire .paper{color:var(--ink);text-align:center}
+#retire .paper h1{color:var(--ink)}
+#retire .paper.wide{max-width:640px;max-height:92vh;overflow:auto}
+#retireBody{text-align:left;font-size:13px;line-height:1.7;color:#333}
+#retireBody h4{margin:14px 0 4px;letter-spacing:.2em;font-weight:normal;color:#666;font-size:11px}
+#retireBody table{width:100%;border-collapse:collapse}
+#retireBody td{padding:2px 0;border-bottom:1px dotted #bbb}
+#retireBody td.num{text-align:right;font-variant-numeric:tabular-nums}
+#retireBody tr.total td{border-bottom:2px solid #333;font-weight:bold}
+#retireBody .verdict{margin:0;padding-left:18px}
+#retireBody .verdict li{margin:2px 0}

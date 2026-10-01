@@ -1,5 +1,5 @@
 // Things that happen when you are not looking. The bible's table, as inbox mail and overnight notes.
-import { post } from './sim.js';
+import { post, valuation } from './sim.js';
 import { customerOf, message } from './jobs.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -53,13 +53,37 @@ export function nightlyEvents(state) {
 // Fifty-two weeks. What happened.
 export function yearSummary(state) {
   const year = Math.floor((state.day - 1) / 260);
-  const shipped = state.jobs.filter((j) => j.status === 'shipped');
+  const d0 = (year - 1) * 260 + 1, d1 = year * 260; // the year that just ended
+  const shipped = state.jobs.filter((j) => j.status === 'shipped' && j.shippedDay >= d0 && j.shippedDay <= d1);
   const molds = shipped.filter((j) => j.mold).length;
-  const revenue = state.ledger.filter((l) => l.amount > 0 && !/loan|credit|Opening/i.test(l.text)).reduce((a, l) => a + l.amount, 0);
-  const assets = state.machines.reduce((a, m) => a + (m.used ? 0.6 : 0.8) * 0.5, 0);
-  return {
+  const led = state.ledger.filter((l) => l.day >= d0 && l.day <= d1);
+  const revenue = led.filter((l) => l.amount > 0 && !/loan|credit|Opening|Sold|financ/i.test(l.text)).reduce((a, l) => a + l.amount, 0);
+  const best = led.filter((l) => l.amount > 0 && !/loan|credit|Opening/i.test(l.text)).sort((a, b) => b.amount - a.amount)[0] || null;
+  const worst = led.filter((l) => l.amount < 0 && !/Bought|Rent|Hydro|Payroll|Software|payment|Deposit|financ|Steel|Vendor|Heat|Base|Manifold|Texture/i.test(l.text)).sort((a, b) => a.amount - b.amount)[0] || null;
+  const yr = state.yr || {}; const v = valuation(state);
+  const out = {
     year, shipped: shipped.length, molds, revenue, cash: state.cash, people: state.people.length, machines: state.machines.length,
-    crashes: state.scrapCount, achievements: (state.achievements || []).length, rep: Math.round(state.rep * 100),
+    hired: yr.hired || 0, left: yr.left || 0, onTime: yr.onTime || 0, late: yr.late || 0,
+    crashes: yr.crashes || 0, achievements: (state.achievements || []).length, rep: Math.round(state.rep * 100), valuation: v,
+    best: best ? `${best.text} (${money(best.amount)})` : null, worst: worst ? `${worst.text} (${money(worst.amount)})` : null,
     line: molds ? pick(['A mold went out the door this year. You remember the day.', 'Molds. Plural. The sign is still the same sign.']) : shipped.length ? 'Components and repairs. The mold is next year. It is always next year.' : 'Nothing shipped. The compressor ran the whole time.',
   };
+  state.yr = { hired: 0, left: 0, onTime: 0, late: 0, crashes: 0, wsib: 0 };
+  return out;
+}
+function money(n) { return (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString(); }
+
+// what the crew says about you, at the retirement party. it is not a roast. it is close.
+export function crewVerdict(state) {
+  const lines = [];
+  for (const p of state.people) {
+    const yrs = Math.floor((p.daysWorked || 0) / 260), m = p.morale;
+    const t = m > 0.75 ? pick([`"Best boss I had. Second best. The first one is dead."`, `"Never threw anything at me. That I know of."`, `"Paid on Fridays. Every Friday. You would be surprised."`, `"Let me run the ${state.machines.length ? 'good machine' : 'coffee machine'}. I will not forget that."`])
+      : m > 0.4 ? pick([`"Fair. Mostly. The radio thing was not fair."`, `"Fine. The shop was fine. The parking was not."`, `"Could have said thank you more. Could have said it once."`, `"Good with customers. Hard on cutters."`])
+      : pick([`"I have a lawyer now."`, `"The speech is ready. I have been saving it."`, `"Ten years. Nine of them were a mistake."`, `"Is the WSIB guy coming?"`]);
+    lines.push(`${p.name}${yrs ? ` (${yrs} year${yrs === 1 ? '' : 's'})` : ''}: ${t}`);
+  }
+  if (!lines.length) lines.push('Nobody came. The compressor hissed once, which counts.');
+  if ((state.yr && state.yr.wsib) || (state.achievements || []).includes('wsib')) lines.push('A card from the WSIB office. It just says "finally".');
+  return lines;
 }

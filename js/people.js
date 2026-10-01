@@ -1,6 +1,6 @@
 // The crew, as numbers: who they are, what they can do, what they are paid, and what is bothering
 // them. Pure simulation. The bodies are in crew.js.
-import { post } from './sim.js';
+import { post, tally } from './sim.js';
 import { randomLook } from './person.js';
 
 const FIRST = ['Dave', 'Rick', 'Kevin', 'Mike', 'Steve', 'Dan', 'Paul', 'Jim', 'Tony', 'Marco', 'Hank', 'Lorne', 'Terry', 'Gord', 'Wayne', 'Doug', 'Bruce', 'Chris', 'Kyle', 'Brandon', 'Tyler', 'Jordan', 'Sam', 'Alex', 'Jamie', 'Pat', 'Shannon', 'Tracy', 'Lee', 'Chantal', 'Maria', 'Priya', 'Nav', 'Raj', 'Sunny', 'Vlad', 'Dmitri', 'Zoran', 'Luis', 'Ahmed', 'Jen', 'Carla', 'Rob', 'Big Dave', 'Other Dave', 'Frenchie', 'Smitty', 'Moose'];
@@ -57,7 +57,7 @@ export function refreshCandidates(state) { state.candidates = [makeCandidate(sta
 
 export function hire(state, cand) {
   state.candidates = state.candidates.filter((c) => c.id !== cand.id);
-  cand.startDay = state.day + 1; cand.hiredDay = state.day;
+  cand.startDay = state.day + 1; cand.hiredDay = state.day; tally(state, 'hired');
   state.people.push(cand);
   return cand;
 }
@@ -111,7 +111,7 @@ export function endOfDay(state) {
     if (!p.revealed && p.daysWorked >= 3) { p.revealed = true; const lied = SKILLS.some((k) => p.actual[k] < p.claimed[k]); if (lied) notes.push(`${p.name}'s resume was optimistic. You can see it now.`); }
     if (!p.grievance && Math.random() < 0.08) { const g = pick(GRIEVANCES); p.grievance = { id: g[0], label: g[1], text: g[2], fix: g[3] }; p.morale = Math.max(0, p.morale - 0.08); notes.push(`${p.name} has something to say about ${g[1]}.`); }
     if (p.morale <= 0.05 || (p.morale < 0.2 && Math.random() < 0.25)) {
-      state.people = state.people.filter((q) => q.id !== p.id);
+      state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left');
       notes.push(`${p.name} quit. There was a speech. The radio is still on their station.`);
       for (const q of state.people) q.morale = Math.max(0, q.morale - 0.04);
     }
