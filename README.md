@@ -170,6 +170,12 @@ Then open http://localhost:8080/.
   Press E on them to say hello (once). The verdict comes by email that night, sometimes with an
   RFQ attached. Throw something at them and the verdict comes faster.
 
+- Life and detail. Crew with nothing to run go and sweep, with a broom, and say so. The driver
+  holds a real clipboard; if nobody signs within ten minutes and somebody on the crew is idle,
+  they sign for it and initial the wrong box. The inspection room has a granite surface plate on
+  a stand, a height gauge and a case of gauge blocks. There is a vending machine by the office
+  (and in the break room). B4 is stuck. Everyone knows B4 is stuck. Press E anyway, $2.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

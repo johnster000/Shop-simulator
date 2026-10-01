@@ -2,7 +2,7 @@
 // and a driver inside the door with a clipboard who needs a signature. Sign and the steel is on the rack.
 // Ignore him until noon and he leaves it on the pad, in the rain, with a note.
 import * as TX from './textures.js';
-import { buildPerson, randomLook, pose } from './person.js';
+import { buildPerson, randomLook, pose, holdProp, buildClipboard } from './person.js';
 
 export function buildTruck(T) {
   const g = new T.Group();
@@ -53,20 +53,25 @@ export class Delivery {
     const look = randomLook(); look.vest = true; look.hat = 'cap'; look.coveralls = false;
     this.driver = buildPerson(T, look); this.driver.visible = false; scene.add(this.driver);
     this.driver.traverse((o) => { o.userData.interact = { type: 'driver', text: 'the driver. clipboard. nine more stops.' }; });
+    const clip = buildClipboard(T); holdProp(this.driver, clip, 'l'); clip.traverse((o) => { o.userData.interact = { type: 'driver' }; });
     this.here = false; this.leaving = 0; this.t = 0;
   }
   // which jobs have steel on the truck right now
   waiting() { return this.state.jobs.filter((j) => j.status === 'material' && j.truck); }
-  update(dt, onLeft) {
+  update(dt, onLeft, crewSigner) {
     const s = this.state, d = this.shop.door, hz = this.shop.hz;
     const want = this.waiting().length > 0 && s.t < 300 && s.t >= 0;
     this.t += dt;
     if (want && !this.here && !this.leaving) {
-      this.here = true; this.truck.visible = true; this.driver.visible = true;
+      this.here = true; this.truck.visible = true; this.driver.visible = true; this.arrivedAt = s.t;
       this.truck.position.set(d.x, 0, hz + 3.6); this.truck.rotation.y = 0;
       this.driver.position.set(d.x + 0.9, 0, hz - 1.3); this.driver.rotation.y = Math.PI * 0.85;
     }
-    if (this.here) pose(this.driver, { mode: 'idle', t: this.t, walk: 0, morale: 0.6 });
+    if (this.here) pose(this.driver, { mode: 'hold', t: this.t, walk: 0, morale: 0.6 });
+    // ten minutes of nobody: somebody on the crew signs for it, if there is somebody on the crew with nothing to do
+    if (this.here && !this.leaving && s.t >= (this.arrivedAt || 0) + 10 && crewSigner) {
+      const p = crewSigner(); if (p) { const r = this.sign(); if (r && onLeft) onLeft(`${p.name} signed for the steel. ${['Initialed the wrong box.', 'Spelled the shop name wrong.', 'Took the pen.', 'Asked the driver about the hockey.'][Math.floor(Math.random() * 4)]} Steel for job${r.jobs.length > 1 ? 's' : ''} ${r.jobs.map((j) => j.id).join(', ')} on the rack.`); }
+    }
     // noon: he leaves it on the pad
     // noon: he leaves it on the pad. if the truck never got here (it was leaving, or you loaded the game at two), it is on the pad anyway.
     if (s.t >= 300 && this.waiting().length) { for (const j of this.waiting()) { j.truck = false; j.status = 'work'; } if (onLeft) onLeft(LEFT_LINES[Math.floor(Math.random() * LEFT_LINES.length)]); if (this.here) this.leave(); }

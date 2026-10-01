@@ -1,6 +1,6 @@
 // The crew on the floor: bodies, walking, and what they decide to do with their day.
 // Time rules: the shop clock (minutes) decides arrivals, lunch and leaving; real seconds move the legs.
-import { buildPerson, pose } from './person.js';
+import { buildPerson, pose, holdProp, dropProp, buildBroom } from './person.js';
 import { byId } from './catalog.js';
 import { runnableStages, IN_HOUSE_MIN } from './jobs.js';
 import { canRun, setupRoll, speedFactor, line, skillFor, practice } from './people.js';
@@ -104,7 +104,10 @@ export class Crew {
     v.machine = m; this.goTo(v, this.spotFor(m), 'toMachine');
     return true;
   }
-  takeFive(p) { const v = this.views.get(p.id); if (!v) return; this.dropMachine(v); this.goTo(v, this.breakSpot, 'toBreak'); v.wait = 15; }
+  // nothing to run: sweep. it is not billable. it is what you do when the boss is looking.
+  sweepSpot() { const hx = this.shop.hx, hz = this.shop.hz; for (let i = 0; i < 8; i++) { const t = { x: -hx + 2 + Math.random() * (2 * hx - 4), z: -hz + 4 + Math.random() * (2 * hz - 7) }; if (!this.shop.forbidden(t.x, t.z, 0.4, 0.4) && this.nav.path(0, 0, t.x, t.z).length) return t; } return null; }
+  setBroom(v, on) { if (on && !v.broom) { v.broom = holdProp(v.g, buildBroom(this.T), 'r'); } if (!on && v.broom) { dropProp(v.g, 'r'); v.broom = null; } }
+  takeFive(p) { const v = this.views.get(p.id); if (!v) return; this.dropMachine(v); this.setBroom(v, false); this.goTo(v, this.breakSpot, 'toBreak'); v.wait = 15; }
   dropMachine(v) { if (v.machine && !v.machine.running) { v.machine.job = null; v.machine.checklist = {}; } v.machine = null; }
 
   update(dt, shopDt) {
@@ -134,14 +137,16 @@ export class Crew {
         if (dist <= step + 0.01) v.path.shift();
         if (!v.path.length) this.arrived(v);
       }
-      else if (['arrive', 'leave', 'toMachine', 'toBreak'].includes(v.mode)) this.arrived(v); // nowhere left to walk: we are there
+      else if (['arrive', 'leave', 'toMachine', 'toBreak', 'toSweep'].includes(v.mode)) this.arrived(v); // nowhere left to walk: we are there
       v.walk += ((walking ? 1 : 0) - v.walk) * Math.min(1, dt * 8);
 
       // ---- doing things
       if (v.mode === 'idle' && here && !lunch) {
         if (Math.random() < dt * 0.012) this.hooks.say(p, line(p, {}));
+        v.idleMin = (v.idleMin || 0) + shopDt;
+        if (v.idleMin > 25 && Math.random() < dt * 0.15) { const t = this.sweepSpot(); if (t) { v.idleMin = 0; this.goTo(v, t, 'toSweep'); this.hooks.say(p, pick(['Sweeping. Billable, apparently.', 'I will sweep. Again.', 'If I sweep it, will it make chips?', 'Somebody has to.']), 3); } }
         v.think -= dt;
-        if (v.think <= 0) { v.think = 1.5 + Math.random() * 2; const f = this.freeMachineFor(p); if (f) { f.m.job = { jobId: f.o.job.id, itemIndex: f.o.itemIndex, item: f.o.item ? f.o.item.name : null, index: f.o.index, label: f.o.stage.label, min: f.o.stage.min, operator: p.id }; f.m.checklist = {}; v.machine = f.m; this.goTo(v, this.spotFor(f.m), 'toMachine'); } }
+        if (v.think <= 0) { v.think = 1.5 + Math.random() * 2; const f = this.freeMachineFor(p); if (f) { v.idleMin = 0; f.m.job = { jobId: f.o.job.id, itemIndex: f.o.itemIndex, item: f.o.item ? f.o.item.name : null, index: f.o.index, label: f.o.stage.label, min: f.o.stage.min, operator: p.id }; f.m.checklist = {}; v.machine = f.m; this.goTo(v, this.spotFor(f.m), 'toMachine'); } }
       }
       if (v.mode === 'setup') {
         v.setupLeft -= shopDt;
@@ -159,13 +164,14 @@ export class Crew {
       }
       if (v.mode === 'work') { const m = v.machine; if (!m || !m.running) { v.machine = null; v.mode = 'idle'; v.think = 0.5; } }
       if (v.mode === 'break') { v.wait -= shopDt; if (v.wait <= 0 && !lunch) { v.mode = 'idle'; v.think = 0.3; } }
+      if (v.mode === 'sweep') { v.wait -= shopDt; v.yaw += dt * 0.15; if (v.wait <= 0 || lunch || !here) { this.setBroom(v, false); v.mode = 'idle'; v.think = 0.3; v.idleMin = 0; } }
       if (v.mode === 'gawk') { v.wait -= shopDt; if (v.wait <= 0) { v.mode = 'idle'; v.think = 0.5; } }
 
       // ---- the body
       const m = v.machine;
       const faceYaw = v.mode === 'work' || v.mode === 'setup' ? (v.target && v.target.face != null ? v.target.face : v.yaw) : v.yaw;
       v.g.position.set(v.pos.x, 0, v.pos.z); v.g.rotation.y = v.walk > 0.3 ? v.yaw : faceYaw;
-      const mood = v.mode === 'work' || v.mode === 'setup' ? 'work' : v.mode === 'gawk' ? 'sulk' : p.morale < 0.35 && (v.mode === 'idle' || v.mode === 'break') ? 'sulk' : 'idle';
+      const mood = v.mode === 'work' || v.mode === 'setup' ? 'work' : v.mode === 'sweep' ? 'sweep' : v.mode === 'gawk' ? 'sulk' : p.morale < 0.35 && (v.mode === 'idle' || v.mode === 'break') ? 'sulk' : 'idle';
       if (v.mode === 'gawk' && this.gather) { const want = Math.atan2(this.gather.x - v.pos.x, this.gather.z - v.pos.z); v.yaw += Math.atan2(Math.sin(want - v.yaw), Math.cos(want - v.yaw)) * Math.min(1, dt * 4); }
       pose(v.g, { mode: v.walk > 0.05 ? 'walk' : mood, t: this.t + p.id * 1.7, walk: v.walk, morale: p.morale });
       if (v.g.userData.mood !== (p.morale < 0.35 ? 'grumpy' : p.morale > 0.8 ? 'happy' : 'ok')) { v.g.userData.mood = p.morale < 0.35 ? 'grumpy' : p.morale > 0.8 ? 'happy' : 'ok'; v.g.userData.setMood(v.g.userData.mood); }
@@ -177,6 +183,7 @@ export class Crew {
     else if (v.mode === 'leave') { v.mode = 'offsite'; v.g.visible = false; }
     else if (v.mode === 'toMachine') { if (v.machine && v.machine.job && !v.machine.running) { v.mode = 'setup'; v.setupLeft = SETUP_MIN * (1.4 - skillFor(v.p, byId(v.machine.id).kind) * 0.12); } else { v.machine = null; v.mode = 'idle'; } }
     else if (v.mode === 'toBreak') { v.mode = 'break'; }
+    else if (v.mode === 'toSweep') { v.mode = 'sweep'; v.wait = 12 + Math.random() * 10; this.setBroom(v, true); }
     else if (v.mode === 'toGather') { v.mode = 'gawk'; v.wait = 6; this.hooks.say(v.p, pick(['Oof.', 'That is going to need a tech.', 'I heard it from the office.', 'Was that in the program?', 'Not it.', 'Did anyone photograph that? For the wall.'])); }
     else v.mode = 'idle';
   }
@@ -187,6 +194,7 @@ export class Crew {
     if (v.mode === 'offsite' || v.mode === 'leave' || v.mode === 'gone') return 'gone home';
     if (v.mode === 'work' || v.mode === 'setup') { const d = byId(v.machine.id); return `${v.mode === 'setup' ? 'setting up' : 'running'} the ${d.name.toLowerCase()}${v.machine.job && v.machine.job.jobId ? `, job ${v.machine.job.jobId}` : ''}`; }
     if (v.mode === 'break' || v.mode === 'toBreak') return 'on a break';
+    if (v.mode === 'sweep' || v.mode === 'toSweep') return 'sweeping';
     if (v.mode === 'gawk' || v.mode === 'toGather') return 'having a look';
     if (v.mode === 'toMachine') return 'walking over to the ' + byId(v.machine.id).name.toLowerCase();
     return p.morale < 0.35 ? 'standing around, pointedly' : 'waiting for work';
@@ -196,5 +204,5 @@ export class Crew {
   // a block of steel to the shoulder
   ouch(p) { const v = this.views.get(p.id); if (!v) return; this.dropMachine(v); this.goTo(v, this.outside, 'leave'); this.hooks.say(p, pick(['OW. What is WRONG with you?', 'I am going to the clinic. And then to a lawyer.', 'You THREW that.'])); }
   // lights off: everyone is gone, whatever they were doing
-  night() { for (const v of this.views.values()) { this.dropMachine(v); v.mode = 'offsite'; v.path = []; v.pos = { ...this.outside }; v.g.visible = false; } }
+  night() { for (const v of this.views.values()) { this.dropMachine(v); this.setBroom(v, false); v.mode = 'offsite'; v.path = []; v.pos = { ...this.outside }; v.g.visible = false; } }
 }

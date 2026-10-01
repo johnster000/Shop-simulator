@@ -235,7 +235,22 @@ export class Shop {
       for (const [x, z] of [[ix0, iz1], [doorX - 0.5, iz1], [doorX + 0.5, iz1]]) this.box(0.08, 2.95, 0.08, frame, x, 1.475, z);
       const lbl = new T.Mesh(new T.PlaneGeometry(0.9, 0.22), new T.MeshBasicMaterial({ map: TX.label(T, ['INSPECTION', '20 \u00b0C. DOOR SHUT.'], { size: 30 }) })); lbl.position.set(ix1 - rightW / 2, 2.3, iz1 + 0.05); s.add(lbl);
       this.rooms.push({ x0: ix0, x1: ix1, z0: iz0, z1: iz1, name: 'inspection' });
+      // a granite surface plate on its stand, a height gauge, a case of gauge blocks nobody is allowed to touch
+      const granite = new T.MeshStandardMaterial({ color: 0x1c1d20, roughness: 0.25, metalness: 0.1 });
+      const px = ix1 - 1.2, pz = iz0 + 1.0;
+      for (const [dx, dz] of [[-0.4, -0.25], [0.4, -0.25], [-0.4, 0.25], [0.4, 0.25]]) this.box(0.06, 0.78, 0.06, grey, px + dx, 0.39, pz + dz);
+      this.box(0.95, 0.04, 0.6, grey, px, 0.8, pz);
+      const plate = this.box(0.9, 0.12, 0.6, granite, px, 0.88, pz); this.tag(plate, 'plate', 'the surface plate. flat to a tenth. do not set your coffee on it.'); this.solid(px, pz, 0.5, 0.35);
+      const hg = new T.Group(); hg.position.set(px + 0.25, 0.94, pz - 0.1); s.add(hg);
+      const hgBase = new T.Mesh(new T.BoxGeometry(0.16, 0.05, 0.1), grey); hgBase.position.y = 0.025; hg.add(hgBase);
+      const hgCol = new T.Mesh(new T.BoxGeometry(0.03, 0.5, 0.03), new T.MeshStandardMaterial({ color: 0xcfd3d6, metalness: 0.8, roughness: 0.25 })); hgCol.position.set(-0.04, 0.3, 0); hg.add(hgCol);
+      const hgSlide = new T.Mesh(new T.BoxGeometry(0.08, 0.07, 0.06), new T.MeshStandardMaterial({ color: 0x2b2b2b })); hgSlide.position.set(-0.04, 0.3, 0); hg.add(hgSlide);
+      const hgArm = new T.Mesh(new T.BoxGeometry(0.1, 0.012, 0.02), new T.MeshStandardMaterial({ color: 0xcfd3d6, metalness: 0.8 })); hgArm.position.set(0.04, 0.27, 0); hg.add(hgArm);
+      hg.traverse((o) => { o.userData.interact = { type: 'gauge', text: 'the height gauge. zeroed, probably.' }; });
+      const blocks = this.box(0.26, 0.05, 0.16, new T.MeshStandardMaterial({ color: 0x5a3b22, roughness: 0.7 }), px - 0.25, 0.965, pz + 0.15); this.tag(blocks, 'blocks', 'gauge blocks. wrung together once by an apprentice. once.');
+      const lamp = new T.PointLight(0xdfe8ff, 6, 6, 1.8); lamp.position.set(px, 2.4, pz); s.add(lamp);
     }
+    if (!SHOP.breakroom) this.vending(x1 + 1.0, z0 + 0.45);
     if (SHOP.breakroom) {
       // the break room, beside the office: a table, chairs, a fridge, the kettle's promotion
       const B = SHOP.breakroom, bx0 = x1 + 0.3, bx1 = bx0 + B.w, bz0 = z0, bz1 = z0 + B.d;
@@ -248,7 +263,21 @@ export class Shop {
       const coffee = this.box(0.3, 0.4, 0.3, new T.MeshStandardMaterial({ color: 0x222 }), bx1 - 0.5, 0.95, bz0 + 0.4); this.tag(coffee, 'coffeemaker', 'the coffee machine. a real one. morale lives here.');
       this.box(1.0, 0.75, 0.5, grey, bx1 - 0.5, 0.375, bz0 + 0.4); this.solid(bx1 - 0.5, bz0 + 0.4, 0.5, 0.25);
       this.rooms.push({ x0: bx0, x1: bx1, z0: bz0, z1: bz1, name: 'breakroom' });
+      this.vending(bx1 - 1.4, bz0 + 0.45);
     }
+  }
+
+  // the vending machine. B4 is stuck. it has been stuck since the lease.
+  vending(x, z, rot = 0) {
+    const T = this.T, s = this.scene, g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = rot; s.add(g);
+    const body = new T.Mesh(new T.BoxGeometry(0.9, 1.9, 0.75), new T.MeshStandardMaterial({ color: 0x24324a, roughness: 0.5, metalness: 0.3 })); body.position.y = 0.95; g.add(body);
+    const front = new T.Mesh(new T.PlaneGeometry(0.62, 1.2), new T.MeshStandardMaterial({ map: TX.label(T, ['SNAX', 'A1 B2 C3', 'B4: STUCK'], { size: 30, bg: '#0e1a2b', fg: '#cfe0ff', border: '#3a6bb0' }), emissive: 0x335588, emissiveIntensity: 0.5 })); front.position.set(-0.1, 1.15, 0.376); g.add(front);
+    const keypad = new T.Mesh(new T.BoxGeometry(0.16, 0.5, 0.02), new T.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.5 })); keypad.position.set(0.32, 1.25, 0.37); g.add(keypad);
+    const slot = new T.Mesh(new T.BoxGeometry(0.6, 0.18, 0.03), new T.MeshStandardMaterial({ color: 0x111 })); slot.position.set(-0.1, 0.35, 0.37); g.add(slot);
+    const glow = new T.PointLight(0x6a8fd0, 2.5, 3, 2); glow.position.set(0, 1.2, 0.6); g.add(glow);
+    g.traverse((o) => { o.userData.interact = { type: 'vending', text: 'the vending machine. B4 is stuck. everyone knows B4 is stuck.' }; });
+    this.solid(x, z, 0.5, 0.42);
+    return g;
   }
 
   // a rectangle a machine may not be placed in (the office, the door apron)

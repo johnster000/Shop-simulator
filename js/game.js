@@ -516,6 +516,16 @@ export function startShop(T, audio, state) {
       ui.toast(`"${r.line}" Signed. Steel for job${r.jobs.length > 1 ? 's' : ''} ${r.jobs.map((j) => j.id).join(', ')} on the rack. ${pick(['He left before you finished reading the sheet.', 'He took the pen.', 'Nine more stops.'])}`, 5000);
       return;
     }
+    if (lookAt.type === 'vending') {
+      state.b4 = (state.b4 || 0) + 1; post(state, 'Vending machine, B4', -2); audio.tick(0.1, 900); setTimeout(() => audio.thunk(), 500);
+      if (state.b4 >= 5) unlock('b4');
+      ui.toast(pick(['B4. The coil turned. The bag did not. $2.', 'B4. You hit the side. It judged you. $2.', 'B4 is stuck. You knew that. $2.', 'B4. Nothing. The machine hums a little smugly. $2.', 'B4. Two bags dropped. You took both and said nothing.']), 3200);
+      for (const q of state.people) if (Math.random() < 0.25) crew.say(q, pick(['B4 is stuck.', 'Everybody knows B4 is stuck.', 'Hit it on the left.', 'Those are mine, technically.']), 2.5);
+      return;
+    }
+    if (lookAt.type === 'plate') { ui.toast(pick(['Flat. Within a tenth. You put your hand on it anyway.', 'Cold. Flat. The only honest thing in the building.'])); return; }
+    if (lookAt.type === 'gauge') { ui.toast('You zeroed it. It was zeroed. Now it is zeroed again.'); return; }
+    if (lookAt.type === 'blocks') { ui.toast('Gauge blocks. You wrung two together and could not get them apart. You put them back like that.'); return; }
     if (lookAt.type === 'crate') { ui.toast('Finished work. Ship it from the clipboard, JOBS tab.'); return; }
     if (lookAt.type === 'pc') { if (player.locked) document.exitPointerLock(); ui.openPC(); return; }
     if (lookAt.type === 'tarp') { audio.tarp(); ui.toast(pick(['It flaps.', 'A real door is on the list.', 'It let the winter in last year too.'])); return; }
@@ -636,7 +646,7 @@ export function startShop(T, audio, state) {
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
     if (!paused && !modal) {
     fireTick(dt);
-    if (!paused && !modal && !night) { delivery.update(dt, (line) => { ui.toast(line, 5000); syncSteel(); }); visitor.update(dt); }
+    if (!paused && !modal && !night) { delivery.update(dt, (line) => { ui.toast(line, 5000); syncSteel(); }, () => { const v = [...crew.views.values()].find((q) => q.g.visible && (q.mode === 'idle' || q.mode === 'sweep')); return v ? v.p : null; }); visitor.update(dt); }
       items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })).concat(visitor.here ? [{ x: visitor.pos.x, z: visitor.pos.z, id: -1 }] : []));
       for (const it of items.items) if (it.flying && it.from) it.throwDist = Math.hypot(it.mesh.position.x - it.from.x, it.mesh.position.z - it.from.z);
       itemsAtRest(); syncSteel();

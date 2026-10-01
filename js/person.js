@@ -151,7 +151,22 @@ export function pose(g, { mode = 'idle', t = 0, walk = 0, morale = 0.7 }) {
     p.torso.rotation.x = 0.2; p.lShoulder.rotation.x = 0.1; p.rShoulder.rotation.x = 0.1; p.lElbow.rotation.x = -1.4; p.rElbow.rotation.x = -1.4; // arms crossed-ish
     p.lShoulder.rotation.z = -0.3; p.rShoulder.rotation.z = 0.3;
     p.head.rotation.x = 0.25; p.head.rotation.y = Math.sin(t * 0.4) * 0.3;
+  } else if (mode === 'sweep') {
+    // bent over a broom, pushing. the whole body goes with it.
+    p.lHip.rotation.x = 0.1; p.rHip.rotation.x = -0.1; p.lKnee.rotation.x = 0.1; p.rKnee.rotation.x = 0.05; p.hips.position.y = 0.93 * H;
+    const push = Math.sin(t * 1.9);
+    p.torso.rotation.x = 0.4 + push * 0.06; p.hips.rotation.y = push * 0.12;
+    p.lShoulder.rotation.x = -1.1 + push * 0.3; p.rShoulder.rotation.x = -0.7 + push * 0.3; p.lShoulder.rotation.z = -0.15; p.rShoulder.rotation.z = 0.1;
+    p.lElbow.rotation.x = -0.4; p.rElbow.rotation.x = -0.9;
+    p.head.rotation.x = 0.3; p.head.rotation.y = push * 0.1;
+  } else if (mode === 'hold') {
+    // standing, something held up in the left hand, the right hand pointing at where to sign
+    p.lHip.rotation.x = 0; p.rHip.rotation.x = 0; p.lKnee.rotation.x = 0; p.rKnee.rotation.x = 0; p.hips.position.y = 0.95 * H; p.hips.rotation.y = 0;
+    p.torso.rotation.x = 0.03; p.lShoulder.rotation.x = -0.5; p.lShoulder.rotation.z = -0.25; p.lElbow.rotation.x = -1.5;
+    p.rShoulder.rotation.x = -0.9 + Math.sin(t * 2.2) * 0.08; p.rShoulder.rotation.z = 0.1; p.rElbow.rotation.x = -0.6;
+    p.head.rotation.x = 0.15; p.head.rotation.y = Math.sin(t * 0.5) * 0.3;
   } else { // idle: breathing, a look around now and then
+    p.hips.rotation.y = 0;
     p.lHip.rotation.x = 0; p.rHip.rotation.x = 0; p.lKnee.rotation.x = 0; p.rKnee.rotation.x = 0;
     p.hips.position.y = 0.95 * H + Math.sin(t * 1.5) * 0.004;
     p.torso.rotation.x = 0.02 + slump + Math.sin(t * 1.5) * 0.01;
@@ -160,4 +175,30 @@ export function pose(g, { mode = 'idle', t = 0, walk = 0, morale = 0.7 }) {
     p.lShoulder.rotation.z = -0.08; p.rShoulder.rotation.z = 0.08;
     p.head.rotation.x = -slump * 0.4; p.head.rotation.y = Math.sin(t * 0.35) * 0.45 + Math.sin(t * 1.7) * 0.05;
   }
+}
+
+// ---- things people hold. attached at the hand, on the forearm group, so they swing with the arm.
+export function holdProp(g, mesh, side = 'r') {
+  const p = g.userData.parts, H = g.userData.H; dropProp(g, side);
+  mesh.position.set(0, -0.28 * H, 0); p[side === 'l' ? 'lElbow' : 'rElbow'].add(mesh); p[side === 'l' ? 'lProp' : 'rProp'] = mesh;
+  return mesh;
+}
+export function dropProp(g, side = 'r') { const p = g.userData.parts, k = side === 'l' ? 'lProp' : 'rProp'; if (p[k]) { p[k].parent.remove(p[k]); p[k] = null; } }
+export function buildBroom(T) {
+  const g = new T.Group();
+  const handle = new T.Mesh(new T.CylinderGeometry(0.014, 0.014, 1.3, 8), new T.MeshStandardMaterial({ color: 0xc9a86a, roughness: 0.8 })); handle.position.set(0, -0.35, 0.25); handle.rotation.x = 0.55; g.add(handle);
+  const head = new T.Mesh(new T.BoxGeometry(0.45, 0.06, 0.07), new T.MeshStandardMaterial({ color: 0x6b4a2b, roughness: 0.9 })); head.position.set(0, -0.92, 0.62); g.add(head);
+  const bristles = new T.Mesh(new T.BoxGeometry(0.44, 0.1, 0.06), new T.MeshStandardMaterial({ color: 0xb8b48a, roughness: 1 })); bristles.position.set(0, -1.0, 0.62); g.add(bristles);
+  g.traverse((o) => { o.raycast = () => {}; });
+  return g;
+}
+export function buildClipboard(T) {
+  const g = new T.Group();
+  const board = new T.Mesh(new T.BoxGeometry(0.22, 0.3, 0.012), new T.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 0.8 })); g.add(board);
+  const paper = new T.Mesh(new T.PlaneGeometry(0.19, 0.26), new T.MeshStandardMaterial({ color: 0xf4f1e6, roughness: 0.9 })); paper.position.z = 0.007; g.add(paper);
+  const clip = new T.Mesh(new T.BoxGeometry(0.1, 0.03, 0.02), new T.MeshStandardMaterial({ color: 0xb8bcc0, metalness: 0.8, roughness: 0.3 })); clip.position.set(0, 0.14, 0.01); g.add(clip);
+  for (let i = 0; i < 5; i++) { const line = new T.Mesh(new T.PlaneGeometry(0.14, 0.006), new T.MeshBasicMaterial({ color: 0x555 })); line.position.set(0, 0.08 - i * 0.035, 0.008); g.add(line); }
+  g.rotation.set(-0.4, 0, 0); g.position.y = 0.02;
+  g.traverse((o) => { o.raycast = () => {}; });
+  return g;
 }
