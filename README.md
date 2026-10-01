@@ -243,6 +243,13 @@ Then open http://localhost:8080/.
   has no trucks, no phone, no visitors, just the ship date; Sunday you sleep. Shipping on a
   Saturday goes on the wall.
 
+- The estimator, the rivals, and the memory. Once the shop has a name and a couple of people, an
+  Estimator / PM turns up in the candidate pool: never runs a machine, sits in the office, brings
+  in extra RFQs and puts a suggested number on every quote. A lost quote now says who got it and
+  roughly at what (Lakeshore, Durham, a shop in Windsor nobody has heard of, somebody's
+  brother-in-law). Customers remember: on-time ships and first-time-right molds make them bite
+  easier; late ones make them harder, and the quote card says so.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

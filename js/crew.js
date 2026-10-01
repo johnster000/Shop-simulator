@@ -17,6 +17,7 @@ export class Crew {
     this.door = { x: shop.door.x, z: shop.hz - 0.6 }; this.outside = { x: shop.door.x, z: shop.hz + 2.5 };
     const br = (shop.rooms || []).find((r) => r.name === 'breakroom');
     // the break room, if there is one; otherwise the strip of wall by the office where the coffee was
+    this.officeSpot = { x: shop.office.x0 + 2.6, z: shop.office.z0 + 1.3 }; // the estimator's chair, by the desk
     this.breakSpot = br ? { x: (br.x0 + br.x1) / 2, z: br.z1 + 0.9 } : { x: shop.office.x1 + 1.2, z: shop.office.z0 + 1.2 };
     this.t = 0;
     this.bubbles = new Map(); // person id -> { el, until }
@@ -154,7 +155,8 @@ export class Crew {
       v.walk += ((walking ? 1 : 0) - v.walk) * Math.min(1, dt * 8);
 
       // ---- doing things
-      if (v.mode === 'idle' && here && !lunch && !p.quitting) {
+      if (p.role === 'estimator' && here && v.mode === 'idle' && !lunch && !v.path.length && Math.hypot(v.pos.x - this.officeSpot.x, v.pos.z - this.officeSpot.z) > 0.6) { this.goTo(v, this.officeSpot, 'toBreak'); v.wait = 9999; }
+      if (v.mode === 'idle' && here && !lunch && !p.quitting && p.role !== 'estimator') {
         if (Math.random() < dt * 0.012) this.hooks.say(p, line(p, {}));
         v.idleMin = (v.idleMin || 0) + shopDt;
         if (p.morale < 0.35 && v.idleMin > 8 && this.shop.vendingPos && Math.random() < dt * 0.3) { v.idleMin = 0; this.goTo(v, { x: this.shop.vendingPos.x + (Math.random() - 0.5) * 0.6, z: this.shop.vendingPos.z + Math.random() * 0.4 }, 'toVend'); this.hooks.say(p, pick(['Break. Technically.', 'B4 is stuck. I am going to look at it anyway.', 'I will be at the machine. The other machine.', 'Five minutes.']), 3); }
@@ -210,6 +212,7 @@ export class Crew {
     if (p.startDay > this.state.day) return `starts day ${p.startDay}`;
     if (v.mode === 'offsite' || v.mode === 'leave' || v.mode === 'gone') return 'gone home';
     if (v.mode === 'work' || v.mode === 'setup') { const d = byId(v.machine.id); return `${v.mode === 'setup' ? 'setting up' : 'running'} the ${d.name.toLowerCase()}${v.machine.job && v.machine.job.jobId ? `, job ${v.machine.job.jobId}` : ''}`; }
+    if (p.role === 'estimator') return v.mode === 'break' ? 'quoting. it is also work' : 'on the way to the office';
     if (v.mode === 'break' || v.mode === 'toBreak') return 'on a break';
     if (v.mode === 'sweep' || v.mode === 'toSweep') return 'sweeping';
     if (v.mode === 'speech' || v.mode === 'toSpeech') return 'making a speech';

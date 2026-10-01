@@ -57,7 +57,7 @@ export function startShop(T, audio, state) {
     goHome() { leaveForTheNight(); },
     shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
     crew() { return crew; },
-    crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); },
+    crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
     achievement(a) { showAchievement(a); },
   });
   function showAchievement(a) { if (!a) return; ui.toast(`ACHIEVEMENT: ${a[0].toUpperCase()}`, 3400); audio.ding(); }

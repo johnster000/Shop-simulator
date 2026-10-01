@@ -4,6 +4,7 @@
 // Pure simulation: no three.js, no DOM.
 
 import { tally, post } from './sim.js';
+import { hasEstimator } from './people.js';
 
 export const SHOP_RATE = 55;      // $/hr, Stage 0 work (design bible §4.1)
 export const CNC_RATE = 95;       // $/hr, work that needs a CNC
@@ -201,10 +202,13 @@ export function stationKindToStation(kind) { return { heat: 'heat', tryout: 'try
 export function sendQuote(state, rfq, price) { rfq.price = Math.round(price); rfq.status = 'quoted'; rfq.read = true; }
 export function declineRfq(state, rfq) { rfq.status = 'declined'; rfq.read = true; }
 
+export const RIVALS = ['Lakeshore Mold & Die', 'Durham Tool', 'a shop in Windsor nobody has heard of', 'Bramalea Moldworks', 'somebody\'s brother-in-law'];
+export function memoryOf(state, cid) { const m = (state.memory || {})[cid] || { late: 0, onTime: 0, firstRight: 0 }; return m; }
 export function winChance(state, rfq) {
   const c = customerOf(rfq.customer); const r = rfq.price / rfq.expected;
   let p = r <= 1 ? 0.8 + (1 - r) * 0.6 : 0.8 - (r - 1) * 2.2;
   p *= 0.7 + 0.6 * (state.rep - 0.5);
+  const mem = memoryOf(state, c.id); p *= Math.max(0.6, Math.min(1.3, 1 + (mem.onTime + mem.firstRight - mem.late * 2) * 0.04)); // they remember
   return Math.max(0.02, Math.min(0.97, p));
 }
 
@@ -341,6 +345,7 @@ export function ship(state, job) {
   let balance = job.price - (job.paid || Math.round(job.price * 0.5));
   let note = '';
   tally(state, late > 0 ? 'late' : 'onTime');
+  state.memory = state.memory || {}; const mem = state.memory[c.id] = state.memory[c.id] || { late: 0, onTime: 0, firstRight: 0 }; if (late > 0) mem.late++; else mem.onTime++; if (job.mold && job.tryouts === 1 && !job.defects.length) mem.firstRight++;
   if (late > 0) { const pen = Math.round(job.price * Math.min(0.3, 0.05 * late)); balance -= pen; note = ` ${late} day${late === 1 ? '' : 's'} late. They knocked $${pen.toLocaleString()} off and will remember.`; state.rep = Math.max(0, state.rep - 0.08); }
   else { state.rep = Math.min(1, state.rep + (job.mold ? 0.1 : 0.04)); }
   if (job.mold && job.tryouts === 1 && !job.defects.length) state.firstTimeRight = (state.firstTimeRight || 0) + 1;
@@ -358,7 +363,7 @@ export function endOfDay(state, byId) {
     if (r.status !== 'quoted') continue;
     const c = customerOf(r.customer);
     if (Math.random() < winChance(state, r)) { r.status = 'won'; const job = startJob(state, r); notes.push(`PO from ${c.name}: ${job.title}.`); }
-    else { r.status = 'lost'; message(state, c.name, `Re: quote, ${r.title}`, pick(['Thanks for the quote. We went another way.', 'We will keep you in mind for the next one.', 'A bit rich for us this time.', 'Our guy had a slot open. Next time.'])); notes.push(`Lost the ${r.title} to somebody cheaper.`); }
+    else { r.status = 'lost'; const rival = RIVALS[Math.floor(Math.random() * RIVALS.length)], at = Math.round(r.expected * (0.82 + Math.random() * 0.16) / 10) * 10; state.lostTo = state.lostTo || {}; state.lostTo[rival] = (state.lostTo[rival] || 0) + 1; message(state, c.name, `Re: quote, ${r.title}`, `${rival} had it at about $${at.toLocaleString()}. ` + pick(['Thanks for the quote. We went another way.', 'We will keep you in mind for the next one.', 'A bit rich for us this time.', 'Our guy had a slot open. Next time.'])); notes.push(`Lost the ${r.title} to somebody cheaper.`); }
   }
   // expiry
   for (const r of state.rfqs) if (r.status === 'open' && state.day >= r.expires) { r.status = 'expired'; }
@@ -391,7 +396,7 @@ export function endOfDay(state, byId) {
   for (const rcv of state.receivables.slice()) if (state.day >= rcv.due) { post(state, rcv.text, rcv.amount); state.receivables.splice(state.receivables.indexOf(rcv), 1); notes.push(`Paid: ${rcv.text}, $${rcv.amount.toLocaleString()}.`); }
   // new work. reputation sets how often the phone rings.
   const hasCnc = state.machines.some((m) => m.placed && byId(m.id).cnc);
-  const n = (Math.random() < 0.35 + state.rep * 0.5 ? 1 : 0) + (hasCnc && Math.random() < 0.4 ? 1 : 0);
+  const n = (Math.random() < 0.35 + state.rep * 0.5 ? 1 : 0) + (hasCnc && Math.random() < 0.4 ? 1 : 0) + (hasEstimator(state) && Math.random() < 0.5 ? 1 : 0);
   for (let i = 0; i < n; i++) {
     const hasLaser = state.machines.some((m) => m.placed && byId(m.id).stations.includes('weld'));
     const hasFive = state.machines.some((m) => m.placed && byId(m.id).five);

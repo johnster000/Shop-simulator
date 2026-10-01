@@ -7,6 +7,7 @@ const FIRST = ['Dave', 'Rick', 'Kevin', 'Mike', 'Steve', 'Dan', 'Paul', 'Jim', '
 export const ROLES = {
   apprentice: { name: 'Apprentice', wage: [18, 25], skills: [0, 2], blurbs: ['Keen. Knows nothing. That is the deal.', 'Did a year at college. Can read a print, mostly.', 'Nephew of a customer. Be nice.', 'Wants to be a moldmaker. Does not yet know what that means.'] },
   machinist: { name: 'CNC machinist', wage: [25, 35], skills: [2, 4], blurbs: ['Ran mills at a production shop. Fast. Not patient.', 'Knows the Bridgeford like a brother. Hates the lathe.', 'Came from aerospace. Expects a CMM. Will be disappointed.', 'Good hands, strong opinions about coolant.'] },
+  estimator: { name: 'Estimator / PM', wage: [30, 40], skills: [0, 2], blurbs: ['Quoted at a big shop for nine years. Knows every buyer by first name and grudge.', 'Came from purchasing. Switched sides. Knows where the bodies are.', 'Spreadsheets. Phone voice. Has never run a mill and says so.', 'Brings in work. Also brings in a lot of opinions about the coffee.'] },
   moldmaker: { name: 'Moldmaker', wage: [35, 48], skills: [3, 5], blurbs: ['Twenty-two years. Can fit a slide by feel. Will tell you about it.', 'Journeyman. Quiet. Spots a parting line like a surgeon.', 'Left the big shop across town. Did not say why.', 'Builds molds, fixes molds, has never once been on time.'] },
 };
 export const SKILLS = ['mill', 'lathe', 'grind', 'bench', 'general']; // general: saw, drill, sweeping
@@ -37,7 +38,7 @@ export function initPeople(state) {
 }
 
 export function makeCandidate(state) {
-  const roleId = pick(['apprentice', 'apprentice', 'machinist', 'machinist', 'moldmaker']);
+  const roleId = pick(state.rep >= 0.55 && state.people.length >= 2 && !state.people.some((p) => p.role === 'estimator') ? ['apprentice', 'machinist', 'machinist', 'moldmaker', 'estimator'] : ['apprentice', 'apprentice', 'machinist', 'machinist', 'moldmaker']);
   const role = ROLES[roleId];
   const claimed = {}, actual = {};
   for (const k of SKILLS) {
@@ -90,7 +91,7 @@ export function growSkills(state, p) {
   return notes;
 }
 // CNC wants a machinist or a moldmaker; an apprentice on a VMC is how you learn what a VMC costs
-export function canRun(p, kind) { if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'press') return p.role === 'moldmaker' || (p.role === 'machinist' && skillFor(p, 'general') >= 3); if (kind === 'heat') return true; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
+export function canRun(p, kind) { if (p.role === 'estimator') return false; if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'press') return p.role === 'moldmaker' || (p.role === 'machinist' && skillFor(p, 'general') >= 3); if (kind === 'heat') return true; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
 // one setup step: pass or skip
 export function setupRoll(p, kind) { const sk = skillFor(p, kind); return Math.random() < 0.42 + sk * 0.115 + (p.morale - 0.5) * 0.12; }
 export function moraleWord(m) { return m >= 0.85 ? 'happy' : m >= 0.6 ? 'fine' : m >= 0.4 ? 'grumbling' : m >= 0.2 ? 'disgruntled' : 'done'; }
@@ -151,3 +152,5 @@ export function speech(p) {
     pick([`It is about ${about}.`, `You know what this is about. ${about[0].toUpperCase() + about.slice(1)}.`, `${p.daysWorked > 260 ? 'A year' : p.daysWorked > 60 ? 'Months' : 'Weeks'} of ${about}.`]),
     pick(['I quit. Keys are on the bench.', 'I am done. Lakeshore called.', 'I am going to go work at the airport.', 'I quit. The radio stays on my station.', 'That is it. I am taking my mug.'])];
 }
+
+export function hasEstimator(state) { return state.people.some((p) => p.role === 'estimator' && p.startDay != null && p.startDay <= state.day && !p.quitting); }
