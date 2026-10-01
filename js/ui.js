@@ -1,6 +1,6 @@
 // HUD, the clipboard, the machine panel. Honest HTML. No 3D UI.
-import { MACHINES, byId } from './catalog.js';
-import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED } from './sim.js';
+import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
+import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
 import { customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE } from './jobs.js';
@@ -168,25 +168,42 @@ export class UI {
   }
 
   renderShop() {
-    const s = this.state, el = $('tab-shop');
-    const slots = SHOP.powerSlots - poweredCount(s);
-    el.innerHTML = `<div class="row2"><div class="big">${money(s.cash)}</div><div class="note">Panel: ${slots} of ${SHOP.powerSlots} machine circuits free. Everything arrives on a truck tomorrow, which in this build means now.</div></div>
-      <ul class="cat">${MACHINES.map((d) => `
-      <li>${d.stage === 0 && d.kind === 'mill' ? '<span class="tagx">START HERE</span>' : ''}
+    const s = this.state, el = $('tab-shop'), f = s.facility, sw = s.software;
+    const free = circuits(s) - poweredCount(s), airFree = airSlots(s) - airCount(s);
+    const done = f.done || [];
+    const machineCard = (d) => { const why = whyNot(s, d); const fin = d.priceUsed >= 20000; return `
+      <li>${d.stage === 0 && d.kind === 'mill' ? '<span class="tagx">START HERE</span>' : d.stage === 1 ? '<span class="tagx" style="background:#2a5a8a">STAGE 1 · CNC</span>' : ''}
         <div class="name">${d.name}</div><div class="brand">${d.brand} ${d.model}</div>
         <div class="blurb">${d.blurb}</div>
-        <div class="foot">${d.w} × ${d.d} m${d.power ? ' · needs a circuit' : ''}</div>
+        <div class="foot">${d.w} × ${d.d} m${d.power ? ` · ${d.power} circuit${d.power > 1 ? 's' : ''}` : ''}${d.air ? ' · air' : ''}${d.cnc ? ' · CAM' : ''}${why ? ` · <span style="color:var(--red)">${why}</span>` : ''}</div>
         <div class="buy">
-          <button class="used" data-id="${d.id}" data-used="1" ${s.cash < d.priceUsed || !canPower(s, d) ? 'disabled' : ''}>USED ${money(d.priceUsed)}</button>
-          <button data-id="${d.id}" ${s.cash < d.priceNew || !canPower(s, d) ? 'disabled' : ''}>NEW ${money(d.priceNew)}</button>
-        </div></li>`).join('')}</ul>
-      <p class="note">Used machines come with a history. New machines come with a warranty and a payment. Neither comes with a crane.</p>`;
-    el.querySelectorAll('.buy button').forEach((b) => b.addEventListener('click', () => {
+          <button class="used" data-id="${d.id}" data-used="1" ${s.cash < d.priceUsed || why ? 'disabled' : ''}>USED ${money(d.priceUsed)}</button>
+          <button data-id="${d.id}" ${s.cash < d.priceNew || why ? 'disabled' : ''}>NEW ${money(d.priceNew)}</button>
+        </div>${fin ? `<div class="buy"><button class="fin" data-id="${d.id}" data-used="1" data-fin="1" ${s.cash < d.priceUsed * 0.1 || why ? 'disabled' : ''}>FINANCE USED · ${money(Math.round(d.priceUsed * 0.1))} down</button><button class="fin" data-id="${d.id}" data-fin="1" ${s.cash < d.priceNew * 0.1 || why ? 'disabled' : ''}>FINANCE NEW · ${money(Math.round(d.priceNew * 0.1))} down</button></div>` : ''}</li>`; };
+    const upCard = (u) => { const got = done.includes(u.id), pend = f.pending.find((p) => p.id === u.id), locked = u.needs && !done.includes(u.needs); return `
+      <li><div class="name">${u.name}</div><div class="blurb">${u.blurb}</div><div class="foot">${u.days} day${u.days > 1 ? 's' : ''} of contractor${locked ? ` · needs ${UPGRADES.find((q) => q.id === u.needs).name}` : ''}</div>
+        <div class="buy">${got ? '<button disabled>DONE</button>' : pend ? `<button disabled>COMING DAY ${pend.day}</button>` : `<button data-up="${u.id}" ${s.cash < u.price || locked ? 'disabled' : ''}>${money(u.price)}</button>`}</div></li>`; };
+    const swCard = (w) => { const have = sw.cad === w.id || sw.cam === w.id; return `
+      <li>${w.pirated ? '<span class="tagx">FREE*</span>' : ''}<div class="name">${w.name}</div><div class="brand">${w.kind === 'both' ? 'CAD + CAM' : w.kind.toUpperCase()} seat</div><div class="blurb">${w.blurb}</div>
+        <div class="foot">${w.price ? money(w.price) + ' + ' : ''}${w.weekly ? '$' + w.weekly + '/wk maintenance' : w.pirated ? 'no maintenance, no invoice, no record' : ''}</div>
+        <div class="buy">${have ? '<button disabled>INSTALLED</button>' : `<button data-sw="${w.id}" ${s.cash < w.price ? 'disabled' : ''}>${w.price ? money(w.price) : 'DOWNLOAD'}</button>`}</div></li>`; };
+    el.innerHTML = `<div class="row2"><div class="big">${money(s.cash)}</div><div class="note">Panel: ${free} of ${circuits(s)} circuits free. Air: ${airFree} of ${airSlots(s)}. CAM: ${hasCam(s) ? SOFTWARE.find((w) => w.id === sw.cam).name : '<b style="color:var(--red)">none</b>'}. Trucks arrive today, which is to say now.</div></div>
+      <h4 class="sect">MACHINES</h4><ul class="cat">${MACHINES.map(machineCard).join('')}</ul>
+      <p class="note">Used machines come with a history. New machines come with a warranty and a payment. Financing is 10% down, 60 months at 8%. Neither comes with a crane.</p>
+      <h4 class="sect">THE BUILDING</h4><ul class="cat">${UPGRADES.map(upCard).join('')}</ul>
+      <h4 class="sect">SOFTWARE</h4><ul class="cat">${SOFTWARE.map(swCard).join('')}</ul>
+      <p class="note">A CNC without CAM is a very expensive table. *The Community Edition is free the way a found wallet is free.</p>`;
+    el.querySelectorAll('.buy button[data-id]').forEach((b) => b.addEventListener('click', () => {
       const def = byId(b.dataset.id), used = b.dataset.used === '1';
-      const r = buy(s, def, used);
+      let r;
+      if (b.dataset.fin) { const why = whyNot(s, def); if (why) { this.audio.nope(); this.toast(why); return; } const fin = financeMachine(s, def, used); post(s, `${used ? 'Used' : 'New'} ${def.brand} ${def.name}, down payment`, -fin.down); r = buy(s, def, used, true); this.toast(`Financed. ${money(fin.weekly)} a week for five years. The machine does not care if it is busy.`, 3600); }
+      else r = buy(s, def, used);
       if (!r.ok) { this.audio.nope(); this.toast(r.why); return; }
+      if (def.cnc) { const a = achieve(s, 'first_cnc_bought'); if (a) this.hooks.achievement(a); }
       this.audio.cash(); this.closeClip(); this.hooks.place(r.machine);
     }));
+    el.querySelectorAll('[data-up]').forEach((b) => b.addEventListener('click', () => { const u = UPGRADES.find((q) => q.id === b.dataset.up); const r = buyUpgrade(s, u); if (!r.ok) { this.audio.nope(); this.toast(r.why); return; } this.audio.cash(); this.toast(`${u.name}: ordered. ${u.days} day${u.days > 1 ? 's' : ''}.`); this.renderShop(); }));
+    el.querySelectorAll('[data-sw]').forEach((b) => b.addEventListener('click', () => { const w = SOFTWARE.find((q) => q.id === b.dataset.sw); const r = buySoftware(s, w); if (!r.ok) { this.audio.nope(); this.toast(r.why); return; } this.audio.paper(); if (w.pirated) this.toast('Downloaded. It works. It works great.', 3000); else { this.toast(`${w.name}: installed. The invoice is already in the mail.`); if (s.software.auditDay) { const a = achieve(s, 'genuine'); if (a) this.hooks.achievement(a); } } this.renderShop(); }));
   }
 
   renderMachines() {
@@ -206,9 +223,17 @@ export class UI {
   renderBank() {
     const s = this.state, el = $('tab-bank');
     const rows = s.ledger.slice().reverse().slice(0, 40);
+    const rcv = (s.receivables || []).reduce((a, r) => a + r.amount, 0);
     el.innerHTML = `<div class="row2"><div><div class="note">CASH</div><div class="big">${money(s.cash)}</div></div>
-      <div class="note">Rent $850/wk · hydro $200/wk + $60 per machine · due Monday morning.<br>No loan yet. The bank wants to see two years of statements. You have ${s.day} day${s.day === 1 ? '' : 's'}.</div></div>
+      <div class="note">Rent $850/wk · hydro $200/wk + $60 per circuit · software $${softwareWeekly(s)}/wk · due Monday morning.<br>Owed to you: ${money(rcv)} on terms.</div></div>
+      <h4 class="sect">THE BANK</h4>
+      <div class="note">${s.loans.length ? s.loans.map((l) => `${l.name}: ${money(l.balance)} left, ${money(l.weekly)}/wk`).join('<br>') : 'No loans.'}</div>
+      <div class="pacts">${s.loans.some((l) => l.kind === 'startup') ? '' : `<button data-loan="startup">START-UP LOAN · $100,000 at 11%</button>`}${s.stats.shipped >= 3 && !s.loans.some((l) => l.kind === 'loc') ? `<button data-loan="loc">LINE OF CREDIT · $50,000 at 9%</button>` : `<span class="note">${s.stats.shipped >= 3 ? '' : 'A line of credit after three shipped jobs. The bank wants to see something leave the building.'}</span>`}</div>
+      <h4 class="sect">THE WALL</h4>
+      <div class="note">${(s.achievements || []).length ? s.achievements.map((id) => ACHIEVEMENTS[id] ? `<b>${ACHIEVEMENTS[id][0]}</b> · ${ACHIEVEMENTS[id][1]}` : id).join('<br>') : 'Nothing framed yet.'}</div>
+      <h4 class="sect">LEDGER</h4>
       <table class="ledger"><tr><th>DAY</th><th>ITEM</th><th class="num">AMOUNT</th></tr>${rows.map((r) => `<tr class="${r.amount < 0 ? 'neg' : ''}"><td>${r.day}</td><td>${r.text}</td><td class="num">${r.amount === 0 ? '' : money(r.amount)}</td></tr>`).join('')}</table>`;
+    el.querySelectorAll('[data-loan]').forEach((b) => b.addEventListener('click', () => { const r = takeLoan(s, b.dataset.loan); if (!r.ok) { this.audio.nope(); this.toast(r.why || 'no'); return; } this.audio.cash(); this.toast(`Signed. ${money(r.weekly)} a week. The bank sends a calendar.`, 3200); this.renderBank(); }));
   }
 
   // ---- machine panel
@@ -227,6 +252,9 @@ export class UI {
       grinder: [['clamp', 'Lock the mag chuck', 'clamp'], ['indicate', 'Dress the wheel', 'indicate'], ['speed', 'Set the downfeed', 'speed']],
       drill: [['clamp', 'Clamp the work', 'clamp'], ['speed', 'Pick a speed', 'speed']],
       saw: [['clamp', 'Clamp the stock', 'clamp'], ['speed', 'Pick a blade speed', 'speed']],
+      vmc: [['clamp', 'Clamp the block', 'clamp'], ['probe', 'Probe the part', 'probe'], ['program', 'Select the program', 'program']],
+      sinker: [['indicate', 'Indicate the electrode', 'indicate'], ['clamp', 'Set the flushing', 'clamp'], ['program', 'Select the program', 'program']],
+      wire: [['clamp', 'Thread the wire', 'clamp'], ['indicate', 'Square the part', 'indicate'], ['program', 'Select the program', 'program']],
       bench: [],
     })[d.kind] || [];
     const cl = m.checklist || (m.checklist = {});
@@ -243,11 +271,12 @@ export class UI {
       const opts = runnableStages(s, d.kind);
       body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}</span></div>
         <div class="bar"><i style="width:${Math.round(m.condition * 100)}%"></i></div>
-        <p class="note">${opts.length ? 'Work waiting for this machine:' : d.kind === 'bench' ? 'Nothing to fit. The bench is for bench stages: deburring, polishing, assembly.' : 'No job needs this machine right now.'}</p>
+        <p class="note">${d.cnc && !hasCam(s) ? '<b style="color:var(--red)">No CAM. Nothing can be programmed. The machine is a very expensive table.</b>' : opts.length ? 'Work waiting for this machine:' : d.kind === 'bench' ? 'Nothing to fit. The bench is for bench stages: deburring, polishing, assembly.' : 'No job needs this machine right now.'}</p>
         <ul class="pickjob">${opts.map((o) => `<li><span><b>Job ${o.job.id}</b> · ${o.stage.label} · ${o.stage.min} min<br><span class="note">${o.job.title}${o.job.qty > 1 ? ' × ' + o.job.qty : ''} · due day ${o.job.dueDay}</span></span><button data-pick="${o.job.id}" data-i="${o.index}">LOAD IT</button></li>`).join('')}
         ${d.kind === 'bench' ? '' : `<li class="practice"><span>Practice cut on a scrap block · ${30} min</span><button data-pick="0">LOAD IT</button></li>`}</ul>`;
       body.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
         const id = +b.dataset.pick; this.audio.click();
+        if (d.cnc && !hasCam(s)) { this.audio.nope(); this.toast('No CAM. No program. No cut.'); return; }
         if (id === 0) m.job = { jobId: 0, index: -1, label: 'practice cut', min: 30 };
         else { const o = opts.find((q) => q.job.id === id); m.job = { jobId: o.job.id, index: o.index, label: o.stage.label, min: o.stage.min }; }
         m.checklist = {}; this.renderPanel();
@@ -261,13 +290,13 @@ export class UI {
     body.innerHTML = `<div class="row2"><span><b>${m.job.jobId ? `Job ${m.job.jobId}` : 'Practice'}</b> · ${m.job.label} · ${m.job.min} min</span><button class="btn sm ghost" id="unload">PUT IT BACK</button></div>
       <ul class="check">${steps.map(([k, t]) => `<li class="${cl[k] === true ? 'done' : cl[k] === 'skip' ? 'skipped' : ''}"><span>${cl[k] === true ? '✓ ' : cl[k] === 'skip' ? '✗ ' : '□ '}${t}</span>
         <span>${cl[k] ? '' : `<button data-do="${k}">DO IT</button> <button class="skip" data-skip="${k}">SKIP</button>`}</span></li>`).join('')}</ul>
-      <button class="cycle" id="cycleStart">CYCLE START</button>
+      <button class="cycle" id="cycleStart">CYCLE START</button>${d.cnc ? '<p class="note">A CNC keeps cutting after you lock up. Tools wear. Tools break. The morning is a reveal.</p>' : ''}
       <p class="note">Each step is a few seconds of work. Botch it and the step is skipped. Skipped steps are how crashes happen.</p>`;
     body.querySelectorAll('[data-do]').forEach((b) => b.addEventListener('click', () => {
       const k = b.dataset.do, step = steps.find((st) => st[0] === k);
       this.audio.click();
       body.innerHTML = '<div id="mg"></div>';
-      playMinigame(step[2], { el: body.querySelector('#mg'), fatigue: s.fatigue || 0, audio: this.audio, label: step[1] }).then((r) => {
+      playMinigame(step[2], { el: body.querySelector('#mg'), fatigue: s.fatigue || 0, audio: this.audio, label: step[1], job: m.job && m.job.jobId ? m.job.jobId : 1000, op: (m.job && m.job.label ? m.job.label.split(' ')[0] : 'FINISH').toUpperCase() }).then((r) => {
         if (!this.panelM) return;
         // won: done. won while tired: sometimes you only think it is done. lost: skipped.
         if (r.ok) cl[k] = this.fumble(0.5) ? 'thought' : true; else { cl[k] = 'skip'; s.stats.skipped++; }

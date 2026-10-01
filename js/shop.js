@@ -218,6 +218,27 @@ export class Shop {
 
   setIso(iso) { for (const m of this.roofStuff) m.visible = !iso; }
 
+  // the real door: an insulated roll-up, down most of the way, instead of the tarp
+  setDoor(real) {
+    if (this.realDoor === real) return; this.realDoor = real;
+    const T = this.T, d = this.door;
+    if (!this.rollup) {
+      const g = new T.Group();
+      const mat = new T.MeshStandardMaterial({ color: 0xc8ccd0, roughness: 0.6, metalness: 0.3 });
+      for (let i = 0; i < 6; i++) { const slat = new T.Mesh(new T.BoxGeometry(d.w + 0.1, 0.42, 0.06), mat); slat.position.set(d.x, 0.22 + i * 0.44, this.hz - 0.08); g.add(slat); const line = new T.Mesh(new T.BoxGeometry(d.w + 0.1, 0.02, 0.065), new T.MeshStandardMaterial({ color: 0x8a8e92 })); line.position.set(d.x, 0.44 + i * 0.44, this.hz - 0.08); g.add(line); }
+      const drum = new T.Mesh(new T.CylinderGeometry(0.22, 0.22, d.w + 0.4, 16), new T.MeshStandardMaterial({ color: 0x555, metalness: 0.5 })); drum.rotation.z = Math.PI / 2; drum.position.set(d.x, d.h + 0.2, this.hz - 0.3); g.add(drum);
+      const win = new T.Mesh(new T.PlaneGeometry(0.5, 0.3), new T.MeshStandardMaterial({ color: 0x9fc3e6, transparent: true, opacity: 0.6 })); win.position.set(d.x, 1.65, this.hz - 0.04); win.rotation.y = Math.PI; g.add(win);
+      g.visible = false; this.scene.add(g); this.rollup = g; this.tag(g, 'door', 'a real door. insulated. the tarp is in the dumpster.');
+    }
+    this.rollup.visible = real; this.tarpGroup.visible = !real;
+  }
+  // a bigger compressor shows up as a bigger tank
+  setAir(slots) {
+    if (this.airSlots === slots) return; this.airSlots = slots;
+    const k = slots >= 10 ? 1.6 : slots >= 4 ? 1.3 : 1;
+    this.compressor.scale.set(k, k, k);
+  }
+
   // crates by the door: finished work waiting for the truck
   setCrates(n) {
     const T = this.T;

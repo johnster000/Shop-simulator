@@ -144,5 +144,56 @@ export function speed(opts) {
   });
 }
 
-export const GAMES = { clamp, indicate, speed };
+// ---- PROBE: the touch probe comes down on the part. Stop it at contact. Early and the offsets
+// are wrong; late and you have bought a stylus.
+export function probe(opts) {
+  return new Promise((resolve) => {
+    const f = opts.fatigue || 0;
+    const { c, x, foot } = setup(opts, opts.label || 'Probe the part', 'click or space when the ruby touches the top of the block');
+    const topY = 118, start = 30; let y = start, v = 28 + f * 20, done = false, t0 = performance.now(), lag = 0;
+    const end = (ok, note) => { if (done) return; done = true; cleanup(); foot.textContent = note; if (ok) opts.audio.ding(); else opts.audio.nope(); setTimeout(() => resolve({ ok, note }), 650); };
+    const stop = (e) => { if (e.type === 'keydown' && e.code !== 'Space') return; e.preventDefault(); if (done) return;
+      const d = (topY - y) / 60; // mm, roughly
+      if (d > 0.35) end(false, `Stopped ${d.toFixed(2)} mm short. The offsets are wherever they were.`); else if (d < -0.25) end(false, 'Crunch. That was a $900 stylus.'); else end(true, `Touched. ${Math.abs(d).toFixed(2)} mm. Offsets set.`); };
+    c.addEventListener('pointerdown', stop); window.addEventListener('keydown', stop);
+    const cleanup = () => { c.removeEventListener('pointerdown', stop); window.removeEventListener('keydown', stop); };
+    let last = performance.now();
+    (function frame(now) {
+      if (done) return; requestAnimationFrame(frame);
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      y += v * dt; v += 6 * dt; // it accelerates, a little, the way the real one seems to
+      lag += ((y - lag) * (1 - f * 0.5)); lag = y - (y - lag) * f * 0.5; // tired: what you see trails what is true
+      if (y > topY + 20) end(false, 'Crunch. That was a $900 stylus.');
+      x.fillStyle = '#f3efe4'; x.fillRect(0, 0, W, H);
+      x.fillStyle = '#8a8f94'; x.fillRect(150, topY, 120, 60); x.fillStyle = '#333'; x.fillRect(100, topY + 60, 220, 12); // block on the table
+      x.fillStyle = '#4a6a8a'; x.fillRect(195, 0, 30, 24); x.fillStyle = '#cfd4d8'; x.fillRect(205, 24, 10, Math.max(0, lag - 30)); // spindle and stylus shank
+      x.fillStyle = '#d0021b'; x.beginPath(); x.arc(210, lag, 4, 0, Math.PI * 2); x.fill(); // the ruby
+      font(x, 14, true); x.fillStyle = '#111'; x.textAlign = 'left'; x.fillText(`${((topY - lag) / 60).toFixed(2)} mm to go`, 300, 60);
+      font(x, 12); x.fillStyle = '#555'; x.fillText('Z', 300, 85);
+    })(performance.now());
+  });
+}
+
+// ---- PROGRAM: pick the right file. The list has every program this shop ever made, named the way
+// programs are named. The right one has this job's number in it and matches the operation.
+export function program(opts) {
+  return new Promise((resolve) => {
+    const f = opts.fatigue || 0, job = opts.job || 1000, op = opts.op || 'FINISH';
+    const el = opts.el; el.innerHTML = '';
+    const head = document.createElement('div'); head.className = 'mgHead'; head.innerHTML = `<b>${opts.label || 'Select the program'}</b><span>job ${job} · ${op.toLowerCase()} · you have ten seconds</span>`; el.appendChild(head);
+    const ops = ['ROUGH', 'FINISH', 'DRILL', 'POCKET', 'BURN', 'WIRE', 'FACE'];
+    const other = () => `O${1000 + Math.floor(Math.random() * 9000)}_${job - Math.floor(Math.random() * 40) - 1}_${ops[Math.floor(Math.random() * ops.length)]}.NC`;
+    const decoys = [`O${job}_${ops.filter((o) => o !== op)[Math.floor(Math.random() * (ops.length - 1))]}.NC`, `O${job + 1}_${op}.NC`, `${job}_${op}_OLD.NC`, 'NEW_FINAL_v2_USE_THIS.NC', 'TEST.NC', other(), other(), `O${job}_${op}_DO_NOT_RUN.NC`];
+    const right = `O${job}_${op}.NC`;
+    const list = [...decoys.slice(0, 5 + Math.round(f * 3)), right].sort(() => Math.random() - 0.5);
+    const ul = document.createElement('ul'); ul.className = 'files'; el.appendChild(ul);
+    let done = false; const t0 = performance.now();
+    const end = (ok, note) => { if (done) return; done = true; clearInterval(tick); foot.textContent = note; if (ok) opts.audio.ding(); else opts.audio.nope(); setTimeout(() => resolve({ ok, note }), 650); };
+    for (const name of list) { const li = document.createElement('li'); li.textContent = name; li.addEventListener('click', () => { opts.audio.click(); if (name === right) end(true, `${name}. That is the one.`); else end(false, name === 'NEW_FINAL_v2_USE_THIS.NC' ? 'NEW_FINAL_v2_USE_THIS. It was not.' : `${name}. A lovely program for a different part.`); }); ul.appendChild(li); }
+    const foot = document.createElement('div'); foot.className = 'mgFoot'; el.appendChild(foot);
+    const tick = setInterval(() => { const left = 10 - (performance.now() - t0) / 1000; foot.textContent = `${Math.max(0, left).toFixed(1)} s`; if (f > 0.4 && Math.random() < 0.08) { const items = [...ul.children]; const i = Math.floor(Math.random() * items.length), j = Math.floor(Math.random() * items.length); if (i !== j) ul.insertBefore(items[i], items[j]); } if (left <= 0) end(false, 'You picked something. Nobody saw what.'); }, 100);
+  });
+}
+
+export const GAMES = { clamp, indicate, speed, probe, program };
 export function play(kind, opts) { return GAMES[kind](opts); }

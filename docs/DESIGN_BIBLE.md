@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** 1.1 — all questions answered (John: §1–4, §10 and brands; Claude: the rest, veto any time). Building is under way: the empty shop, Stage 0 machines, the real-time clock, the setup minigames, the first Stage 0 contracts and the first hires (with proper figures, not boxes) are playable. See the README for what each build contains.
+**Studio:** Cycle Start Studios · **Status:** 1.1 — all questions answered (John: §1–4, §10 and brands; Claude: the rest, veto any time). Building is under way: the empty shop, Stage 0 machines, the real-time clock, the setup minigames, the first Stage 0 contracts, the first hires (with proper figures, not boxes), and Stage 1 (CNC machines, facility upgrades, software and the letter, financing, lights-out, CNC-class contracts) are playable. See the README for what each build contains.
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---

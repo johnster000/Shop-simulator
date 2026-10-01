@@ -68,7 +68,19 @@ Then open http://localhost:8080/.
   pay for, or tough out. Morale shows in how they stand. Payroll is Fridays. Low enough morale and they
   quit with a speech. Point them at a machine yourself from their panel, or from the overhead view.
 
-Not yet: CNC, real molds. Next.
+- Stage 1: CNC. A VMC, a sinker EDM and a wire EDM, modelled with care, each needing circuits the
+  panel does not have, air the compressor cannot give, and CAM software. The building upgrades
+  (electrical service, compressors, a real bay door, fire suppression, tool-break detection, dust
+  extraction) take a contractor and a few days. Software seats cost upfront and weekly; the borrowed
+  "Community Edition" is free until the registered letter. Machines over $20k can be financed at
+  10% down; the bank offers a start-up loan on day one and a line of credit after three shipped jobs.
+  CNC setup is clamp, probe (stop the ruby on the block) and pick the right program from a list that
+  includes NEW_FINAL_v2_USE_THIS.NC. CNCs keep cutting after you lock up: tools break, the sinker can
+  catch fire, and the morning is a reveal. CNC-class contracts at $95/hr arrive once a CNC is on the
+  floor, some with a heat-treat stage that goes to Quench & Sons and sometimes comes back in two pieces.
+  Weekends exist. Achievements go on the wall in the BANK tab.
+
+Not yet: real mold builds (work items, tryout, revisions), Stage 2 machines, the crane. Next.
 
 ## Layout
 

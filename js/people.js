@@ -70,8 +70,9 @@ export function fire(state, p) {
   return sev;
 }
 
-export function skillFor(p, kind) { return p.actual[{ mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench', saw: 'general', drill: 'general' }[kind] || 'general'] || 0; }
-export function canRun(p, kind) { return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
+export function skillFor(p, kind) { return p.actual[{ mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench', saw: 'general', drill: 'general', vmc: 'mill', sinker: 'mill', wire: 'mill' }[kind] || 'general'] || 0; }
+// CNC wants a machinist or a moldmaker; an apprentice on a VMC is how you learn what a VMC costs
+export function canRun(p, kind) { if (kind === 'vmc' || kind === 'sinker' || kind === 'wire') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
 // one setup step: pass or skip
 export function setupRoll(p, kind) { const sk = skillFor(p, kind); return Math.random() < 0.42 + sk * 0.115 + (p.morale - 0.5) * 0.12; }
 export function moraleWord(m) { return m >= 0.85 ? 'happy' : m >= 0.6 ? 'fine' : m >= 0.4 ? 'grumbling' : m >= 0.2 ? 'disgruntled' : 'done'; }

@@ -149,6 +149,88 @@ export function buildMachine(T, def, ghost = false) {
       if (!ghost) { nameplate(T, def, g, 0, 1.6, -0.18, 0, 0.26); parts.lamps = lightStack(T, g, -0.12, 1.85, -0.45); parts.button = greenButton(T, g, 0.2, 0.42, 0.59); }
       break;
     }
+    case 'vmc': {
+      // Hoss-style vertical machining centre. Enclosed, a window in the door, a pendant on the right.
+      const enc = mat('enc', { color: 0xd8dbe0, roughness: 0.6, metalness: 0.2 });
+      const glass = ghost ? gm : new T.MeshStandardMaterial({ color: 0x223344, transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.3 });
+      box(2.2, 0.12, 1.9, steelDark, 0, 0.06, 0);                        // base skid
+      box(2.2, 0.5, 1.9, steel, 0, 0.37, 0);                             // casting band: 0.12 -> 0.62
+      box(2.2, 1.9, 1.9, enc, 0, 1.57, -0.05);                           // enclosure: 0.62 -> 2.52, front face at z = 0.9
+      box(2.2, 0.08, 1.9, steelDark, 0, 2.56, -0.05);                    // top rail
+      box(2.3, 0.3, 0.6, steel, 0, 2.75, -0.7);                          // the column cap above the enclosure, at the back
+      // the door: two sliding panels on a track, each with a window; the right one is open a crack
+      for (const side of [-1, 1]) {
+        const dx = side * 0.5 + (side > 0 ? 0.12 : 0);
+        box(0.98, 1.7, 0.05, enc, dx, 1.6, 0.93);                        // panel
+        box(0.74, 0.8, 0.06, glass, dx, 1.75, 0.935);                    // window
+        box(0.04, 0.5, 0.06, dark, dx + side * 0.44, 1.55, 0.95);        // handle
+      }
+      box(2.1, 0.06, 0.08, dark, 0, 2.5, 0.95);                          // door track
+      // inside, seen through the window: the table and the spindle
+      box(1.0, 0.1, 0.5, grey, 0, 1.0, 0.25);                            // table
+      box(0.3, 0.1, 0.2, dark, 0.1, 1.08, 0.25);                         // a vise
+      box(0.4, 0.6, 0.5, steelDark, 0, 2.0, -0.2);                       // spindle head
+      const spin = cyl(0.05, 0.3, chrome, 0, 1.55, 0.0); parts.spin.push({ mesh: spin, axis: 'y' });
+      cyl(0.012, 0.08, dark, 0, 1.36, 0.0);                              // the cutter
+      // pendant: arm off the right side, screen and keypad facing the operator
+      cyl(0.03, 0.5, dark, 1.35, 1.75, 0.6, g, Math.PI / 2);             // arm
+      box(0.08, 0.7, 0.5, dark, 1.6, 1.55, 0.75);                        // pendant body
+      const scr = new T.Mesh(new T.PlaneGeometry(0.34, 0.26), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x2a6a9a, emissiveIntensity: 0.6 })); scr.position.set(1.645, 1.7, 0.75); scr.rotation.y = Math.PI / 2; g.add(scr);
+      box(0.02, 0.2, 0.4, grey, 1.645, 1.35, 0.75);                      // keypad
+      box(0.6, 0.5, 0.5, dark, 1.3, 0.37, -0.5);                         // chip conveyor motor box, right rear
+      box(0.5, 0.3, 0.3, steelDark, 1.45, 0.27, 0.7);                    // chip bin
+      box(1.0, 0.5, 0.4, steelDark, -0.5, 0.3, -1.1);                    // coolant tank behind
+      if (!ghost) { nameplate(T, def, g, -0.5, 2.25, 0.96, 0, 0.5); parts.lamps = lightStack(T, g, -0.9, 2.6, 0.5); parts.button = greenButton(T, g, 1.645, 1.2, 0.75, Math.PI / 2); }
+      break;
+    }
+    case 'sinker': {
+      // Sinker EDM: a column at the back, a ram head that comes down, an open work tank full of dielectric.
+      const fluid = ghost ? gm : new T.MeshStandardMaterial({ color: 0x6a7a3a, transparent: true, opacity: 0.6, roughness: 0.1 });
+      box(1.6, 0.6, 1.4, steelDark, 0, 0.3, 0);                          // base: 0 -> 0.6
+      box(0.6, 1.9, 0.6, steel, 0, 1.55, -0.55);                         // column at the back: 0.6 -> 2.5
+      box(0.5, 0.5, 0.9, steel, 0, 2.2, -0.1);                           // head on the column, reaching forward
+      box(0.3, 0.6, 0.3, steelDark, 0, 1.6, 0.2);                        // the ram, coming down from the head
+      const holder = box(0.12, 0.1, 0.12, chrome, 0, 1.25, 0.2);         // electrode holder (System 3Q)
+      box(0.06, 0.12, 0.06, dark, 0, 1.14, 0.2);                         // the graphite electrode
+      // the work tank: walls, a front door, and the dielectric with a block in it
+      box(1.3, 0.02, 1.0, grey, 0, 0.61, 0.15);                          // tank floor
+      box(1.3, 0.5, 0.03, grey, 0, 0.85, 0.65); box(1.3, 0.5, 0.03, grey, 0, 0.85, -0.35); // front and back walls
+      box(0.03, 0.5, 1.0, grey, -0.65, 0.85, 0.15); box(0.03, 0.5, 1.0, grey, 0.65, 0.85, 0.15); // sides
+      box(1.24, 0.02, 0.96, fluid, 0, 1.0, 0.15);                        // dielectric surface
+      box(0.3, 0.3, 0.3, grey, 0, 0.77, 0.2);                            // the workpiece, under the electrode
+      box(0.4, 0.03, 0.03, chrome, 0, 1.11, 0.66);                       // door latch
+      box(0.6, 0.7, 0.6, steelDark, 1.1, 0.95, -0.4);                    // dielectric reservoir and filter unit, right rear
+      cyl(0.02, 0.55, dark, 0.92, 1.2, -0.2, g, 1.15);                   // the hose, from the reservoir top down into the tank
+      cyl(0.03, 0.9, dark, -0.72, 1.95, -0.4, g, Math.PI / 2);           // pendant arm, out of the column's left face
+      box(0.5, 0.6, 0.08, dark, -1.15, 1.65, -0.4);                      // pendant body on the arm's end
+      const scr = new T.Mesh(new T.PlaneGeometry(0.34, 0.26), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x2a9a6a, emissiveIntensity: 0.6 })); scr.position.set(-1.15, 1.75, -0.355); g.add(scr);
+      if (!ghost) { nameplate(T, def, g, 0, 2.2, 0.36, 0, 0.36); parts.lamps = lightStack(T, g, 0.2, 2.45, -0.55); parts.button = greenButton(T, g, -1.15, 1.42, -0.355); }
+      break;
+    }
+    case 'wire': {
+      // Wire EDM: a work tank at the front with a window, a U arm over it, a spool up the back.
+      const glass = ghost ? gm : new T.MeshStandardMaterial({ color: 0x334455, transparent: true, opacity: 0.5, roughness: 0.1 });
+      box(1.8, 0.7, 1.6, steelDark, 0, 0.35, 0);                         // base: 0 -> 0.7
+      box(0.5, 1.6, 0.5, steel, 0, 1.5, -0.55);                          // column at the back: 0.7 -> 2.3
+      box(0.3, 0.35, 1.1, steel, 0, 2.1, -0.1);                          // upper arm reaching forward over the tank
+      box(0.2, 0.5, 0.2, steelDark, 0, 1.65, 0.35);                      // upper head at the arm's end
+      cyl(0.012, 0.8, chrome, 0, 1.25, 0.35);                            // the wire, vertical (fine, bright)
+      box(0.3, 0.3, 1.0, steel, 0, 0.85, -0.05);                         // lower arm, under the table
+      box(1.2, 0.04, 0.9, grey, 0, 1.0, 0.2);                            // table
+      box(0.5, 0.06, 0.4, grey, 0, 1.05, 0.3);                           // a plate being cut
+      box(1.4, 0.75, 0.03, grey, 0, 1.3, 0.72); box(1.4, 0.75, 0.03, grey, 0, 1.3, -0.3); // tank front and back
+      box(0.03, 0.75, 1.0, grey, -0.7, 1.3, 0.2); box(0.03, 0.75, 1.0, grey, 0.7, 1.3, 0.2);
+      box(0.8, 0.45, 0.035, glass, 0, 1.3, 0.73);                        // window in the tank front
+      const spool = cyl(0.14, 0.12, grey, 0.35, 2.35, -0.55, g, Math.PI / 2); parts.spin.push({ mesh: spool, axis: 'x' }); // wire spool on the column top
+      box(0.1, 0.1, 0.1, dark, 0.35, 2.15, -0.55);                       // spool mount
+      box(0.6, 1.9, 0.6, steelDark, 1.4, 0.95, -0.3);                    // control cabinet, right
+      const scr = new T.Mesh(new T.PlaneGeometry(0.34, 0.26), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x9a6a2a, emissiveIntensity: 0.6 })); scr.position.set(1.4, 1.6, 0.005); g.add(scr);
+      box(0.4, 0.3, 0.02, grey, 1.4, 1.2, 0.0);                          // keypad
+      box(0.5, 0.4, 0.4, dark, -1.0, 0.9, -0.5);                         // deionizer / resin bottle box, left rear
+      box(0.5, 0.08, 0.3, dark, 1.05, 0.04, -0.3);                       // cable duct on the floor, base to cabinet
+      if (!ghost) { nameplate(T, def, g, -0.4, 1.85, -0.29, 0, 0.36); parts.lamps = lightStack(T, g, -0.15, 2.3, -0.55); parts.button = greenButton(T, g, 1.4, 0.95, 0.005); }
+      break;
+    }
     case 'bench': {
       box(2.0, 0.07, 0.8, wood, 0, 0.9, 0);                              // top, 0.865 -> 0.935
       for (const x of [-0.92, 0.92]) for (const z of [-0.32, 0.32]) box(0.06, 0.865, 0.06, grey, x, 0.4325, z);

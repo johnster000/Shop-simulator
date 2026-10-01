@@ -40,7 +40,8 @@ if (person) {
   let g = null, spin = false, angle = (parseFloat(params.get('angle')) || 35) * Math.PI / 180;
   const show = () => { if (g) scene.remove(g); const d = MACHINES[idx]; g = buildMachine(T, d); scene.add(g); groups[0] = g; document.getElementById('label').textContent = `${d.brand} ${d.name} (${d.id}) · ${d.w} × ${d.d} m`; };
   show();
-  camera.position.set(Math.sin(angle) * 4.2, 2.4, Math.cos(angle) * 4.2); camera.lookAt(0, 1.0, 0);
+  const big = Math.max(MACHINES[idx].w, MACHINES[idx].d, MACHINES[idx].h || 2) / 1.8, dist = 4.2 * Math.max(1, big);
+  camera.position.set(Math.sin(angle) * dist, 1.4 + dist * 0.35, Math.cos(angle) * dist); camera.lookAt(0, 0.6 + 0.35 * (MACHINES[idx].h || 1.8), 0);
   addEventListener('keydown', (e) => { if (e.key === 'd') { idx = (idx + 1) % MACHINES.length; show(); } if (e.key === 'a') { idx = (idx + MACHINES.length - 1) % MACHINES.length; show(); } if (e.key === 's') spin = !spin; });
   addEventListener('click', () => { idx = (idx + 1) % MACHINES.length; show(); });
   let t = 0; (function frame() { requestAnimationFrame(frame); if (spin) { t += 0.01; camera.position.set(Math.sin(angle + t) * 4.2, 2.4, Math.cos(angle + t) * 4.2); camera.lookAt(0, 1.0, 0); } renderer.render(scene, camera); })();

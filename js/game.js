@@ -5,8 +5,8 @@ import { MachineView } from './machines.js';
 import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
-import { tick, save, money, post, goHome, hourText, END_DAY_SPEED } from './sim.js';
-import { stageDone, scrapJob, customerOf } from './jobs.js';
+import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve } from './sim.js';
+import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
 
@@ -47,10 +47,13 @@ export function startShop(T, audio, state) {
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
     goHome() { leaveForTheNight(); },
-    shipped() { shop.setCrates(state.crates); },
+    shipped() { shop.setCrates(state.crates); unlock('one_out'); if (state.t >= 780) unlock('shipped_friday'); },
     crew() { return crew; },
-    crewChanged() { crew.sync(); },
+    crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); },
+    achievement(a) { showAchievement(a); },
   });
+  function showAchievement(a) { if (!a) return; ui.toast(`ACHIEVEMENT: ${a[0].toUpperCase()}`, 3400); audio.ding(); }
+  function unlock(id) { showAchievement(achieve(state, id)); }
   crew = new Crew(T, scene, shop, nav, state, {
     machineViews: () => views,
     runMachine: (m, skipped, p) => runMachine(m, skipped, p),
@@ -111,7 +114,8 @@ export function startShop(T, audio, state) {
     if (!m.job) m.job = { jobId: 0, index: -1, label: 'practice cut', min: 30 };
     m.job.operator = 'owner';
     runMachine(m, skipped, null);
-    if (!state.firstCycle) { state.firstCycle = true; ui.toast('ACHIEVEMENT: FIRST CYCLE START', 3200); audio.ding(); }
+    if (byId(m.id).cnc) unlock('first_cnc');
+    if (!state.firstCycle) { state.firstCycle = true; unlock('first_cycle'); }
     else ui.toast(skipped ? pick(['You skipped a step. The machine noticed.', 'Bold.', 'That is how it starts.']) : pick(['Chips.', 'Making chips.', 'Nothing wrong with that.']));
   }
   // start a cycle on machine m with `skipped` setup steps undone, by person p (null: the owner)
@@ -132,15 +136,48 @@ export function startShop(T, audio, state) {
         audio.thunk(); audio.nope();
         if (p) { p.crashes++; p.morale = Math.max(0, p.morale - 0.06); }
         const blame = p ? ` ${p.name} says it was like that.` : '';
-        if (sev < 0.6) { post(state, 'Broken cutter', -45); m.condition = Math.max(0, m.condition - 0.01); ui.toast(`BANG. Broken cutter on the ${def.name.toLowerCase()}. $45. The part is fine. Load it again.${blame}`, 4000); }
+        if (sev < 0.6) { const c = def.cnc ? 180 : 45; post(state, 'Broken cutter', -c); m.condition = Math.max(0, m.condition - 0.01); ui.toast(`BANG. Broken cutter on the ${def.name.toLowerCase()}. ${money(c)}. The part is fine. Load it again.${blame}`, 4000); }
         else if (sev < 0.9) {
           m.condition = Math.max(0, m.condition - 0.04);
-          if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); ui.toast(`Chatter. Job ${job.id} is scrap. ${money(job.material)} of ${job.steel} in the bin. Start over. OOPS.${blame}`, 4500); }
+          if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); unlock('oops'); ui.toast(`Chatter. Job ${job.id} is scrap. ${money(job.material)} of ${job.steel} in the bin. Start over. OOPS.${blame}`, 4500); }
           else { post(state, 'Chatter, scrapped block', -40); state.scrapCount++; shop.setScrap(state.scrapCount); ui.toast(`Chatter. The scrap block is more scrap now. OOPS.${blame}`, 4000); }
         }
-        else { const bill = def.manual ? 900 : 4000; post(state, 'Crash: tech visit', -bill); m.condition = Math.max(0, m.condition - 0.2); if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); } ui.toast(`Crash on the ${def.name.toLowerCase()}. A tech has to come. ${money(bill)}.${job ? ` Job ${job.id} is scrap too.` : ''}${blame} He arrives Thursday.`, 4500); }
+        else { const bill = def.manual ? 900 : 4000 + Math.round(Math.random() * 6000); post(state, 'Crash: tech visit', -bill); unlock('oops'); m.condition = Math.max(0, m.condition - 0.2); if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); } ui.toast(`Crash on the ${def.name.toLowerCase()}. A tech has to come. ${money(bill)}.${job ? ` Job ${job.id} is scrap too.` : ''}${blame} He arrives Thursday.`, 4500); }
       }, 1500 + Math.random() * 6000);
     }
+  }
+
+  // ---- lights out. CNC machines keep cutting after you lock up. Manual ones wait for a person.
+  function runLightsOut() {
+    const notes = [];
+    const nightMin = (24 * 60 - (7 * 60 + state.t)) + 7 * 60; // minutes until 7:00 tomorrow
+    for (const m of state.machines) {
+      const def = byId(m.id); if (!m.running) continue;
+      if (!def.cnc) { notes.push(`${def.brand} ${def.name}: stopped where it was. Manual machines do not run without a person.`); continue; }
+      const hours = Math.min(m.runLeft, nightMin) / 60;
+      const pBreak = (state.facility.toolbreak ? 0.004 : 0.016) * (1.3 - m.condition * 0.5), pFire = def.kind === 'sinker' ? (state.facility.fire ? 0.00005 : 0.0006) : 0;
+      let broke = -1, fire = false;
+      for (let h = 0; h < hours; h++) { if (Math.random() < pFire) { fire = true; broke = h; break; } if (Math.random() < pBreak) { broke = h; break; } }
+      const job = m.job && m.job.jobId ? state.jobs.find((j) => j.id === m.job.jobId) : null;
+      if (fire) {
+        m.running = false; m.runLeft = 0; m.condition = 0.05; m.job = null; m.checklist = {};
+        post(state, 'Fire: smoke damage, dielectric, a very long form', -8500);
+        if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); }
+        notes.push(`The sinker caught fire at ${hourText((state.t + broke * 60) % 1440)}. The fire department has questions. $8,500 and the machine is a shell.${job ? ` Job ${job.id} is ash.` : ''}`);
+        unlock('candle'); unlock('lights_wrong');
+      } else if (broke >= 0) {
+        m.running = false; m.runLeft = m.runLeft; m.checklist = {}; // the stage is not done; it must be reloaded and finished
+        post(state, 'Broken cutter, overnight', -180);
+        notes.push(`${def.brand} ${def.name}: a tool broke ${broke + 1} hour${broke ? 's' : ''} in and the machine cut air until morning. The block is fine. ${Math.round(m.runLeft)} minutes still to run.`);
+        unlock('lights_wrong');
+      } else if (m.runLeft <= nightMin) {
+        m.runLeft = 0; m.running = false; m.hours += hours;
+        if (job) { const finished = stageDone(state, job, m.job.index); if (finished) { shop.setCrates(state.crates); } notes.push(`${def.brand} ${def.name} finished ${m.job.label.toLowerCase()} on job ${job.id} overnight.${finished ? ' It is done. Ship it.' : ''}`); }
+        else notes.push(`${def.brand} ${def.name} finished overnight.`);
+        m.job = null; m.checklist = {}; unlock('lights_out');
+      } else { m.runLeft -= nightMin; m.hours += hours; notes.push(`${def.brand} ${def.name} ran all night. ${Math.round(m.runLeft)} minutes to go.`); }
+    }
+    return notes;
   }
 
   // ---- five o'clock, and the night
@@ -150,8 +187,8 @@ export function startShop(T, audio, state) {
     if (modal || paused) return;
     ui.setSpeed(0);
     if (player.locked) document.exitPointerLock(); player.enabled = false;
-    const running = state.machines.filter((m) => m.running).length;
-    $('closingLine').textContent = running ? `${running} machine${running === 1 ? ' is' : 's are'} still cutting. Manual machines do not run without you.` : pick(['The compressor would like to be alone.', 'Nobody is waiting for you at home. The compressor knows that.', 'Go home. The chips will be here tomorrow.']);
+    const running = state.machines.filter((m) => m.running), cnc = running.filter((m) => byId(m.id).cnc).length, man = running.length - cnc;
+    $('closingLine').textContent = running.length ? `${cnc ? `${cnc} CNC${cnc > 1 ? 's' : ''} will keep cutting tonight. ` : ''}${man ? `${man} manual machine${man > 1 ? 's' : ''} will stop where ${man > 1 ? 'they are' : 'it is'}. ` : ''}` : pick(['The compressor would like to be alone.', 'Nobody is waiting for you at home. The compressor knows that.', 'Go home. The chips will be here tomorrow.']);
     closingEl.classList.remove('hidden'); modal = true;
   }
   $('stayBtn').addEventListener('click', () => { closingEl.classList.add('hidden'); modal = false; ui.setSpeed(1); audio.click(); ui.toast('Overtime. The lights hum a little louder.', 2600); if (!iso.active) { player.enabled = true; player.requestLock(); } });
@@ -164,13 +201,15 @@ export function startShop(T, audio, state) {
     ui.closeClip(); ui.closePanel(); modal = true;
     const leftMin = state.t;
     crew.night();
+    const lightsOut = runLightsOut();
     const n = goHome(state); save(state);
+    if (lightsOut.length) n.notes = (n.notes || []).concat(lightsOut);
     $('nightShop').textContent = state.shopName.toUpperCase();
     $('nightClock').textContent = n.leftAt;
     const line = n.fatigue >= 0.6 ? `You left at ${n.leftAt}. ${n.sleep.toFixed(1)} hours of sleep. Tomorrow is going to be a day.`
       : n.fatigue >= 0.25 ? `You left at ${n.leftAt}. ${n.sleep.toFixed(1)} hours of sleep. Not enough. You will feel it.`
       : n.overtime > 0 ? `You left at ${n.leftAt}. Late, but you slept.` : pick(['You left at five. The compressor kept going.', 'Dinner. Television. A thought about the mill. Sleep.', 'You dreamed about the tarp door. It flapped.']);
-    $('nightLine').textContent = line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '') + (n.notes && n.notes.length ? ' Overnight: ' + n.notes.join(' ') : '');
+    $('nightLine').textContent = (n.weekend ? pick(['The weekend. Two days. You thought about the shop both of them. ', 'Saturday: errands. Sunday: the drive past the shop to check the door. ', 'The weekend. The compressor ran the whole time, for nobody. ']) : '') + line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '') + (n.notes && n.notes.length ? ' Overnight: ' + n.notes.join(' ') : '');
     $('wakeBtn').classList.add('hidden');
     nightEl.classList.remove('hidden'); nightEl.classList.remove('fade');
     // the clock runs through the night
@@ -188,6 +227,7 @@ export function startShop(T, audio, state) {
     setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
     camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
     if (state.fatigue >= 0.25) ui.toast(state.fatigue >= 0.6 ? 'Day ' + state.day + '. You are wrecked. Read every button twice.' : 'Day ' + state.day + '. Tired. Coffee first.', 3500);
+    else if ((state.day - 1) % 7 === 0) ui.toast('Monday. ' + pick(['The rent went out before you did.', 'Resumes on the desk.', 'The tarp survived the weekend.']), 2800);
     else ui.toast('Day ' + state.day + '. ' + pick(['The compressor is already going.', 'Fresh. For now.', 'The tarp let the night in.']), 2600);
   });
 
@@ -329,7 +369,7 @@ export function startShop(T, audio, state) {
     }
     if (iso.active) iso.update(); else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
-    shop.update(paused ? 0 : dt, audio.compOn);
+    shop.update(paused ? 0 : dt, audio.compOn); shop.setDoor(!!state.facility.door); shop.setAir(state.facility.air);
     for (const v of views) v.update(paused || modal ? 0 : dt * (state.speed || 0));
     audio.update(dt, {
       listener: { x: camera.position.x, z: camera.position.z }, iso: iso.active,
@@ -340,6 +380,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && ui.panelM && ui.panelM.running) ui.renderPanel();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { state, camera, player, iso, views, crew, nav, mods: { makeRfq, TEMPLATES, CUSTOMERS }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

@@ -6,6 +6,8 @@
 import { post } from './sim.js';
 
 export const SHOP_RATE = 55;      // $/hr, Stage 0 work (design bible §4.1)
+export const CNC_RATE = 95;       // $/hr, work that needs a CNC
+export const HEAT_COST = 140;     // Quench & Sons, per job, plus two days and a small chance of a crack
 export const OUT_RATE = 110;      // $/hr, what the shop down the road charges to do it for you
 export const OUT_DAYS = 2;        // and how long they take
 
@@ -16,11 +18,14 @@ export const CUSTOMERS = [
   { id: 'kitchener', name: 'Kitchener Precision', kind: 'shop', stingy: 1.0, terms: 21, blurb: 'Nice people. Their purchasing agent is not one of them.' },
   { id: 'bramalea', name: 'Bramalea Moldworks', kind: 'shop', stingy: 1.1, terms: 14, blurb: 'They also do overflow for you. Awkward.' },
   { id: 'erie', name: 'Erie Shore Packaging', kind: 'molder', stingy: 0.85, terms: 30, blurb: 'Caps and closures, millions a week. Everything is urgent. Everything.' },
+  // consumer products: they only call once you have a CNC
+  { id: 'maplewood', name: 'Maplewood Housewares', kind: 'consumer', stingy: 1.0, terms: 30, cnc: true, blurb: 'Bins, lids and a salad spinner. Their engineer is twenty-six and certain.' },
+  { id: 'trillium', name: 'Trillium Outdoor', kind: 'consumer', stingy: 1.05, terms: 30, cnc: true, blurb: 'Cooler parts and paddle grips. Nice people. Slow to approve anything.' },
 ];
 
 // Work templates. Minutes are for one piece; qty scales the per-piece stages.
 // kind is the station: saw, lathe, mill, drill, grinder, bench.
-const TEMPLATES = [
+export const TEMPLATES = [
   { title: 'Core pins, S7', qty: [2, 6], material: 18, steel: 'S7', stages: [['saw', 'Cut blanks', 6, true], ['lathe', 'Turn to size', 22, true], ['grinder', 'Grind the heads', 12, true]] },
   { title: 'Ejector sleeve, 420 SS', qty: [1, 2], material: 45, steel: '420 SS', stages: [['saw', 'Cut blank', 8, true], ['lathe', 'Turn and bore', 55, true], ['grinder', 'Grind OD', 20, true]] },
   { title: 'Insert block, P20', qty: [1, 1], material: 90, steel: 'P20', stages: [['saw', 'Cut block', 15], ['mill', 'Square and pocket', 70], ['grinder', 'Grind flat and parallel', 35], ['bench', 'Deburr and stamp', 15]] },
@@ -33,12 +38,20 @@ const TEMPLATES = [
   { title: 'Sprue bushing, modify', qty: [1, 1], material: 0, steel: 'customer supplied', stages: [['lathe', 'Open up the orifice', 30], ['bench', 'Polish the taper', 20]] },
   { title: 'Waterline plate, drill and tap', qty: [1, 1], material: 0, steel: 'customer supplied', stages: [['drill', 'Drill and tap waterlines', 45], ['bench', 'Plug and pressure check', 15]] },
   { title: 'Rest buttons, hardened', qty: [4, 8], material: 6, steel: 'A2', stages: [['saw', 'Cut blanks', 3, true], ['lathe', 'Turn buttons', 8, true], ['grinder', 'Grind faces', 5, true]] },
+  // CNC-class work. kinds: vmc, sinker, wire, heat (always out)
+  { title: 'Cavity insert, P20', cnc: true, qty: [1, 1], material: 180, steel: 'P20', stages: [['saw', 'Cut block', 15], ['vmc', 'Rough and finish cavity', 170], ['grinder', 'Grind the fit', 30], ['bench', 'Polish to B-2', 40]] },
+  { title: 'Core and cavity set, NAP80', cnc: true, qty: [1, 1], material: 420, steel: 'NAP80', stages: [['saw', 'Cut blocks', 20], ['vmc', 'Rough both halves', 160], ['vmc', 'Finish both halves', 140], ['sinker', 'Burn the ribs', 120], ['bench', 'Polish to A-3', 90]] },
+  { title: 'Lifter, S7 hardened', cnc: true, qty: [1, 2], material: 90, steel: 'S7', stages: [['saw', 'Cut blank', 10, true], ['vmc', 'Rough soft', 60, true], ['heat', 'Heat treat', 0], ['wire', 'Wire the profile', 110, true], ['grinder', 'Grind the heel', 25, true]] },
+  { title: 'Electrode set, graphite', cnc: true, qty: [2, 4], material: 45, steel: 'graphite', stages: [['saw', 'Cut blanks', 5, true], ['vmc', 'Machine electrodes', 45, true]] },
+  { title: 'Stripper plate, 4140', cnc: true, qty: [1, 1], material: 260, steel: '4140', stages: [['saw', 'Cut plate', 20], ['vmc', 'Mill pockets and pattern', 150], ['drill', 'Drill and tap waterlines', 40], ['grinder', 'Grind flat', 45]] },
+  { title: 'Slide body, hardened H13', cnc: true, qty: [1, 2], material: 150, steel: 'H13', stages: [['saw', 'Cut block', 15, true], ['vmc', 'Rough soft', 90, true], ['heat', 'Heat treat', 0], ['wire', 'Wire the gib slots', 80, true], ['sinker', 'Burn the detail', 60, true], ['bench', 'Fit and polish', 40, true]] },
 ];
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 
-export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench' }[kind] || kind; }
+export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench', vmc: 'VMC', sinker: 'sinker EDM', wire: 'wire EDM', heat: 'heat treater (vendor)' }[kind] || kind; }
+export function isCnc(kind) { return kind === 'vmc' || kind === 'sinker' || kind === 'wire'; }
 
 export function initJobs(state) {
   if (!state.inbox) state.inbox = [];
@@ -63,17 +76,19 @@ export function message(state, from, subject, body, extra = {}) {
 
 export function unread(state) { return state.inbox.filter((m) => !m.read).length + state.rfqs.filter((r) => r.status === 'open' && !r.read).length; }
 
-function makeRfq(state, template, customer) {
+export function makeRfq(state, template, customer) {
   const qty = rint(template.qty[0], template.qty[1]);
   const stages = template.stages.map(([kind, label, min, perPiece]) => ({ kind, label, min: Math.round(min * (perPiece ? qty : 1)), done: false, out: null }));
   const minutes = stages.reduce((a, s) => a + s.min, 0);
   const material = Math.round(template.material * qty);
-  const estimate = Math.round((minutes / 60) * SHOP_RATE + material);
+  const rate = template.cnc ? CNC_RATE : SHOP_RATE;
+  const heat = stages.some((st) => st.kind === 'heat') ? HEAT_COST : 0;
+  const estimate = Math.round((minutes / 60) * rate + material + heat);
   const expected = Math.round(estimate * customer.stingy * (0.92 + Math.random() * 0.16));
   const lead = rint(4, 9);
   return {
     id: state.nextRfq++, status: 'open', read: false, day: state.day, expires: state.day + 2,
-    customer: customer.id, title: template.title, qty, steel: template.steel, stages, minutes, material, estimate, expected, lead, price: estimate,
+    customer: customer.id, title: template.title, qty, steel: template.steel, stages, minutes, material, estimate, expected, lead, price: estimate, rate, cnc: !!template.cnc, heat,
   };
 }
 
@@ -86,9 +101,9 @@ function seedFirstDay(state) {
 
 export function customerOf(id) { return CUSTOMERS.find((c) => c.id === id); }
 
-export function shopHas(state, kind, byId) { return state.machines.some((m) => m.placed && byId(m.id).stations.includes(stationKindToStation(kind))); }
+export function shopHas(state, kind, byId) { if (kind === 'heat') return true; return state.machines.some((m) => m.placed && byId(m.id).stations.includes(stationKindToStation(kind))); }
 // station names on machine defs vs. stage kinds
-export function stationKindToStation(kind) { return { saw: 'saw', lathe: 'turn', mill: 'rough', drill: 'drill', grinder: 'grind', bench: 'fit' }[kind]; }
+export function stationKindToStation(kind) { return { saw: 'saw', lathe: 'turn', mill: 'rough', drill: 'drill', grinder: 'grind', bench: 'fit', vmc: 'cnc', sinker: 'sinker', wire: 'wire' }[kind]; }
 
 // the player sends a quote. decided the next morning.
 export function sendQuote(state, rfq, price) { rfq.price = Math.round(price); rfq.status = 'quoted'; rfq.read = true; }
@@ -105,7 +120,7 @@ function startJob(state, rfq) {
   const c = customerOf(rfq.customer);
   const job = {
     id: state.jobNo++, rfqId: rfq.id, customer: rfq.customer, title: rfq.title, qty: rfq.qty, steel: rfq.steel,
-    stages: rfq.stages.map((s) => ({ ...s })), price: rfq.price, material: rfq.material, minutes: rfq.minutes,
+    stages: rfq.stages.map((s) => ({ ...s })), price: rfq.price, material: rfq.material, minutes: rfq.minutes, cnc: !!rfq.cnc,
     poDay: state.day, dueDay: state.day + rfq.lead, materialDay: rfq.material > 0 ? state.day + 1 : state.day,
     status: rfq.material > 0 ? 'material' : 'work', shippedDay: null, scrap: 0,
   };
@@ -184,18 +199,24 @@ export function endOfDay(state, byId) {
   // expiry
   for (const r of state.rfqs) if (r.status === 'open' && state.day >= r.expires) { r.status = 'expired'; }
   state.rfqs = state.rfqs.filter((r) => r.status === 'open' || r.status === 'quoted' || state.day - r.day < 6);
-  // steel and outsourced work
+  // steel and outsourced work; heat treat goes out by itself the night it comes up
   for (const job of state.jobs) {
     if (job.status === 'material' && state.day >= job.materialDay) { job.status = 'work'; notes.push(`Steel on the rack for job ${job.id}.`); }
-    for (const s of job.stages) if (s.out && !s.done && state.day >= s.out.backDay) { s.done = true; s.out = null; notes.push(`Job ${job.id}: ${s.label.toLowerCase()} back from Bramalea.`); if (job.stages.every((q) => q.done)) { job.status = 'ready'; state.crates++; } }
+    if (job.status === 'work') { const i = job.stages.findIndex((s) => !s.done); const st = job.stages[i]; if (st && st.kind === 'heat' && !st.out) { post(state, `Quench & Sons: heat treat, job ${job.id}`, -HEAT_COST); st.out = { backDay: state.day + 2, cost: HEAT_COST, heat: true }; notes.push(`Job ${job.id} went to Quench & Sons for heat treat. Back in two days, probably in one piece.`); } }
+    for (const s of job.stages) if (s.out && !s.done && state.day >= s.out.backDay) {
+      if (s.out.heat && Math.random() < 0.04) { s.out = null; scrapJob(state, job); notes.push(`Job ${job.id} came back from heat treat in two pieces, in the same crate, with an invoice. Start over.`); continue; }
+      s.done = true; const wasHeat = s.out.heat; s.out = null; notes.push(`Job ${job.id}: ${s.label.toLowerCase()} back from ${wasHeat ? 'Quench & Sons' : 'Bramalea'}.`); if (job.stages.every((q) => q.done)) { job.status = 'ready'; state.crates++; }
+    }
     if (job.status === 'work' && state.day === job.dueDay) notes.push(`Job ${job.id} is due today.`);
   }
   // money in
   for (const rcv of state.receivables.slice()) if (state.day >= rcv.due) { post(state, rcv.text, rcv.amount); state.receivables.splice(state.receivables.indexOf(rcv), 1); notes.push(`Paid: ${rcv.text}, $${rcv.amount.toLocaleString()}.`); }
   // new work. reputation sets how often the phone rings.
-  const n = Math.random() < 0.35 + state.rep * 0.5 ? 1 : 0;
+  const hasCnc = state.machines.some((m) => m.placed && byId(m.id).cnc);
+  const n = (Math.random() < 0.35 + state.rep * 0.5 ? 1 : 0) + (hasCnc && Math.random() < 0.4 ? 1 : 0);
   for (let i = 0; i < n; i++) {
-    const c = pick(CUSTOMERS), t = pick(TEMPLATES);
+    const custs = CUSTOMERS.filter((c) => !c.cnc || hasCnc), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc);
+    const c = pick(custs), t = c.cnc ? pick(temps.filter((q) => q.cnc)) : pick(temps);
     const r = makeRfq(state, t, c); state.rfqs.push(r); notes.push(`RFQ from ${c.name}: ${t.title}.`);
   }
   return notes;
