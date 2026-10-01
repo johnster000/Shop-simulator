@@ -149,12 +149,12 @@ export class UI {
 
   renderPeople() {
     const s = this.state, el = $('tab-people'), crew = this.hooks.crew();
-    const crewHtml = (p) => `<div class="pcard"><div class="row2"><div><b>${p.name}</b> · ${p.roleName} · $${p.wage}/hr</div><div class="morale ${p.morale < 0.4 ? 'low' : ''}">${moraleWord(p.morale)}</div></div>
+    const crewHtml = (p) => `<div class="pcard"><div class="row2"><div><b>${p.name}</b> · ${p.roleName}${p.weld ? ' · welds' : ''} · $${p.wage}/hr</div><div class="morale ${p.morale < 0.4 ? 'low' : ''}">${moraleWord(p.morale)}</div></div>
       <div class="note">${p.blurb} ${p.quirk}</div>
       ${this.skillsHtml(p, p.revealed)}${p.revealed ? '' : '<div class="note">Skills as claimed. You will know in a few days.</div>'}
       <div class="note">${crew ? crew.status(p) : ''}${p.grievance ? ` · <b>has a word to say about ${p.grievance.label}</b>` : ''} · ${p.daysWorked} day${p.daysWorked === 1 ? '' : 's'} here · ${p.crashes} crash${p.crashes === 1 ? '' : 'es'}</div>
       <div class="acts"><button data-talk="${p.id}">A WORD</button><button class="ghost" data-raise="${p.id}">RAISE $1/HR</button><button class="danger" data-fire="${p.id}">LET GO</button></div></div>`;
-    const candHtml = (c) => `<div class="pcard"><div class="row2"><div><b>${c.name}</b> · ${c.roleName} · asks $${c.wage}/hr</div></div>
+    const candHtml = (c) => `<div class="pcard"><div class="row2"><div><b>${c.name}</b> · ${c.roleName}${c.weld ? ' · can weld' : ''} · asks $${c.wage}/hr</div></div>
       <div class="note">${c.blurb} ${c.quirk}</div>${this.skillsHtml(c, false)}
       <div class="acts"><button data-hire="${c.id}">HIRE · starts tomorrow</button></div></div>`;
     const weekly = s.people.reduce((a, p) => a + p.wage * 40, 0);
@@ -222,6 +222,7 @@ export class UI {
       else r = buy(s, def, used);
       if (!r.ok) { this.audio.nope(); this.toast(r.why); return; }
       if (def.cnc) { const a = achieve(s, 'first_cnc_bought'); if (a) this.hooks.achievement(a); }
+      if (def.w * def.d > 3.0 && !s.facility.crane) { post(s, 'Riggers, cash', -450); this.toast('The riggers want $450, cash, to get it off the truck. They got it.', 3200); }
       this.audio.cash(); this.closeClip(); this.hooks.place(r.machine);
     }));
     el.querySelectorAll('[data-up]').forEach((b) => b.addEventListener('click', () => { const u = UPGRADES.find((q) => q.id === b.dataset.up); const r = buyUpgrade(s, u); if (!r.ok) { this.audio.nope(); this.toast(r.why); return; } this.audio.cash(); this.toast(`${u.name}: ordered. ${u.days} day${u.days > 1 ? 's' : ''}.`); this.renderShop(); }));
@@ -277,6 +278,10 @@ export class UI {
       vmc: [['clamp', 'Clamp the block', 'clamp'], ['probe', 'Probe the part', 'probe'], ['program', 'Select the program', 'program']],
       sinker: [['indicate', 'Indicate the electrode', 'indicate'], ['clamp', 'Set the flushing', 'clamp'], ['program', 'Select the program', 'program']],
       wire: [['clamp', 'Thread the wire', 'clamp'], ['indicate', 'Square the part', 'indicate'], ['program', 'Select the program', 'program']],
+      spot: [['clamp', 'Set the halves', 'clamp'], ['indicate', 'Blue it up and read it', 'indicate']],
+      cmm: [['probe', 'Qualify the probe', 'probe'], ['program', 'Load the inspection program', 'program']],
+      graphite: [['clamp', 'Clamp the blank', 'clamp'], ['probe', 'Probe the blank', 'probe'], ['program', 'Select the program', 'program']],
+      laser: [['indicate', 'Line up the ding', 'indicate'], ['speed', 'Set the pulse', 'speed']],
       bench: [],
     })[d.kind] || [];
     const cl = m.checklist || (m.checklist = {});

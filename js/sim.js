@@ -6,6 +6,7 @@
 import { byId, SHOP, UPGRADES, SOFTWARE } from './catalog.js';
 import { initJobs, endOfDay } from './jobs.js';
 import { initPeople, endOfDay as peopleEndOfDay } from './people.js';
+import { nightlyEvents, yearSummary } from './events.js';
 
 export const SAVE_KEY = 'shopsim.save.v1';
 export const OPEN_HOUR = 7;
@@ -119,7 +120,8 @@ export function upgradeDue(state) { // called at end of day
   if (!f.done) f.done = [];
   for (const p of f.pending.slice()) if (state.day >= p.day) {
     const up = UPGRADES.find((u) => u.id === p.id); Object.assign(f, up.gives); f.done.push(p.id); f.pending.splice(f.pending.indexOf(p), 1);
-    notes.push(`${up.name}: done. ${up.group === 'power' ? 'The electrician left a bill and a sticker.' : up.group === 'door' ? 'The tarp is in the dumpster. Somebody took a photo.' : 'Installed.'}`);
+    if (up.gives.crane) achieve(state, 'the_crane'); if (up.gives.circuits === 4) achieve(state, 'panel');
+    notes.push(`${up.name}: done. ${up.group === 'power' ? 'The electrician left a bill and a sticker.' : up.group === 'door' ? 'The tarp is in the dumpster. Somebody took a photo.' : up.group === 'crane' ? 'The crane is up. Everyone stopped to watch the first lift. It lifted a chair.' : 'Installed.'}`);
   }
   return notes;
 }
@@ -231,7 +233,10 @@ export function goHome(state) {
     extra.push(...loansWeekly(state));
   }
   night.day = state.day;
-  night.notes = upgradeDue(state).concat(extra, endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state));
+  night.notes = upgradeDue(state).concat(extra, endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state), nightlyEvents(state));
+  // the year turns every 52 weeks
+  const yearBefore = Math.floor((night.dayDone - 1) / 260), yearAfter = Math.floor((state.day - 1) / 260);
+  if (yearAfter > yearBefore) night.year = yearSummary(state);
   return night;
 }
 

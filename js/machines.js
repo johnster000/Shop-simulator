@@ -62,6 +62,8 @@ export function buildMachine(T, def, ghost = false) {
   const box = (w, h, d, m, x, y, z, p = g) => { const o = new T.Mesh(new T.BoxGeometry(w, h, d), m); o.position.set(x, y, z); p.add(o); return o; };
   const cyl = (r, h, m, x, y, z, p = g, rz = 0, rx = 0, r2 = r) => { const o = new T.Mesh(new T.CylinderGeometry(r, r2, h, 24), m); o.position.set(x, y, z); o.rotation.z = rz; o.rotation.x = rx; p.add(o); return o; };
   const parts = { spin: [], lamps: null, button: null };
+  // a tube from one point to another: hoses, cables, conduit
+  const tube = (r, m, a, b) => { const from = new T.Vector3(...a), to = new T.Vector3(...b), len = from.distanceTo(to); const o = new T.Mesh(new T.CylinderGeometry(r, r, len, 10), m); o.position.copy(from).add(to).multiplyScalar(0.5); o.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), to.clone().sub(from).normalize()); g.add(o); return o; };
 
   switch (def.kind) {
     case 'mill': {
@@ -128,6 +130,21 @@ export function buildMachine(T, def, ghost = false) {
       break;
     }
     case 'grinder': {
+      if (def.id === 'cncgrind') {
+        // Okeymoto CNC grinder: the same machine inside a splash enclosure with a window and a control on the side.
+        const enc = mat('encG', { color: 0xcfd6d2, roughness: 0.6, metalness: 0.2 });
+        box(1.8, 0.2, 1.8, steelDark, 0, 0.1, 0);
+        box(1.8, 1.7, 1.6, enc, 0, 1.05, -0.1);                          // enclosure: 0.2 -> 1.9
+        box(0.9, 0.6, 0.05, ghost ? gm : new T.MeshStandardMaterial({ color: 0x223344, transparent: true, opacity: 0.5 }), -0.1, 1.2, 0.71);
+        box(0.04, 0.4, 0.05, dark, 0.45, 1.2, 0.73);
+        box(1.0, 0.07, 0.4, grey, 0, 0.75, 0.0); box(0.5, 0.05, 0.25, chrome, 0, 0.81, 0);   // table and chuck inside
+        const wheel = cyl(0.1, 0.025, grey, 0.3, 1.0, 0.0, g, Math.PI / 2); parts.spin.push({ mesh: wheel, axis: 'x' });
+        box(0.4, 0.7, 0.08, dark, 1.1, 1.3, 0.76);                       // control panel, right front
+        const scr = new T.Mesh(new T.PlaneGeometry(0.3, 0.22), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x9a9a2a, emissiveIntensity: 0.6 })); scr.position.set(1.1, 1.45, 0.805); g.add(scr);
+        box(0.6, 0.5, 0.5, steelDark, -0.9, 0.45, -1.2);                 // coolant and filter unit behind
+        if (!ghost) { nameplate(T, def, g, -0.5, 1.7, 0.71, 0, 0.36); parts.lamps = lightStack(T, g, -0.7, 1.9, -0.6); parts.button = greenButton(T, g, 1.1, 1.05, 0.805); }
+        break;
+      }
       // Herring surface grinder. Wheel axis along x; the table traverses along x; operator at +z.
       box(0.72, 0.75, 1.05, steelDark, 0, 0.375, 0.05);                  // base: 0 -> 0.75
       box(0.4, 1.1, 0.42, steel, 0, 1.3, -0.4);                          // column at the back: 0.75 -> 1.85, front face z = -0.19
@@ -151,7 +168,7 @@ export function buildMachine(T, def, ghost = false) {
     }
     case 'vmc': {
       // Hoss-style vertical machining centre. Enclosed, a window in the door, a pendant on the right.
-      const enc = mat('enc', { color: 0xd8dbe0, roughness: 0.6, metalness: 0.2 });
+      const enc = def.id === 'hardmill' ? mat('encDark', { color: 0x3a4652, roughness: 0.5, metalness: 0.3 }) : mat('enc', { color: 0xd8dbe0, roughness: 0.6, metalness: 0.2 });
       const glass = ghost ? gm : new T.MeshStandardMaterial({ color: 0x223344, transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.3 });
       box(2.2, 0.12, 1.9, steelDark, 0, 0.06, 0);                        // base skid
       box(2.2, 0.5, 1.9, steel, 0, 0.37, 0);                             // casting band: 0.12 -> 0.62
@@ -200,7 +217,7 @@ export function buildMachine(T, def, ghost = false) {
       box(0.3, 0.3, 0.3, grey, 0, 0.77, 0.2);                            // the workpiece, under the electrode
       box(0.4, 0.03, 0.03, chrome, 0, 1.11, 0.66);                       // door latch
       box(0.6, 0.7, 0.6, steelDark, 1.1, 0.95, -0.4);                    // dielectric reservoir and filter unit, right rear
-      cyl(0.02, 0.55, dark, 0.92, 1.2, -0.2, g, 1.15);                   // the hose, from the reservoir top down into the tank
+      tube(0.02, dark, [1.1, 1.3, -0.4], [0.5, 1.0, 0.15]);               // the hose, from the reservoir down into the tank
       cyl(0.03, 0.9, dark, -0.72, 1.95, -0.4, g, Math.PI / 2);           // pendant arm, out of the column's left face
       box(0.5, 0.6, 0.08, dark, -1.15, 1.65, -0.4);                      // pendant body on the arm's end
       const scr = new T.Mesh(new T.PlaneGeometry(0.34, 0.26), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x2a9a6a, emissiveIntensity: 0.6 })); scr.position.set(-1.15, 1.75, -0.355); g.add(scr);
@@ -229,6 +246,82 @@ export function buildMachine(T, def, ghost = false) {
       box(0.5, 0.4, 0.4, dark, -1.0, 0.9, -0.5);                         // deionizer / resin bottle box, left rear
       box(0.5, 0.08, 0.3, dark, 1.05, 0.04, -0.3);                       // cable duct on the floor, base to cabinet
       if (!ghost) { nameplate(T, def, g, -0.4, 1.85, -0.29, 0, 0.36); parts.lamps = lightStack(T, g, -0.15, 2.3, -0.55); parts.button = greenButton(T, g, 1.4, 0.95, 0.005); }
+      break;
+    }
+    case 'spot': {
+      // Millennial spotting press: a big blue H-frame, a fixed lower platen, a moving upper platen on four columns.
+      const blue = mat('pressBlue', { color: 0x2a4a7a, roughness: 0.5, metalness: 0.3 });
+      box(2.0, 0.3, 1.6, blue, 0, 0.15, 0);                              // base
+      for (const sx of [-0.8, 0.8]) for (const sz of [-0.55, 0.55]) cyl(0.07, 2.1, chrome, sx, 1.35, sz); // four columns: 0.3 -> 2.4
+      box(1.8, 0.22, 1.3, grey, 0, 0.56, 0);                             // lower platen on the base
+      box(1.2, 0.12, 0.9, steelDark, 0, 0.73, 0);                        // the B half, sitting on the platen
+      box(1.8, 0.22, 1.3, grey, 0, 1.75, 0);                             // upper platen, up on the columns
+      box(1.2, 0.12, 0.9, steelDark, 0, 1.58, 0);                        // the A half, hung under it
+      box(2.0, 0.4, 1.6, blue, 0, 2.6, 0);                               // crown: 2.4 -> 2.8
+      cyl(0.18, 0.5, blue, 0, 2.1, 0);                                   // the ram, down from the crown to the upper platen
+      box(0.5, 0.8, 0.3, dark, 1.3, 0.9, 0.6);                           // hydraulic unit, right front
+      box(0.4, 0.6, 0.1, dark, -1.15, 1.4, 0.5);                         // control box, left
+      cyl(0.03, 0.5, dark, -1.15, 1.0, 0.5, g, 0, 0);                    // its pole
+      if (!ghost) { nameplate(T, def, g, 0, 2.6, 0.81, 0, 0.5); parts.lamps = lightStack(T, g, -0.7, 2.8, -0.5); parts.button = greenButton(T, g, -1.15, 1.25, 0.56); }
+      break;
+    }
+    case 'cmm': {
+      // Zeus CMM: a granite table on a stand, a bridge over it on air bearings, a probe head, a glass-walled enclosure.
+      const granite = mat('granite', { color: 0x2a2a2e, roughness: 0.35, metalness: 0.1 });
+      const glass = ghost ? gm : new T.MeshStandardMaterial({ color: 0x9fc3e6, transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.2 });
+      box(1.5, 0.5, 1.3, steelDark, 0, 0.25, 0);                         // stand
+      box(1.6, 0.18, 1.4, granite, 0, 0.59, 0);                          // the granite
+      for (const sx of [-0.7, 0.7]) box(0.1, 0.8, 0.14, grey, sx, 1.08, 0.2); // bridge legs on the table
+      box(1.6, 0.14, 0.14, grey, 0, 1.55, 0.2);                          // bridge beam
+      box(0.12, 0.14, 0.3, dark, 0.2, 1.55, 0.2);                        // carriage on the beam
+      cyl(0.03, 0.6, chrome, 0.2, 1.2, 0.2);                             // the Z ram down from the carriage
+      cyl(0.018, 0.1, dark, 0.2, 0.93, 0.2);                             // probe body
+      cyl(0.006, 0.05, chrome, 0.2, 0.86, 0.2);                          // stylus
+      const ruby = new T.Mesh(new T.SphereGeometry(0.008, 8, 6), ghost ? gm : new T.MeshStandardMaterial({ color: 0xd0021b })); ruby.position.set(0.2, 0.835, 0.2); g.add(ruby);
+      box(0.3, 0.12, 0.2, grey, -0.2, 0.74, -0.1);                       // a part on the granite
+      // enclosure: posts and glass, open at the front
+      for (const sx of [-0.78, 0.78]) for (const sz of [-0.68, 0.68]) box(0.05, 1.6, 0.05, grey, sx, 1.5, sz);
+      box(1.6, 1.5, 0.02, glass, 0, 1.55, -0.68); box(0.02, 1.5, 1.4, glass, -0.78, 1.55, 0); box(0.02, 1.5, 1.4, glass, 0.78, 1.55, 0);
+      box(1.6, 0.05, 1.4, grey, 0, 2.3, 0);                              // enclosure top rail
+      box(0.5, 0.9, 0.5, dark, 1.1, 0.45, -0.9);                         // controller cabinet, right rear
+      box(0.5, 0.4, 0.05, dark, 1.1, 1.1, -0.7);                         // the monitor on it
+      const scr = new T.Mesh(new T.PlaneGeometry(0.42, 0.32), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x7a7aba, emissiveIntensity: 0.6 })); scr.position.set(1.1, 1.1, -0.67); g.add(scr);
+      if (!ghost) { nameplate(T, def, g, -0.45, 1.1, -0.65, 0, 0.3); parts.lamps = lightStack(T, g, 1.1, 0.9, -0.9); parts.button = greenButton(T, g, 1.1, 0.75, -0.64); }
+      break;
+    }
+    case 'graphite': {
+      // Rudders graphite mill: a small sealed high-speed mill with a big extraction hose off the top.
+      const white = mat('white', { color: 0xe8e8e4, roughness: 0.6 });
+      const glass = ghost ? gm : new T.MeshStandardMaterial({ color: 0x223344, transparent: true, opacity: 0.5, roughness: 0.1 });
+      box(1.6, 0.15, 1.6, steelDark, 0, 0.075, 0);
+      box(1.6, 2.0, 1.4, white, 0, 1.15, -0.1);                          // sealed cabinet: 0.15 -> 2.15
+      box(0.9, 0.9, 0.05, glass, 0, 1.3, 0.61);                          // window
+      box(0.04, 0.5, 0.05, dark, 0.5, 1.3, 0.63);                        // door handle
+      box(1.0, 0.1, 0.6, grey, 0, 0.75, 0.0);                            // table inside
+      const sp = cyl(0.03, 0.25, chrome, 0, 1.4, 0.0); parts.spin.push({ mesh: sp, axis: 'y' });
+      box(0.1, 0.08, 0.1, dark, 0, 0.84, 0.0);                           // an electrode blank
+      cyl(0.09, 0.3, dark, 0.4, 2.3, -0.4);                              // extraction stub on the roof
+      tube(0.09, mat('hose', { color: 0x333, roughness: 0.9 }), [0.4, 2.45, -0.4], [1.1, 1.6, -0.9]); // the hose, down to the dust collector
+      box(0.6, 1.2, 0.6, dark, 1.1, 0.6, -0.9);                          // dust collector unit, right rear
+      cyl(0.09, 0.4, dark, 1.1, 1.4, -0.9);                              // its inlet
+      box(0.5, 0.6, 0.08, dark, 0.95, 1.5, 0.66);                        // pendant on the right front
+      const scr = new T.Mesh(new T.PlaneGeometry(0.34, 0.26), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x2a9a9a, emissiveIntensity: 0.6 })); scr.position.set(0.95, 1.6, 0.705); g.add(scr);
+      if (!ghost) { nameplate(T, def, g, -0.45, 1.95, 0.61, 0, 0.36); parts.lamps = lightStack(T, g, -0.6, 2.15, -0.5); parts.button = greenButton(T, g, 0.95, 1.28, 0.705); }
+      break;
+    }
+    case 'laser': {
+      // Alfa Lazer: a bench cabinet with a microscope head on an arm over a small work chamber.
+      box(0.9, 0.8, 0.8, steelDark, 0, 0.4, 0);                          // cabinet
+      box(0.9, 0.06, 0.8, grey, 0, 0.83, 0);                             // top
+      box(0.6, 0.5, 0.5, dark, -0.1, 1.11, -0.1);                        // chamber at the back of the top
+      box(0.4, 0.3, 0.02, ghost ? gm : new T.MeshStandardMaterial({ color: 0x223344, transparent: true, opacity: 0.5 }), -0.1, 1.15, 0.16); // chamber window
+      cyl(0.03, 0.5, chrome, 0.3, 1.1, 0.0);                             // column
+      box(0.3, 0.08, 0.3, grey, 0.15, 1.4, 0.0);                         // arm
+      cyl(0.05, 0.3, dark, 0.0, 1.55, 0.0);                              // microscope head
+      cyl(0.03, 0.12, dark, 0.0, 1.73, 0.03, g, 0, -0.6);                // eyepieces
+      box(0.3, 0.2, 0.02, dark, 0.3, 0.95, 0.4);                         // touch panel on the front
+      cyl(0.015, 0.3, chrome, -0.25, 0.9, 0.3, g, 0, 0.3);               // the hand piece on a rest
+      if (!ghost) { nameplate(T, def, g, -0.25, 0.6, 0.41, 0, 0.3); parts.lamps = lightStack(T, g, 0.35, 0.86, -0.3); parts.button = greenButton(T, g, 0.3, 0.75, 0.41); }
       break;
     }
     case 'bench': {

@@ -55,13 +55,17 @@ export class ShopAudio {
     if (this.compOn && this.compT > 9) { this.compOn = false; this.compT = 0; this.tick(0.12, 400); }
     const compNear = falloff(scene.compressor, 3.5);
     this.compG.gain.setTargetAtTime(this.compOn ? 0.02 + 0.09 * compNear : 0, now, 0.4);
-    // spindles: the nearest running machine sets the level
-    let near = 0;
-    for (const p of scene.running || []) near = Math.max(near, falloff(p, 2.2));
+    // the nearest running machine sets the level and the kind of noise
+    let near = 0, kind = null;
+    for (const p of scene.running || []) { const k = falloff(p, 2.2); if (k > near) { near = k; kind = p.kind; } }
     const spinning = (scene.running || []).length > 0;
-    this.spinG.gain.setTargetAtTime(spinning ? 0.006 + 0.05 * near : 0, now, 0.25);
-    const f = spinning ? 180 : 60;
-    this.spin.frequency.setTargetAtTime(f, now, 1.2); this.spin2.frequency.setTargetAtTime(f * 2.01, now, 1.2);
+    const prof = { vmc: [900, 0.055, 'sawtooth', 1800], mill: [180, 0.05, 'sawtooth', 900], lathe: [120, 0.045, 'sawtooth', 700], grinder: [1400, 0.04, 'sawtooth', 2600], drill: [300, 0.04, 'triangle', 1200], saw: [90, 0.05, 'sawtooth', 500], sinker: [55, 0.045, 'square', 400], wire: [70, 0.035, 'square', 500], bench: [0, 0, 'sine', 400] }[kind] || [180, 0.05, 'sawtooth', 900];
+    this.spinG.gain.setTargetAtTime(spinning && prof[1] ? 0.004 + prof[1] * near : 0, now, 0.25);
+    if (kind && this.spin.type !== prof[2]) { this.spin.type = prof[2]; }
+    const f = spinning ? prof[0] : 60;
+    this.spin.frequency.setTargetAtTime(f, now, 0.8); this.spin2.frequency.setTargetAtTime(f * 2.01, now, 0.8); this.spinF.frequency.setTargetAtTime(prof[3], now, 0.5);
+    // EDM crackle: random ticks while a sinker or wire is the nearest thing running
+    if ((kind === 'sinker' || kind === 'wire') && Math.random() < dt * 14) this.noise(0.02, 3000 + Math.random() * 3000, 0.03 * near, 'bandpass', 4);
   }
 
   noise(dur, freq, gain, type = 'bandpass', q = 1) {

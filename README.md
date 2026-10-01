@@ -96,7 +96,20 @@ Then open http://localhost:8080/.
   hang-ups. Each defect becomes a revision stage and another tryout. Terms are 30 on PO, 30 at T1,
   40 on approval. A mold with no notes at T1 goes on the wall.
 
-Not yet: Stage 2 machines, the crane, the second building, year-end summaries. Next.
+- Stage 2. A spotting press (fit and spot in a third of the time, and the flash goes away), a CMM
+  (dimensions stop being out at tryout), a graphite mill with its own extraction (cut electrodes on
+  the VMC instead and the dust gets into everything), a hard-milling VMC that runs every stage in
+  three quarters of the time, a CNC grinder that runs lights-out, and a laser welder that brings in
+  repair work for anyone who can weld. The overhead crane goes up on runway beams along both walls;
+  without it a real mold goes to Bramalea on a flatbed for fit and spot, and the riggers want cash to
+  get a big machine off the truck.
+- Things that happen. The bible's event table in the inbox: "just a small change" mid-build, steel
+  not on the truck, slow payers, Rick calling before six, a poaching call for your best moldmaker,
+  the inspector after a WSIB claim, the radio war, a customer going under, and the odd compliment.
+  Every fifty-two weeks the night screen sums the year up.
+- Each machine sounds like itself: a VMC whines, a grinder screams, the EDMs crackle.
+
+Not yet: the second building, year-end valuation, the retirement ending. Next.
 
 ## Layout
 
@@ -119,6 +132,7 @@ js/person.js      a person as shapes: capsule limbs, a face, hair, caps, beards,
 js/crew.js        the crew on the floor: arriving, finding work, walking, setting up, lunch, leaving
 js/nav.js         a half-metre grid and A*, so nobody walks through the lathe
 js/items.js       things you pick up and throw, and what happens when they land
+js/events.js      the things that happen overnight, and the year summary
 js/game.js        render loop, interaction, keys, pause, autosave
 js/audio.js       every sound, synthesized. the compressor is most of them.
 js/textures.js    canvas textures: concrete, block, tarp, nameplates, the sign

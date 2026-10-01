@@ -48,7 +48,7 @@ export function makeCandidate(state) {
   const quirk = pick(QUIRKS);
   return {
     id: state.nextPerson++, name: pick(FIRST), role: roleId, roleName: role.name, blurb: pick(role.blurbs), quirk: quirk[1], quirkId: quirk[0],
-    claimed, actual, wage: rint(role.wage[0], role.wage[1]), look: randomLook(),
+    claimed, actual, wage: rint(role.wage[0], role.wage[1]), look: randomLook(), weld: roleId === 'moldmaker' && Math.random() < 0.25,
     morale: 0.72, startDay: null, revealed: false, daysWorked: 0, daysIdle: 0, grievance: null, lastRaise: 0, crashes: 0, saidToday: false,
   };
 }
@@ -70,9 +70,9 @@ export function fire(state, p) {
   return sev;
 }
 
-export function skillFor(p, kind) { return p.actual[{ mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench', saw: 'general', drill: 'general', vmc: 'mill', sinker: 'mill', wire: 'mill' }[kind] || 'general'] || 0; }
+export function skillFor(p, kind) { return p.actual[{ mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench', saw: 'general', drill: 'general', vmc: 'mill', sinker: 'mill', wire: 'mill', spot: 'bench', cmm: 'general', graphite: 'mill', laser: 'bench' }[kind] || 'general'] || 0; }
 // CNC wants a machinist or a moldmaker; an apprentice on a VMC is how you learn what a VMC costs
-export function canRun(p, kind) { if (kind === 'vmc' || kind === 'sinker' || kind === 'wire') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
+export function canRun(p, kind) { if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
 // one setup step: pass or skip
 export function setupRoll(p, kind) { const sk = skillFor(p, kind); return Math.random() < 0.42 + sk * 0.115 + (p.morale - 0.5) * 0.12; }
 export function moraleWord(m) { return m >= 0.85 ? 'happy' : m >= 0.6 ? 'fine' : m >= 0.4 ? 'grumbling' : m >= 0.2 ? 'disgruntled' : 'done'; }

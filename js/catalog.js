@@ -56,6 +56,42 @@ export const MACHINES = [
     w: 2.4, d: 1.7, h: 2.5, priceNew: 150000, priceUsed: 60000, stage: 1, power: 2, air: false,
     stations: ['wire'], manual: false, tools: 1,
   },
+  {
+    id: 'spot', kind: 'spot', name: 'Spotting press', brand: 'Millennial', model: 'BV-80', cnc: false,
+    blurb: 'Blues the parting line and closes the halves under a hundred tonnes, slowly. Fit and spot takes a third of the time and the flash goes away. Does not want to work Saturdays either.',
+    w: 2.0, d: 1.6, h: 2.7, priceNew: 80000, priceUsed: 30000, stage: 2, power: 1, air: true,
+    stations: ['spot'], manual: true, speed: 0.7,
+  },
+  {
+    id: 'cmm', kind: 'cmm', name: 'CMM', brand: 'Zeus', model: 'Olympus 7', cnc: true,
+    blurb: 'A granite table, a bridge, a ruby on a stick. Tenths, on a report, with a date. Dimensions stop being out at tryout. Wants a cool room and gets this one.',
+    w: 1.6, d: 1.4, h: 2.3, priceNew: 110000, priceUsed: 50000, stage: 2, power: 1, air: true,
+    stations: ['inspect'], manual: false, tools: 1,
+  },
+  {
+    id: 'graphite', kind: 'graphite', name: 'Graphite mill', brand: 'Rudders', model: 'RXG 400', cnc: true,
+    blurb: 'A dedicated carbon cutter with its own extraction. Electrodes at 40,000 rpm and no dust in the coffee. Silence in the room.',
+    w: 1.6, d: 1.6, h: 2.2, priceNew: 80000, priceUsed: 35000, stage: 2, power: 2, air: true,
+    stations: ['graphite'], manual: false, tools: 16,
+  },
+  {
+    id: 'hardmill', kind: 'vmc', name: 'Hard-milling VMC', brand: 'Mikano', model: 'V33ish', cnc: true,
+    blurb: 'The mold shop\'s dream mill. Finishes in hardened steel all night and leaves nothing for the polisher to do. Every VMC stage runs in three quarters of the time. The service tech flies in.',
+    w: 2.4, d: 2.2, h: 2.9, priceNew: 300000, priceUsed: 130000, stage: 2, power: 3, air: true,
+    stations: ['cnc'], manual: false, tools: 30, speed: 0.75,
+  },
+  {
+    id: 'cncgrind', kind: 'grinder', name: 'CNC surface grinder', brand: 'Okeymoto', model: 'ACC-CNC', cnc: true,
+    blurb: 'Grinding you can walk away from. Plates flat and parallel overnight, dressed by itself. Runs lights-out and does not scream as much.',
+    w: 1.8, d: 1.8, h: 2.0, priceNew: 90000, priceUsed: 40000, stage: 2, power: 2, air: true,
+    stations: ['grind'], manual: false, tools: 1, speed: 0.6,
+  },
+  {
+    id: 'laser', kind: 'laser', name: 'Laser welder', brand: 'Alfa Lazer', model: 'AL-200', cnc: false,
+    blurb: 'Welds a ding in a cavity without cooking the steel around it. Repairs and revisions without scrapping. Needs somebody who can weld. You can weld.',
+    w: 0.9, d: 0.8, h: 1.6, priceNew: 60000, priceUsed: 25000, stage: 2, power: 1, air: false,
+    stations: ['weld'], manual: true,
+  },
 ];
 
 export const byId = (id) => MACHINES.find((m) => m.id === id);
@@ -70,6 +106,7 @@ export const UPGRADES = [
   { id: 'door', name: 'A real bay door', group: 'door', price: 6500, days: 2, blurb: 'Insulated roll-up. Replaces the tarp. Everyone cheers. The heating bill drops.', gives: { door: true }, needs: null },
   { id: 'fire', name: 'Fire suppression on the EDMs', group: 'safety', price: 3500, days: 1, blurb: 'A bottle, a sensor, a sign. For the night the sinker decides to be a candle.', gives: { fire: true }, needs: null },
   { id: 'toolbreak', name: 'Tool-break detection', group: 'safety', price: 2200, days: 1, blurb: 'A laser in the VMC that notices the cutter is gone before the cutter does. Lights-out gets safer, not safe.', gives: { toolbreak: true }, needs: null },
+  { id: 'crane', name: 'Overhead crane, 5 tonne', group: 'crane', price: 18000, days: 4, blurb: 'Runway beams along both walls, a bridge, a hoist. Everyone stops to watch the first lift. Until then anything over a pallet jack goes out, and so does fit-and-spot on a real mold.', gives: { crane: true }, needs: null },
   { id: 'dust', name: 'Dust extraction', group: 'safety', price: 2800, days: 1, blurb: 'A vacuum for cutting graphite. Without it the dust gets into the ways, the coffee, and the crew.', gives: { dust: true }, needs: null },
 ];
 

@@ -211,6 +211,7 @@ export class Shop {
     for (const { pivot, phase } of this.strips) pivot.rotation.x = Math.sin(this.t * 1.3 + phase) * 0.06 + Math.sin(this.t * 3.1 + phase * 2) * 0.02;
     if (this.fixtures[6]) { this.flickerT -= dt; if (this.flickerT <= 0) { this.flickerT = 0.05 + Math.random() * 1.8; this.flickMat.emissiveIntensity = Math.random() < 0.3 ? 0.15 : 1.6; } }
     if (this.compressor) { this.compressor.position.y = compOn ? Math.sin(this.t * 60) * 0.004 : 0; }
+    if (this.craneBridge && this.craneTarget) { const b = this.craneBridge, t = this.craneTrolley; b.position.z += (this.craneTarget.z - b.position.z) * Math.min(1, dt * 0.3); t.position.x += (this.craneTarget.x - t.position.x) * Math.min(1, dt * 0.3); }
     const p = this.dust.geometry.attributes.position.array;
     for (let i = 0; i < p.length; i += 3) { p[i] += Math.sin(this.t * 0.4 + i) * 0.0015; p[i + 1] += 0.002 + Math.cos(this.t * 0.3 + i) * 0.002; if (p[i + 1] > 3.4) p[i + 1] = 0; }
     this.dust.geometry.attributes.position.needsUpdate = true;
@@ -232,6 +233,41 @@ export class Shop {
     }
     this.rollup.visible = real; this.tarpGroup.visible = !real;
   }
+  // the overhead crane: runway beams along both long walls, a bridge, a trolley and a hook
+  setCrane(on) {
+    if (this.craneOn === on) return; this.craneOn = on;
+    const T = this.T;
+    if (!this.crane && on) {
+      const g = new T.Group();
+      const orange = new T.MeshStandardMaterial({ color: 0xe0761a, roughness: 0.55, metalness: 0.3 });
+      const steel = new T.MeshStandardMaterial({ color: 0x8a8f94, roughness: 0.5, metalness: 0.5 });
+      const y = 5.0;
+      for (const sx of [-this.hx + 0.3, this.hx - 0.3]) {
+        const beam = new T.Mesh(new T.BoxGeometry(0.25, 0.4, this.hz * 2 - 0.6), orange); beam.position.set(sx, y, 0); g.add(beam);
+        for (let z = -this.hz + 1.5; z < this.hz; z += 3) { const col = new T.Mesh(new T.BoxGeometry(0.18, y - 0.2, 0.18), steel); col.position.set(sx, (y - 0.2) / 2, z); g.add(col); }
+      }
+      const bridge = new T.Group(); bridge.position.set(0, y + 0.4, -2);
+      const girder = new T.Mesh(new T.BoxGeometry(this.hx * 2 - 0.4, 0.5, 0.35), orange); bridge.add(girder);
+      for (const sx of [-this.hx + 0.3, this.hx - 0.3]) { const end = new T.Mesh(new T.BoxGeometry(0.4, 0.3, 1.0), steel); end.position.set(sx, -0.1, 0); bridge.add(end); }
+      const trolley = new T.Group(); trolley.position.set(1.5, -0.35, 0);
+      const tb = new T.Mesh(new T.BoxGeometry(0.6, 0.4, 0.6), steel); trolley.add(tb);
+      const drum = new T.Mesh(new T.CylinderGeometry(0.12, 0.12, 0.4, 12), new T.MeshStandardMaterial({ color: 0x333 })); drum.rotation.z = Math.PI / 2; drum.position.y = -0.1; trolley.add(drum);
+      const cable = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 1.6, 6), new T.MeshStandardMaterial({ color: 0x222 })); cable.position.y = -1.0; trolley.add(cable);
+      const hook = new T.Mesh(new T.TorusGeometry(0.1, 0.03, 8, 16, Math.PI * 1.5), new T.MeshStandardMaterial({ color: 0xd8b24a, metalness: 0.6, roughness: 0.4 })); hook.position.y = -1.9; hook.rotation.z = Math.PI * 0.75; trolley.add(hook);
+      const block = new T.Mesh(new T.BoxGeometry(0.2, 0.3, 0.14), new T.MeshStandardMaterial({ color: 0xd0a020 })); block.position.y = -1.75; trolley.add(block);
+      bridge.add(trolley); g.add(bridge);
+      // the pendant on a cable, hanging from the bridge
+      const pend = new T.Mesh(new T.BoxGeometry(0.1, 0.3, 0.06), new T.MeshStandardMaterial({ color: 0xe8e400 })); pend.position.set(-1.0, -2.2, 0.3); bridge.add(pend);
+      const pcable = new T.Mesh(new T.CylinderGeometry(0.008, 0.008, 2.0, 6), new T.MeshStandardMaterial({ color: 0x222 })); pcable.position.set(-1.0, -1.1, 0.3); bridge.add(pcable);
+      this.craneBridge = bridge; this.craneTrolley = trolley;
+      this.scene.add(g); this.crane = g; this.roofStuff.push(g);
+      this.tag(g, 'crane', 'the crane. five tonnes. everyone stopped to watch the first lift.');
+    }
+    if (this.crane) this.crane.visible = on;
+  }
+  // the crane drifts to where the work is, slowly, when something heavy is on the floor
+  craneTo(x, z) { this.craneTarget = { x, z }; }
+
   // a bigger compressor shows up as a bigger tank
   setAir(slots) {
     if (this.airSlots === slots) return; this.airSlots = slots;
