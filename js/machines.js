@@ -641,6 +641,12 @@ export class MachineView {
     this.noteG = new T.Group(); this.group.add(this.noteG); this.noteKey = list.join('~');
     const d = this.def; list.slice(0, 4).forEach((t, i) => { const n = stickyNote(T, t); n.position.set(-d.w / 2 + 0.3 + i * 0.17, Math.min(d.h - 0.3, 1.15 + (i % 2) * 0.12), d.d / 2 + 0.015); this.noteG.add(n); });
   }
+  // electrodes in a rack beside the sinker: one graphite block per electrode cut and waiting to burn
+  setElectrodes(n) {
+    if (this.def.kind !== 'sinker') return; n = Math.min(6, n);
+    if (!this.rack) { const T = this.T, g = new T.Group(); g.position.set(-this.def.w / 2 - 0.35, 0, 0.2); const post = new T.Mesh(new T.BoxGeometry(0.06, 1.1, 0.06), new T.MeshStandardMaterial({ color: 0x8a8f94, metalness: 0.4, roughness: 0.6 })); post.position.y = 0.55; g.add(post); const shelf = new T.Mesh(new T.BoxGeometry(0.5, 0.03, 0.3), post.material); shelf.position.y = 1.1; g.add(shelf); this.rackSlots = []; for (let i = 0; i < 6; i++) { const e = new T.Mesh(new T.BoxGeometry(0.07, 0.1, 0.07), new T.MeshStandardMaterial({ color: 0x1e1e20, roughness: 0.95 })); e.position.set(-0.2 + (i % 3) * 0.15, 1.165, -0.08 + Math.floor(i / 3) * 0.16); e.visible = false; g.add(e); this.rackSlots.push(e); } g.traverse((o) => { o.raycast = () => {}; }); this.group.add(g); this.rack = g; }
+    this.rack.visible = n > 0; this.rackSlots.forEach((e, i) => { e.visible = i < n; });
+  }
   sync() { const m = this.m; this.group.position.set(m.x, 0, m.z); this.group.rotation.y = (m.rot * Math.PI) / 180; this.group.visible = !!m.placed; }
   update(dt) {
     const p = this.group.userData.parts, m = this.m;
@@ -655,7 +661,15 @@ export class MachineView {
     // work in progress: a block on the table while a job is loaded. the sinker always has one in the tank.
     const PART = { gantry: [0, 1.6, 0.2, 1.4, 0.3, 1.0], bigsinker: [0.6, 1.27, 0.3, 0.9, 0.12, 0.7], bigwire: [0, 1.24, 0.35, 1.0, 0.06, 0.6], gundrill: [-1.5, 1.35, 0.0, 0.5, 0.1, 0.4], bigvmc: [0, 1.36, 0.0, 0.5, 0.12, 0.4], vmc: [0, 1.13, 0.25, 0.26, 0.16, 0.2], mill: [-0.1, 1.2, 0.05, 0.22, 0.1, 0.16], lathe: [0.12, 1.17, -0.05, 0.3, 0.05, 0.05], grinder: [0, 1.0, 0.15, 0.3, 0.06, 0.14], wire: [0, 1.09, 0.2, 0.3, 0.14, 0.24], drill: [0, 1.05, 0.1, 0.16, 0.06, 0.12], saw: [0.2, 0.95, 0, 0.5, 0.1, 0.1], graphite: [0, 1.1, 0.2, 0.18, 0.12, 0.14] }[this.def.look] || { gundrill: [-1.5, 1.35, 0.0, 0.5, 0.1, 0.4], bigvmc: [0, 1.36, 0.0, 0.5, 0.12, 0.4], vmc: [0, 1.13, 0.25, 0.26, 0.16, 0.2], mill: [-0.1, 1.2, 0.05, 0.22, 0.1, 0.16], lathe: [0.12, 1.17, -0.05, 0.3, 0.05, 0.05], grinder: [0, 1.0, 0.15, 0.3, 0.06, 0.14], wire: [0, 1.09, 0.2, 0.3, 0.14, 0.24], drill: [0, 1.05, 0.1, 0.16, 0.06, 0.12], saw: [0.2, 0.95, 0, 0.5, 0.1, 0.1], graphite: [0, 1.1, 0.2, 0.18, 0.12, 0.14] }[this.def.kind];
     if (PART && !this.part) { const T = this.T, geo = this.def.kind === 'lathe' ? new T.CylinderGeometry(PART[4], PART[4], PART[3], 14) : new T.BoxGeometry(PART[3], PART[4], PART[5]); this.part = new T.Mesh(geo, new T.MeshStandardMaterial({ color: 0x7a8088, metalness: 0.6, roughness: 0.4 })); if (this.def.kind === 'lathe') this.part.rotation.z = Math.PI / 2; this.part.position.set(PART[0], PART[1], PART[2]); this.part.raycast = () => {}; this.group.add(this.part); }
-    if (this.part) this.part.visible = !!m.job;
+    if (this.part) this.part.visible = !!m.job && !(this.def.kind === 'bench' && m.job && /fit|spot/i.test(m.job.label || ''));
+    // a base on the bench, blued up: a mold half with a blue parting face, a straightedge, a tube of bluing. only while fitting.
+    if (this.def.kind === 'bench') {
+      const fitting = !!(m.job && /fit|spot/i.test(m.job.label || ''));
+      if (fitting && !this.blued) { const T = this.T, g = new T.Group(); const half = new T.Mesh(new T.BoxGeometry(0.6, 0.18, 0.44), new T.MeshStandardMaterial({ color: 0x8a9096, metalness: 0.6, roughness: 0.35 })); half.position.y = 0.09; g.add(half); const face = new T.Mesh(new T.PlaneGeometry(0.56, 0.4), new T.MeshStandardMaterial({ color: 0x2a4aa0, roughness: 0.9 })); face.rotation.x = -Math.PI / 2; face.position.y = 0.181; g.add(face); const cav = new T.Mesh(new T.BoxGeometry(0.26, 0.04, 0.18), new T.MeshStandardMaterial({ color: 0xcfd4d8, metalness: 0.7, roughness: 0.25 })); cav.position.y = 0.17; g.add(cav); const edge = new T.Mesh(new T.BoxGeometry(0.5, 0.03, 0.02), new T.MeshStandardMaterial({ color: 0xcfd4d8, metalness: 0.8, roughness: 0.2 })); edge.position.set(0.05, 0.2, 0.26); edge.rotation.y = 0.2; g.add(edge); const tube = new T.Mesh(new T.CylinderGeometry(0.018, 0.018, 0.1, 10), new T.MeshStandardMaterial({ color: 0x2a4aa0 })); tube.position.set(-0.42, 0.05, 0.2); tube.rotation.z = 1.2; g.add(tube); g.position.set(0.15, 0.935, 0.0); g.traverse((o) => { o.raycast = () => {}; }); this.group.add(g); this.blued = g; }
+      if (this.blued) this.blued.visible = fitting;
+    }
+    // the spotting press: when it runs, the parting line is blue
+    if (this.def.kind === 'spot') { if (!this.blueLine) { const T = this.T; this.blueLine = new T.Mesh(new T.BoxGeometry(1.2, 0.02, 0.9), new T.MeshStandardMaterial({ color: 0x2a4aa0, roughness: 0.9 })); this.blueLine.position.set(0, 0.8, 0); this.blueLine.raycast = () => {}; this.group.add(this.blueLine); } this.blueLine.visible = !!m.running; }
     // the EDMs spark when they run; the VMCs spray coolant
     const edm = this.def.kind === 'sinker' || this.def.kind === 'wire';
     if (edm && m.running) {

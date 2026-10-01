@@ -423,6 +423,11 @@ Then open http://localhost:8080/.
   (or at Bramalea), and a bumper fascia mold with six slides and a D-2 texture arrives for the
   shops that can hold it.
 
+- Work in progress you can see (§13.1). A mold half on the bench, blued up, with a straightedge and
+  the tube of bluing, while anyone is fitting; the parting line goes blue between the platens
+  while the spotting press runs; and a rack beside the sinker fills with graphite electrodes as
+  they come off the mill and empties as they burn.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
