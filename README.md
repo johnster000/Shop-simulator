@@ -49,7 +49,8 @@ Then open http://localhost:8080/.
 - Walk the floor in first person; lift the roof off with `V` and place machines on a grid.
 - The Stage 0 catalogue: knee mill, lathe, surface grinder, bench, drill press, band saw, new or used.
 - The clock, minute for minute, with 2x, 3x and END DAY; the five o'clock choice; the night at home; fatigue the morning after a late one. Cash, weekly rent and hydro, a ledger, autosave when you lock up.
-- Walk up to a machine, open its panel, do or skip the setup steps, and press CYCLE START.
+- Walk up to a machine, open its panel, and do the setup steps: each is a few seconds of hand-eye work
+  (clamp it, indicate it in, pick a speed). Botch one and that step is skipped. Then press CYCLE START.
   Skipped steps are how things break. Money fixes it.
 
 Not yet: contracts, jobs, people, CNC, the inbox. Next.
@@ -68,6 +69,7 @@ js/machines.js    machines as shapes, with nameplates and light stacks
 js/iso.js         the overhead view and placing machines in it
 js/player.js      first-person controls, collision, touch
 js/ui.js          HUD, clipboard (shop, machines, bank), machine panel
+js/minigames.js   the setup minigames: clamp, indicate, speed
 js/game.js        render loop, interaction, keys, pause, autosave
 js/audio.js       every sound, synthesized. the compressor is most of them.
 js/textures.js    canvas textures: concrete, block, tarp, nameplates, the sign

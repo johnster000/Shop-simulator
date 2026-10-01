@@ -2,6 +2,7 @@
 import { MACHINES, byId } from './catalog.js';
 import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED } from './sim.js';
 import { SHOP } from './catalog.js';
+import { play as playMinigame } from './minigames.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -115,7 +116,14 @@ export class UI {
     const m = this.panelM; if (!m) return;
     const d = byId(m.id), s = this.state;
     $('panelTitle').textContent = `${d.brand.toUpperCase()} ${d.name.toUpperCase()}`;
-    const steps = d.kind === 'bench' ? [] : [['clamp', 'Clamp the work'], ['indicate', d.kind === 'lathe' ? 'Indicate the chuck' : 'Indicate it in'], ['speed', 'Pick a speed']];
+    const steps = ({
+      mill: [['clamp', 'Clamp the work', 'clamp'], ['indicate', 'Indicate it in', 'indicate'], ['speed', 'Pick a speed', 'speed']],
+      lathe: [['clamp', 'Chuck it up', 'clamp'], ['indicate', 'Indicate the part', 'indicate'], ['speed', 'Pick a speed', 'speed']],
+      grinder: [['clamp', 'Lock the mag chuck', 'clamp'], ['indicate', 'Dress the wheel', 'indicate'], ['speed', 'Set the downfeed', 'speed']],
+      drill: [['clamp', 'Clamp the work', 'clamp'], ['speed', 'Pick a speed', 'speed']],
+      saw: [['clamp', 'Clamp the stock', 'clamp'], ['speed', 'Pick a blade speed', 'speed']],
+      bench: [],
+    })[d.kind] || [];
     const cl = m.checklist || (m.checklist = {});
     const body = $('panelBody');
     if (d.kind === 'bench') { body.innerHTML = `<p>A vise, a lamp, a drawer that sticks.</p><p class="note">Fitting, polishing and assembly happen here, once there is something to fit. There is not, yet. The next build brings the first contract.</p>`; return; }
@@ -130,10 +138,17 @@ export class UI {
       <ul class="check">${steps.map(([k, t]) => `<li class="${cl[k] === true ? 'done' : cl[k] === 'skip' ? 'skipped' : ''}"><span>${cl[k] === true ? '✓ ' : cl[k] === 'skip' ? '✗ ' : '□ '}${t}</span>
         <span>${cl[k] ? '' : `<button data-do="${k}">DO IT</button> <button class="skip" data-skip="${k}">SKIP</button>`}</span></li>`).join('')}</ul>
       <button class="cycle" id="cycleStart">CYCLE START</button>
-      <p class="note">Skipping steps is how crashes happen. The button does not know what you skipped. The machine finds out.</p>`;
+      <p class="note">Each step is a few seconds of work. Botch it and the step is skipped. Skipped steps are how crashes happen.</p>`;
     body.querySelectorAll('[data-do]').forEach((b) => b.addEventListener('click', () => {
-      // tired: you are sure you did it. the machine will have an opinion.
-      cl[b.dataset.do] = this.fumble(0.8) ? 'thought' : true; this.audio.click(); this.renderPanel();
+      const k = b.dataset.do, step = steps.find((st) => st[0] === k);
+      this.audio.click();
+      body.innerHTML = '<div id="mg"></div>';
+      playMinigame(step[2], { el: body.querySelector('#mg'), fatigue: s.fatigue || 0, audio: this.audio, label: step[1] }).then((r) => {
+        if (!this.panelM) return;
+        // won: done. won while tired: sometimes you only think it is done. lost: skipped.
+        if (r.ok) cl[k] = this.fumble(0.5) ? 'thought' : true; else { cl[k] = 'skip'; s.stats.skipped++; }
+        this.renderPanel();
+      });
     }));
     body.querySelectorAll('[data-skip]').forEach((b) => b.addEventListener('click', () => { cl[b.dataset.skip] = 'skip'; s.stats.skipped++; this.audio.click(0.2, 400); this.renderPanel(); }));
     $('cycleStart').addEventListener('click', () => {
