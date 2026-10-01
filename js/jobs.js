@@ -398,6 +398,14 @@ export function inspect(state, job) {
   }
   return { ok: true, found: false };
 }
+// skip the water lines (bible §12.2): the gun drill stage goes away, the hours with it. the mold runs hot, warps, and the molder calls.
+export function canSkipWater(job) { return job.status === 'work' && job.items.some((it) => { const q = it.stages.find((x) => !x.done); return q && q.kind === 'gundrill' && !q.out; }); }
+export function skipWater(state, job) {
+  if (!canSkipWater(job)) return { ok: false }; let n = 0;
+  for (const it of job.items) for (const q of it.stages) if (q.kind === 'gundrill' && !q.done) { q.done = true; q.skipped = true; n++; }
+  job.noWater = true; if (state.achievements && !state.achievements.includes('no_water')) state.achievements.push('no_water');
+  return { ok: true, n };
+}
 export function canShipEarly(job) { return job.mold && job.status === 'work' && job.tryouts >= 1 && job.items.every((it) => it.stages.every((q) => q.done)) && job.jobStages.some((q) => !q.done); }
 export function shipEarly(state, job) {
   if (!canShipEarly(job)) return { ok: false };
@@ -449,7 +457,7 @@ export function resolveTryout(state, job, byId) {
   for (const d of DEFECTS) {
     if (d[2] === 'slide' && !(spec.slides > 0)) continue;
     if (d[0] === 'Hot runner drool' && spec.runner !== 'hot') continue;
-    let w = d[5]; if (d[0] === 'Dimension out' && hasCmm) w *= 0.3; if (d[0] === 'Dimension out' && state.machines.some((m) => m.placed && m.bumped)) w *= 2.5; if (d[0] === 'Flash' && job.spotted) w *= 0.4; if (d[0] === 'Stuck part' && job.rushedPolish) w *= 2.2;
+    let w = d[5]; if (d[0] === 'Dimension out' && hasCmm) w *= 0.3; if (d[0] === 'Dimension out' && state.machines.some((m) => m.placed && m.bumped)) w *= 2.5; if (d[0] === 'Flash' && job.spotted) w *= 0.4; if (d[0] === 'Stuck part' && job.rushedPolish) w *= 2.2; if (job.noWater && (d[0] === 'Warp' || d[0] === 'Sink marks')) w *= 2.5;
     if (Math.random() < Math.max(0.02, base * w)) found.push(d);
   }
   state.samples = { job: job.id, t: job.tryouts, defects: found.map((d) => d[0]), day: state.day, customer: c.name }; // the sample parts, on the bench, for everyone to see
@@ -508,6 +516,7 @@ export function ship(state, job) {
   if (job.mold && !job.cheap && !job.shippedEarly) job.millionDay = state.day + 150 + Math.floor(Math.random() * 120);
   if (job.shippedEarly) job.publicTryout = state.day + 3 + Math.floor(Math.random() * 3);
   if (!job.mold && job.hiddenOut && !job.inspected) job.foundAtCustomer = state.day + 2 + Math.floor(Math.random() * 4);
+  if (job.noWater && job.mold) job.hotDay = state.day + 6 + Math.floor(Math.random() * 10);
   if (job.cheap) job.wearDay = state.day + (job.mold ? 25 + Math.floor(Math.random() * 30) : Math.random() < 0.35 ? 5 + Math.floor(Math.random() * 6) : null); if (job.wearDay === null) delete job.wearDay;
   // quote badly wrong: the real number next to the quoted one, in a frame
   if (job.estimate) { const actual = Math.round(job.estimate + job.scrap * (job.mold ? job.spec.steelCost : job.material) * 1.5 + Math.max(0, job.tryouts - 1) * 400 + (late > 0 ? late * 60 : 0)); if (job.price < actual * 0.78) { state.framed = { quote: job.price, actual, title: job.title, day: state.day }; note += ` The margin on this one was ${Math.round((job.price / actual - 1) * 100)}%. The estimate sheet is going in a frame.`; } }

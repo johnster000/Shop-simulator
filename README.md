@@ -442,6 +442,11 @@ Then open http://localhost:8080/.
   the inbox count and the jobs in work. And when you are wrecked (§10.4), the crew say so: you look
   like the tarp.
 
+- The last corner (§12.2): skip the water lines. A big mold's gun-drill stages can be waved
+  through from the JOBS tab, a day saved; the tool warps and sinks more at T1, and a week or two
+  after it ships the molder calls about a cycle time twice the quote, with a thermal camera
+  picture that is mostly red, and a credit note.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
