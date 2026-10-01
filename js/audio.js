@@ -47,11 +47,11 @@ export class ShopAudio {
     this.radioF = ctx.createBiquadFilter(); this.radioF.type = 'bandpass'; this.radioF.frequency.value = 1100; this.radioF.Q.value = 0.6;
     this.radioG = ctx.createGain(); this.radioG.gain.value = 0;
     this.radioF.connect(this.radioG); this.radioG.connect(this.master);
-    this.station = -1; this.step = 0; this.nextNote = 0;
+    this.station = -1; this.radioStep = 0; this.nextNote = 0;
     this.enabled = true;
   }
   // ---- the radio. five stations, each somebody's wrong station.
-  setStation(i) { this.station = i; this.step = 0; if (this.ctx) this.nextNote = this.ctx.currentTime + 0.05; }
+  setStation(i) { this.station = i; this.radioStep = 0; if (this.ctx) this.nextNote = this.ctx.currentTime + 0.05; }
   radioNote(freq, dur, gain, type = 'square', when = 0, decay = true) {
     const ctx = this.ctx, o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = freq;
     const t0 = when || ctx.currentTime; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * (decay ? 1 : 1.2));
@@ -64,7 +64,7 @@ export class ShopAudio {
   radioTick(near) {
     if (!this.ctx || this.station < 0 || near < 0.02) return;
     const ctx = this.ctx, now = ctx.currentTime; if (now < this.nextNote) return;
-    const st = this.station, n = this.step++, when = this.nextNote;
+    const st = this.station, n = this.radioStep++, when = this.nextNote;
     const N = (semi) => 110 * Math.pow(2, semi / 12);
     if (st === 0) { // classic rock: power chords, a kick, the same four bars since 1978
       const roots = [0, 0, 3, 5, 0, 0, 5, 3][Math.floor(n / 2) % 8]; const sixteenth = 0.125;
