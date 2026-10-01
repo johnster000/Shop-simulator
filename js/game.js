@@ -90,6 +90,7 @@ export function startShop(T, audio, state) {
   const hammerItem = items.make('hammer', shop.pcPos.x - 0.6, shop.pcPos.z + 0.2, { y: 0.77 });
   const keyItem = items.make('key', shop.hx - 1.6, shop.hz - 1.9, { y: 0.0 });
   let jarItem = items.make('jar', shop.jarPos.x, shop.jarPos.z, { y: shop.jarPos.y }), cakeItem = null;
+  let pinsItem = items.make('pins', shop.cribPos.pins.x, shop.cribPos.pins.z, { y: shop.cribPos.pins.y }), electrodeItem = items.make('electrode', shop.cribPos.electrode.x, shop.cribPos.electrode.z, { y: shop.cribPos.electrode.y });
   // tools that walk: the hammer and the chuck key leave overnight (events.js) and turn up in somebody's box
   function syncWalked() {
     for (const [kind, it] of [['hammer', hammerItem], ['key', keyItem]]) { const gone = (state.walked || []).some((w) => w.kind === kind); if (gone && items.held === it) items.drop(); it.mesh.visible = !gone; if (gone) { it.flying = false; it.mesh.position.set(it.home.x, -200, it.home.z); } else if (it.mesh.position.y < -100) it.mesh.position.set(it.home.x, it.home.y, it.home.z); }
@@ -177,6 +178,17 @@ export function startShop(T, audio, state) {
         ui.toast(`The coffee fund. On the floor. $${had} in change${had ? ' and a button' : ', which is to say a button'}. Glass everywhere. The jar was a pickle jar and it is now a story.`, 5000);
         for (const q of state.people) if (Math.random() < 0.8) crew.say(q, pick(['That was the FUND.', 'There goes my toonie.', 'I am not sweeping that.', 'Was that the jar? That was the jar.', 'Rick never paid in anyway.']), 3.5);
         for (const q of state.people) q.morale = Math.max(0, q.morale - 0.04);
+      } else if (kind === 'pins') {
+        items.remove(it); pinsItem = null; unlock('pins_everywhere'); post(state, 'Ejector pins, the ones that rolled under things', -45);
+        for (let i = 0; i < 40; i++) { const pin = new T.Mesh(new T.CylinderGeometry(0.004, 0.004, 0.14, 5), new T.MeshStandardMaterial({ color: 0xd8dce0, metalness: 0.85, roughness: 0.25 })); pin.position.set(x + (Math.random() - 0.5) * 2.2, 0.006, z + (Math.random() - 0.5) * 2.2); pin.rotation.set(Math.PI / 2, 0, Math.random() * Math.PI); scene.add(pin); setTimeout(() => scene.remove(pin), 90000); }
+        for (let i = 0; i < 6; i++) setTimeout(() => audio.noise(0.05, 3500 + Math.random() * 2500, 0.08, 'bandpass', 6), i * 70);
+        ui.toast('Two hundred ejector pins. On the floor. Under the mill. In the chips. In the drain. The apprentice is picking them up for an hour and will find the last one in March.', 5000);
+        const app = state.people.find((p) => p.role === 'apprentice'); if (app) { app.morale = Math.max(0, app.morale - 0.1); crew.say(app, pick(['I will get them.', 'All of them?', 'There is one in my boot.']), 3.5); } for (const q of state.people) if (q !== app && Math.random() < 0.5) crew.say(q, pick(['Not it.', 'Those were sorted by length.', 'Every one of those is a dollar.']), 3);
+      } else if (kind === 'electrode') {
+        items.remove(it); electrodeItem = null; unlock('graphite'); post(state, 'Graphite electrode, the second one', -60); splat(x, z, 0x151515, 0.45, 90000); audio.noise(0.15, 500, 0.15, 'lowpass');
+        for (let i = 0; i < 10; i++) { const bit = new T.Mesh(new T.BoxGeometry(0.02 + Math.random() * 0.03, 0.015, 0.02 + Math.random() * 0.03), new T.MeshStandardMaterial({ color: 0x1e1e20, roughness: 0.95 })); bit.position.set(x + (Math.random() - 0.5) * 0.8, 0.01, z + (Math.random() - 0.5) * 0.8); bit.rotation.y = Math.random() * 3; scene.add(bit); setTimeout(() => scene.remove(bit), 90000); }
+        ui.toast('The electrode. In pieces. Graphite dust in the air, on the floor, in the coffee, in your nose. A day on the mill, and $60 of blank, and it was the finisher.', 5000);
+        for (const q of state.people) { q.morale = Math.max(0, q.morale - 0.03); if (Math.random() < 0.5) crew.say(q, pick(['Do not breathe.', 'That was the finisher.', 'Black. Everything is black now.', 'I am going outside.']), 3.5); }
       } else if (kind === 'cake') {
         audio.noise(0.2, 300, 0.2, 'lowpass'); items.remove(it); cakeItem = null; splat(x, z, 0xf2ece2, 0.32, 60000); state.cake = null; unlock('cake_floor');
         ui.toast('The cake. On the floor. Icing side down, the way it goes. The apprentice is looking at it like it is still cake.', 4500);
@@ -255,6 +267,7 @@ export function startShop(T, audio, state) {
     m.job.operator = 'owner';
     runMachine(m, skipped, null);
     if (byId(m.id).cnc) unlock('first_cnc');
+    const od = state.ownerDays || { last: 0, streak: 0 }; if (od.last !== state.day) { od.streak = od.last === state.day - 1 || ((state.day - 1) % 7 === 0 && od.last === state.day - 3) ? od.streak + 1 : 1; od.last = state.day; state.ownerDays = od; if (od.streak >= 5) unlock('employee_month'); }
     if (!state.firstCycle) { state.firstCycle = true; unlock('first_cycle'); }
     else ui.toast(skipped ? pick(['You skipped a step. The machine noticed.', 'Bold.', 'That is how it starts.']) : pick(['Chips.', 'Making chips.', 'Nothing wrong with that.']));
   }
@@ -567,6 +580,7 @@ export function startShop(T, audio, state) {
     setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
     camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
     syncWalked(); syncCake(); if (!jarItem) { jarItem = items.make('jar', shop.jarPos.x, shop.jarPos.z, { y: shop.jarPos.y }); } jarShake();
+    if (!pinsItem) pinsItem = items.make('pins', shop.cribPos.pins.x, shop.cribPos.pins.z, { y: shop.cribPos.pins.y }); if (!electrodeItem) electrodeItem = items.make('electrode', shop.cribPos.electrode.x, shop.cribPos.electrode.z, { y: shop.cribPos.electrode.y });
     if ((state.day - 1) % 7 === 0) { state.doodle = null; const sour = state.people.filter((p) => p.morale < 0.45 && p.startDay != null && p.startDay <= state.day); if (sour.length && Math.random() < 0.5) { state.doodle = pick(['THE BOSS', 'YOU', '"management"', state.shopName.split(' ')[0].toUpperCase()]); unlock('the_foreman'); setTimeout(() => ui.toast('Somebody drew you on the whiteboard. The eyebrows are accurate. Nobody saw anything.', 4000), 3000); } }
     shop.setWhiteboard(whiteboardLines(), state.doodle || null);
     if (state.fatigue >= 0.25) ui.toast(state.fatigue >= 0.6 ? 'Day ' + state.day + '. You are wrecked. Read every button twice.' : 'Day ' + state.day + '. Tired. Coffee first.', 3500);
@@ -615,7 +629,7 @@ export function startShop(T, audio, state) {
       if (best) lookAt = { type: 'machine', uid: best.m.uid };
       else if (!forklift.driving) { const dx = forklift.pos.x - camera.position.x, dz = forklift.pos.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 3.0 && (dx * fx + dz * fz) / (d || 1) > 0.75) lookAt = { type: 'forklift', text: 'the forklift.' }; }
       // or a thing on the floor or a bench right in front of you
-      if (!lookAt && !items.held) { let bi = null, bd = 1.7; for (const it of items.items) { if (it.flying) continue; const dx = it.mesh.position.x - camera.position.x, dz = it.mesh.position.z - camera.position.z, d = Math.hypot(dx, dz); if (d < bd && (dx * fx + dz * fz) / (d || 1) > 0.75) { bd = d; bi = it; } } if (bi) lookAt = { type: 'item', kind: bi.kind, ref: bi, text: ITEM_KINDS[bi.kind].hint }; }
+      if (!lookAt && !items.held) { let bi = null, bd = 1.9; const dir = camera.getWorldDirection(new T.Vector3()); for (const it of items.items) { if (it.flying || !it.mesh.visible) continue; const v = it.mesh.position.clone().sub(camera.position), d = v.length(); if (d < bd && v.dot(dir) / (d || 1) > 0.8) { bd = d; bi = it; } } if (bi) lookAt = { type: 'item', kind: bi.kind, ref: bi, text: ITEM_KINDS[bi.kind].hint }; }
       // or the radio
       if (!lookAt) { const r = { x: -shop.hx + 0.55, z: shop.hz * 0.45 + 1.0 }; const dx = r.x - camera.position.x, dz = r.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 1.6 && (dx * fx + dz * fz) / (d || 1) > 0.7) lookAt = { type: 'radio', text: 'the radio. one station. argued over.' }; }
       // or the office PC, when you are standing at the desk
@@ -717,6 +731,7 @@ export function startShop(T, audio, state) {
       for (const q of state.people) if (Math.random() < 0.25) crew.say(q, pick(['B4 is stuck.', 'Everybody knows B4 is stuck.', 'Hit it on the left.', 'Those are mine, technically.']), 2.5);
       return;
     }
+    if (lookAt.type === 'crib') { audio.tick(0.05, 1200); ui.toast(pick(['End mills. The Shards are on the shelf. The good ones are in the drawer, and the key is on your ring, and you are not opening it.', 'You counted the half-inch end mills. Four. There were six on Friday.', 'Dowels, screws, O-rings, two taps that are not broken, and a note that says PUT IT BACK.', 'The drawer is locked. You check it anyway. It is locked.']), 4000); return; }
     if (lookAt.type === 'framed') { ui.toast(pick(['You look at it every morning. That is the point of it.', 'The real number is in red. You wrote it in red.', 'Somebody added a smiley face to the frame. It is not a smiley face.']), 3500); return; }
     if (lookAt.type === 'stones') {
       state.touchedStones = (state.touchedStones || 0) + 1; audio.tick(0.05, 1800);
@@ -887,6 +902,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { ui, get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped, p) => runMachine(m, skipped, p || null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { ui, get pins() { return pinsItem; }, get electrode() { return electrodeItem; }, get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped, p) => runMachine(m, skipped, p || null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

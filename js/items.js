@@ -16,6 +16,8 @@ const KINDS = {
   traveller: { label: 'job traveller', mass: 0.3, hint: 'a traveller. where the job is, in pen, with a coffee ring.' },
   jar: { label: 'coffee fund jar', mass: 1.0, hint: 'the coffee fund. a pickle jar. $2 a cup. that means YOU, Rick.' },
   cake: { label: 'the cake', mass: 0.9, hint: 'cake. ship day. the grocery store had one left.' },
+  pins: { label: 'box of ejector pins', mass: 1.2, hint: 'a box of ejector pins. two hundred. do not drop it.' },
+  electrode: { label: 'graphite electrode', mass: 0.6, hint: 'a graphite electrode. a day on the mill. it breaks if you look at it.' },
 };
 
 export class Items {
@@ -84,6 +86,23 @@ export class Items {
       const text = new T.Mesh(new T.PlaneGeometry(0.2, 0.075), new T.MeshBasicMaterial({ map: TX.label(T, [opts.text || 'HAPPY RETIREMENT', opts.text2 || 'BARB'], { size: 26, bg: '#f6f1ea', fg: '#2a62c8', border: '#f6f1ea' }), transparent: true })); text.rotation.x = -Math.PI / 2; text.position.set(-0.03, 0.097, -0.02); mesh.add(text);
       const knife = new T.Mesh(new T.BoxGeometry(0.02, 0.004, 0.16), new T.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.3 })); knife.position.set(0.18, 0.01, 0.06); knife.rotation.y = 0.4; mesh.add(knife);
     }
+    else if (kind === 'pins') {
+      // a cardboard box, open, and a hundred and ninety-seven ejector pins standing up in foam. three are on the floor already.
+      mesh = new T.Group(); const card = new T.MeshStandardMaterial({ color: 0xc9a86a, roughness: 0.95 });
+      const box = new T.Mesh(new T.BoxGeometry(0.22, 0.08, 0.16), card); box.position.y = 0.04; mesh.add(box);
+      const foam = new T.Mesh(new T.BoxGeometry(0.2, 0.02, 0.14), new T.MeshStandardMaterial({ color: 0x5a5a60, roughness: 1 })); foam.position.y = 0.09; mesh.add(foam);
+      const pinMat = new T.MeshStandardMaterial({ color: 0xd8dce0, metalness: 0.85, roughness: 0.25 });
+      for (let i = 0; i < 6; i++) for (let k = 0; k < 4; k++) { const pin = new T.Mesh(new T.CylinderGeometry(0.004, 0.004, 0.14, 6), pinMat); pin.position.set(-0.08 + i * 0.032, 0.16, -0.05 + k * 0.034); pin.rotation.x = (Math.random() - 0.5) * 0.1; mesh.add(pin); const head = new T.Mesh(new T.CylinderGeometry(0.008, 0.008, 0.006, 8), pinMat); head.position.set(pin.position.x, 0.23, pin.position.z); mesh.add(head); }
+      const lbl = new T.Mesh(new T.PlaneGeometry(0.14, 0.05), new T.MeshBasicMaterial({ map: TX.label(T, ['EJECTOR PINS', 'H13 · 200 pc'], { size: 20, bg: '#f4f1e6', fg: '#222', border: '#999' }) })); lbl.position.set(0, 0.04, 0.081); mesh.add(lbl);
+    }
+    else if (kind === 'electrode') {
+      // a graphite electrode: a block with a rib pattern on top, matte black, on an aluminium holder with a shank.
+      mesh = new T.Group(); const gr = new T.MeshStandardMaterial({ color: 0x1e1e20, roughness: 0.95, metalness: 0.05 });
+      const holder = new T.Mesh(new T.BoxGeometry(0.1, 0.02, 0.1), new T.MeshStandardMaterial({ color: 0xc8ccd0, metalness: 0.7, roughness: 0.3 })); holder.position.y = 0.01; mesh.add(holder);
+      const shank = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.05, 10), holder.material); shank.position.y = -0.02; mesh.add(shank);
+      const body = new T.Mesh(new T.BoxGeometry(0.09, 0.08, 0.09), gr); body.position.y = 0.06; mesh.add(body);
+      for (let i = 0; i < 4; i++) { const rib = new T.Mesh(new T.BoxGeometry(0.07, 0.025, 0.01), gr); rib.position.set(0, 0.112, -0.03 + i * 0.02); mesh.add(rib); }
+    }
     else if (kind === 'airhose') {
       mesh = new T.Group();
       const yel = new T.MeshStandardMaterial({ color: 0xd9b530, roughness: 0.6 }), chrome = new T.MeshStandardMaterial({ color: 0xc8ccd0, metalness: 0.8, roughness: 0.25 }), blk = new T.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
@@ -151,6 +170,7 @@ export class Items {
         if (!it.hit) { it.hit = true; this.audio.tarp(); if (this.onHit) this.onHit(it, { type: 'tarp' }); }
       } else {
         // walls
+        if (it.kind === 'electrode' && (m.position.x < -hx + 0.1 || m.position.x > hx - 0.1 || m.position.z < -hz + 0.1 || m.position.z > hz - 0.1) && this.onHit) { it.v.set(0, 0, 0); it.flying = false; m.position.y = it.rest; this.onHit(it, { type: 'smash' }); continue; }
         if (m.position.x < -hx + 0.1 || m.position.x > hx - 0.1) { it.v.x *= -0.4; m.position.x = Math.max(-hx + 0.1, Math.min(hx - 0.1, m.position.x)); this.clang(it); if (!it.hit && this.onHit) { it.hit = true; this.onHit(it, { type: 'wall' }); } }
         if (m.position.z < -hz + 0.1 || m.position.z > hz - 0.1) { it.v.z *= -0.4; m.position.z = Math.max(-hz + 0.1, Math.min(hz - 0.1, m.position.z)); this.clang(it); if (!it.hit && this.onHit) { it.hit = true; this.onHit(it, { type: 'wall' }); } }
       }
@@ -178,7 +198,7 @@ export class Items {
       // the floor
       if (m.position.y <= it.rest) {
         m.position.y = it.rest;
-        if (Math.abs(it.v.y) > 1.2) { it.v.y = -it.v.y * 0.35; it.v.x *= 0.7; it.v.z *= 0.7; this.clang(it, 0.6); if (!it.hit && this.onHit) { it.hit = true; this.onHit(it, { type: 'floor' }); } if ((it.kind === 'jar' || it.kind === 'cake') && this.onHit) { it.v.set(0, 0, 0); it.flying = false; this.onHit(it, { type: 'smash' }); return; } }
+        if (Math.abs(it.v.y) > 1.2) { it.v.y = -it.v.y * 0.35; it.v.x *= 0.7; it.v.z *= 0.7; this.clang(it, 0.6); if (!it.hit && this.onHit) { it.hit = true; this.onHit(it, { type: 'floor' }); } if ((it.kind === 'jar' || it.kind === 'cake' || it.kind === 'pins' || it.kind === 'electrode') && this.onHit) { it.v.set(0, 0, 0); it.flying = false; this.onHit(it, { type: 'smash' }); return; } }
         else { it.v.set(0, 0, 0); it.w.set(0, 0, 0); it.flying = false; m.rotation.set(0, m.rotation.y, 0); if (it.kind === 'coffee') { if (this.onHit) this.onHit(it, { type: 'spill' }); } }
       }
     }
@@ -188,6 +208,8 @@ export class Items {
     if (it.kind === 'traveller') { this.audio.noise(0.1, 3000, 0.04 * k, 'highpass'); return; }
     if (it.kind === 'jar') { this.audio.noise(0.25, 3200, 0.2 * k, 'highpass'); this.audio.noise(0.15, 1400, 0.1 * k, 'bandpass', 4); return; }
     if (it.kind === 'cake') { this.audio.noise(0.08, 400, 0.05 * k, 'lowpass'); return; }
+    if (it.kind === 'pins') { for (let i = 0; i < 5; i++) setTimeout(() => this.audio.noise(0.05, 4000 + Math.random() * 2000, 0.06 * k, 'bandpass', 6), i * 60); return; }
+    if (it.kind === 'electrode') { this.audio.noise(0.1, 500, 0.08 * k, 'lowpass'); return; }
     if (it.kind === 'hammer' || it.kind === 'key') { this.audio.noise(0.08, 1800, 0.08 * k, 'bandpass', 2); return; }
     this.audio.noise(0.25, 900 + Math.random() * 600, 0.2 * k, 'bandpass', 3); this.audio.noise(0.3, 160, 0.15 * k, 'lowpass');
   }

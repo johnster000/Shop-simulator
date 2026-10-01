@@ -140,6 +140,7 @@ export class Shop {
     for (const y of [0.5, 1.2, 1.9]) for (const z of [-1.3, 1.3]) this.box(0.9, 0.08, 0.08, rackMat, 0, y, z, rack);
     for (const y of [0.5, 1.2, 1.9]) { this.box(0.08, 0.06, 2.7, rackMat, 0.4, y, 0, rack); this.box(0.08, 0.06, 2.7, rackMat, -0.4, y, 0, rack); }
     s.add(rack); this.tag(rack, 'rack', 'steel rack. empty. for now.'); this.solid(-hx + 0.55, hz * 0.45, 0.5, 1.4);
+    this.toolCrib(-hx + 0.3, hz * 0.45 - 2.3);
     // the radio. on the rack's top shelf. one station, argued over.
     const radio = new T.Group(); radio.position.set(-hx + 0.55, 1.98, hz * 0.45 + 1.0); this.radioPos = { x: -hx + 0.55, z: hz * 0.45 + 1.0 };
     this.box(0.36, 0.18, 0.16, new T.MeshStandardMaterial({ color: 0xc8541e, roughness: 0.6 }), 0, 0.09, 0, radio);
@@ -282,6 +283,38 @@ export class Shop {
   }
 
   // the vending machine. B4 is stuck. it has been stuck since the lease.
+  // the tool crib. grey shelving against the west wall: end mills in boxes, pins in boxes, dowels, screws,
+  // a graphite blank, and a drawer with a padlock where the good ones live. the shop's whole inventory, in cardboard.
+  toolCrib(x, z) {
+    const T = this.T, s = this.scene, g = new T.Group(); g.position.set(x, 0, z); s.add(g);
+    const grey = new T.MeshStandardMaterial({ color: 0x8a8f94, metalness: 0.4, roughness: 0.6 }), card = new T.MeshStandardMaterial({ color: 0xc9a86a, roughness: 0.95 });
+    for (const dz of [-0.5, 0.5]) for (const dx of [-0.2, 0.2]) { const post = new T.Mesh(new T.BoxGeometry(0.04, 2.0, 0.04), grey); post.position.set(dx, 1.0, dz); g.add(post); }
+    const ys = [0.3, 0.8, 1.3, 1.8]; for (const y of ys) { const sh = new T.Mesh(new T.BoxGeometry(0.46, 0.03, 1.04), grey); sh.position.set(0, y, 0); g.add(sh); }
+    const labels = [['END MILLS', '1/2 · 3/8'], ['END MILLS', '1/4 · 1/8'], ['DOWELS', 'and SHCS'], ['INSERTS', 'CNMG'], ['TAPS', 'mostly broken'], ['DRILLS', 'jobber'], ['EJECTOR', 'PINS'], ['O-RINGS', 'assorted'], ['SHARDS', '(the cheap ones)']];
+    let li = 0;
+    for (const [yi, y] of [[1, 1.3], [2, 1.8], [0, 0.8]]) for (let k = 0; k < 3; k++) {
+      if ((yi === 1 && k === 1) || (yi === 0 && k === 2)) continue; // the electrode and the pins live in those gaps
+      const bw = 0.24 + Math.random() * 0.06, bh = 0.12 + Math.random() * 0.08, bd = 0.3; const bx = (Math.random() - 0.5) * 0.08, bz = -0.34 + k * 0.34;
+      const box = new T.Mesh(new T.BoxGeometry(bd, bh, bw), card); box.position.set(bx, y + 0.015 + bh / 2, bz); box.rotation.y = (Math.random() - 0.5) * 0.12; g.add(box);
+      const lb = labels[li++ % labels.length]; const lbl = new T.Mesh(new T.PlaneGeometry(bw * 0.8, bh * 0.7), new T.MeshBasicMaterial({ map: TX.label(T, lb, { size: 22, bg: '#f4f1e6', fg: '#222', border: '#999' }) })); lbl.position.set(bd / 2 + 0.002, 0, 0); lbl.rotation.y = Math.PI / 2; box.add(lbl);
+    }
+    // loose on the bottom shelf: a few end mills standing in a block, a can of tap fluid, a coffee can of allen keys
+    const emBlock = new T.Mesh(new T.BoxGeometry(0.18, 0.05, 0.12), new T.MeshStandardMaterial({ color: 0x8a6a42, roughness: 0.8 })); emBlock.position.set(0.05, 0.34, -0.3); g.add(emBlock);
+    for (let i = 0; i < 5; i++) { const em = new T.Mesh(new T.CylinderGeometry(0.006 + i * 0.001, 0.006 + i * 0.001, 0.08, 8), new T.MeshStandardMaterial({ color: i % 2 ? 0xd8c070 : 0xb8bcc0, metalness: 0.8, roughness: 0.3 })); em.position.set(-0.01 + i * 0.03, 0.4, -0.3); g.add(em); }
+    const can = new T.Mesh(new T.CylinderGeometry(0.04, 0.04, 0.12, 12), new T.MeshStandardMaterial({ color: 0x2a5aa8, roughness: 0.5 })); can.position.set(0.05, 0.38, 0.05); g.add(can);
+    const coffeeCan = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.13, 12), new T.MeshStandardMaterial({ color: 0xb02a2a, roughness: 0.6 })); coffeeCan.position.set(0.0, 0.385, 0.35); g.add(coffeeCan);
+    for (let i = 0; i < 7; i++) { const key = new T.Mesh(new T.BoxGeometry(0.006, 0.09, 0.006), grey); key.position.set(0.0 + (Math.random() - 0.5) * 0.06, 0.48, 0.35 + (Math.random() - 0.5) * 0.06); key.rotation.z = (Math.random() - 0.5) * 0.3; g.add(key); }
+    // the drawer, at the top, with the padlock. the good end mills. the key is on your ring.
+    const drawer = new T.Mesh(new T.BoxGeometry(0.4, 0.14, 0.5), new T.MeshStandardMaterial({ color: 0x5a6066, metalness: 0.5, roughness: 0.5 })); drawer.position.set(0, 1.9, 0.0); g.add(drawer);
+    const lock = new T.Mesh(new T.BoxGeometry(0.03, 0.05, 0.04), new T.MeshStandardMaterial({ color: 0xc8a020, metalness: 0.7, roughness: 0.3 })); lock.position.set(0.215, 1.86, 0.0); g.add(lock);
+    const shackle = new T.Mesh(new T.TorusGeometry(0.014, 0.004, 6, 12, Math.PI), lock.material); shackle.position.set(0.215, 1.885, 0.0); shackle.rotation.y = Math.PI / 2; g.add(shackle);
+    const dl = new T.Mesh(new T.PlaneGeometry(0.2, 0.06), new T.MeshBasicMaterial({ map: TX.label(T, ['THE GOOD ONES'], { size: 26, bg: '#f4f1e6', fg: '#c0392b', border: '#999' }) })); dl.position.set(0.201, 1.92, 0.0); dl.rotation.y = Math.PI / 2; g.add(dl);
+    g.traverse((o) => { o.userData.interact = { type: 'crib', text: 'the tool crib. end mills, pins, dowels, screws. the good end mills are in the drawer with the lock.' }; }); this.interact.push(g);
+    this.solid(x, z, 0.25, 0.55);
+    this.cribPos = { x, z, pins: { x: x + 0.05, y: 0.815, z: z + 0.32 }, electrode: { x: x + 0.05, y: 1.325, z: z + 0.0 } };
+    return g;
+  }
+
   // the polisher's corner. a low bench against the east wall, a magnifier lamp on an arm, the stones in a
   // block, a die grinder with a felt wheel, a jar of diamond paste, a stool, and a sign. DO NOT TOUCH.
   polisherCorner(x, z) {

@@ -317,6 +317,15 @@ Then open http://localhost:8080/.
   twenty minutes. Quote something badly wrong and ship it anyway, and the estimate sheet goes in a
   frame on the office wall with the real number next to it. It stays up.
 
+- The tool crib and the rest of the wall. Grey shelving by the steel rack with the end mills, the
+  dowels, the taps (mostly broken), a coffee can of allen keys, and a padlocked drawer labelled
+  THE GOOD ONES. On the shelves, two things you can pick up: a box of two hundred ejector pins
+  (throw it and the apprentice is finding pins until March) and a graphite electrode (throw it and
+  everything is black, including the coffee). The last of the §11 milestones: A Tenth Is a Tenth,
+  The Big One, One Million (a tool you built rolls the counter at the customer, months later),
+  Employee of the Month (run a machine yourself five days running), and Retired the Bridgeford,
+  which is on the wall and cannot be earned. Selling the Bridgeford does not retire it.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

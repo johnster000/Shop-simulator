@@ -9,6 +9,7 @@ import { hasEstimator } from './people.js';
 export const SHOP_RATE = 55;      // $/hr, Stage 0 work (design bible §4.1)
 export const CNC_RATE = 95;       // $/hr, work that needs a CNC
 export const HEAT_COST = 140;     // Quench & Sons, per job, plus two days and a small chance of a crack
+export const BIG_ONE = 40000;    // the big one. a PO with a comma in a place you have not seen a comma.
 export const MOLD_RATE = 110;     // $/hr, a new tool build
 export const BASE_DAYS = 5;       // DMV: take a number
 export const TRYOUT_DAYS = 2;     // press time at a molder: when they have a slot
@@ -222,6 +223,7 @@ export function startJob(state, rfq) {
     status: rfq.material > 0 ? 'material' : 'work', shippedDay: null, scrap: 0, risk: 0, tryouts: 0, defects: [], program: !!rfq.program, estimate: rfq.estimate, heat: rfq.heat || 0,
   };
   state.jobs.push(job); if (rfq.program && state.program) state.program.jobs.push(job.id);
+  if (job.mold && job.price >= BIG_ONE && state.achievements && !state.achievements.includes('big_one')) state.achievements.push('big_one');
   // deposit: 50% on PO for component work; 30/30/40 on a mold (bible §7.5). steel goes out today.
   const deposit = Math.round(job.price * (job.mold ? 0.3 : 0.5));
   job.paid = deposit;
@@ -362,6 +364,7 @@ export function resolveTryout(state, job, byId) {
 export function cmmReport(state, byId) {
   const hasCmm = state.machines.some((m) => m.placed && !m.down && byId(m.id).stations.includes('inspect'));
   const out = [];
+  if (hasCmm && state.jobs.some((j) => j.status === 'work' && j.cnc) && !state.machines.some((m) => m.placed && m.bumped) && !(state.achievements || []).includes('tenth') && Math.random() < 0.2) { state.achievements.push('tenth'); out.push('CMM report on the day\'s work: nothing in red. Not one line. A tenth is a tenth. Somebody printed it twice.'); }
   for (const m of state.machines) if (m.placed && m.bumped && !m.found && (hasCmm ? Math.random() < 0.7 : Math.random() < 0.06)) { const d = byId(m.id); out.push(`${hasCmm ? 'CMM report' : 'A part came back'}: the ${d.name.toLowerCase()} is out by two thou. Somebody bumped it and said nothing. Re-indicate it: a service, or a whack with the dead-blow if you are lucky.`); m.found = true; }
   return out;
 }
@@ -385,6 +388,7 @@ export function ship(state, job) {
   if (late > 0) { const pen = Math.round(job.price * Math.min(0.3, 0.05 * late)); balance -= pen; note = ` ${late} day${late === 1 ? '' : 's'} late. They knocked $${pen.toLocaleString()} off and will remember.`; state.rep = Math.max(0, state.rep - 0.08); }
   else { state.rep = Math.min(1, state.rep + (job.mold ? 0.1 : 0.04)); }
   if (job.mold && job.tryouts === 1 && !job.defects.length) state.firstTimeRight = (state.firstTimeRight || 0) + 1;
+  if (job.mold && !job.cheap && !job.shippedEarly) job.millionDay = state.day + 150 + Math.floor(Math.random() * 120);
   if (job.shippedEarly) job.publicTryout = state.day + 3 + Math.floor(Math.random() * 3);
   if (!job.mold && job.hiddenOut && !job.inspected) job.foundAtCustomer = state.day + 2 + Math.floor(Math.random() * 4);
   if (job.cheap) job.wearDay = state.day + (job.mold ? 25 + Math.floor(Math.random() * 30) : Math.random() < 0.35 ? 5 + Math.floor(Math.random() * 6) : null); if (job.wearDay === null) delete job.wearDay;

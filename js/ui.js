@@ -258,7 +258,7 @@ export class UI {
         <td class="num"><button class="btn sm ghost" data-move="${m.uid}">${m.placed ? 'MOVE' : 'PLACE'}</button> <button class="btn sm ghost" data-sell="${m.uid}">SELL</button></td></tr>`; }).join('')}</table>
       <p class="note">Selling gets you about sixty cents on the dollar, less if it is tired. The buyer will say it is tired.</p>`;
     el.querySelectorAll('[data-move]').forEach((b) => b.addEventListener('click', () => { const m = s.machines.find((x) => x.uid === +b.dataset.move); this.closeClip(); this.hooks.place(m); }));
-    el.querySelectorAll('[data-sell]').forEach((b) => b.addEventListener('click', () => { const v = sell(s, +b.dataset.sell); this.audio.cash(); this.toast(`Sold. ${money(v)}. The buyer said it was tired.`); this.hooks.refreshMachines(); this.renderMachines(); }));
+    el.querySelectorAll('[data-sell]').forEach((b) => b.addEventListener('click', () => { const wasKnee = (s.machines.find((m) => m.uid === +b.dataset.sell) || {}).id === 'knee_mill'; const v = sell(s, +b.dataset.sell); this.audio.cash(); this.toast(wasKnee ? `Sold the Bridgeford. ${money(v)}. It is not retired. It is in somebody else's shop now, outliving them.` : `Sold. ${money(v)}. The buyer said it was tired.`, wasKnee ? 4500 : 3000); this.hooks.refreshMachines(); this.renderMachines(); }));
   }
 
   renderBank() {
@@ -278,7 +278,7 @@ export class UI {
       <div class="note">${s.loans.length ? s.loans.map((l) => `${l.name}: ${money(l.balance)} left, ${money(l.weekly)}/wk`).join('<br>') : 'No loans.'}</div>
       <div class="pacts">${s.loans.some((l) => l.kind === 'startup') ? '' : `<button data-loan="startup">START-UP LOAN · $100,000 at 11%</button>`}${s.stats.shipped >= 3 && !s.loans.some((l) => l.kind === 'loc') ? `<button data-loan="loc">LINE OF CREDIT · $50,000 at 9%</button>` : `<span class="note">${s.stats.shipped >= 3 ? '' : 'A line of credit after three shipped jobs. The bank wants to see something leave the building.'}</span>`}</div>
       <h4 class="sect">THE WALL</h4>
-      <div class="note">${(s.achievements || []).length ? s.achievements.map((id) => ACHIEVEMENTS[id] ? `<b>${ACHIEVEMENTS[id][0]}</b> · ${ACHIEVEMENTS[id][1]}` : id).join('<br>') : 'Nothing framed yet.'}</div>
+      <div class="note">${(s.achievements || []).length ? s.achievements.map((id) => ACHIEVEMENTS[id] ? `<b>${ACHIEVEMENTS[id][0]}</b> · ${ACHIEVEMENTS[id][1]}` : id).join('<br>') : 'Nothing framed yet.'}<br><span style="opacity:.45"><b>${ACHIEVEMENTS.retired_bridgeford[0]}</b> · ${ACHIEVEMENTS.retired_bridgeford[1]}</span></div>
       <h4 class="sect">LEDGER</h4>
       <table class="ledger"><tr><th>DAY</th><th>ITEM</th><th class="num">AMOUNT</th></tr>${rows.map((r) => `<tr class="${r.amount < 0 ? 'neg' : ''}"><td>${r.day}</td><td>${r.text}</td><td class="num">${r.amount === 0 ? '' : money(r.amount)}</td></tr>`).join('')}</table>`;
     el.querySelectorAll('[data-insure]').forEach((b) => b.addEventListener('click', () => { s.insured = b.dataset.insure === '1'; this.audio.paper(); this.toast(s.insured ? 'Insured. The broker sent a fruit basket. It was mostly oranges.' : 'Cancelled. The broker said "okay" in a tone.', 3500); this.renderBank(); }));
