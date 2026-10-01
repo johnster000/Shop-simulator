@@ -405,7 +405,7 @@ export class Shop {
       const line = new T.Mesh(new T.BoxGeometry(0.82, 0.015, 0.72), new T.MeshStandardMaterial({ color: 0x222 })); line.position.set(i * 1.0, 0.35, 0); g.add(line);
       const eye = new T.Mesh(new T.TorusGeometry(0.05, 0.012, 8, 16), steel); eye.position.set(i * 1.0, 0.76, 0); eye.rotation.x = Math.PI / 2; g.add(eye);
     }
-    if (n > 0) { const sign = new T.Mesh(new T.PlaneGeometry(0.5, 0.3), new T.MeshBasicMaterial({ map: TX.label(T, ['FOR SALE', 'ONE OWNER', 'NEVER RAN'], { size: 30, bg: '#f2e76b', border: '#333', fg: '#111' }), side: T.DoubleSide })); sign.position.set(0, 0.95, 0.2); sign.rotation.x = -0.3; g.add(sign); }
+    if (n > 0) { const sign = new T.Mesh(new T.PlaneGeometry(0.5, 0.3), new T.MeshBasicMaterial({ map: TX.label(T, ['FOR SALE', 'ONE OWNER', 'NEVER RAN'], { size: 30, bg: '#f2e76b', border: '#333', fg: '#111' }), side: T.DoubleSide })); sign.position.set(0, 0.95, -0.2); sign.rotation.y = Math.PI; sign.rotation.x = 0.3; g.add(sign); }
     g.traverse((o) => { o.userData.interact = { type: 'orphan', text: `${n} mold${n === 1 ? '' : 's'} nobody will pay for. a very nice mold, in a corner, with a for-sale sign.` }; });
     g.visible = n > 0;
   }
