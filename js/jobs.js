@@ -85,6 +85,7 @@ export const TEMPLATES = [
   { title: 'Single-cavity mold, paddle grip', mold: true, cnc: true, size: 'S', cav: 1, geo: 2, slides: 1, steel: 'P20', finish: 'B-1', runner: 'cold', hard: false, base: 2600, steelCost: 700 },
   { title: '2-cavity mold, closure', mold: true, cnc: true, size: 'S', cav: 2, geo: 2, slides: 0, steel: 'NAP80', finish: 'A-3', runner: 'cold', hard: false, base: 3400, steelCost: 1600 },
   { title: '2-cavity mold, cooler latch', mold: true, cnc: true, size: 'S', cav: 2, geo: 2, slides: 2, steel: 'H13', finish: 'B-2', runner: 'cold', hard: true, base: 3600, steelCost: 1900 },
+  { title: '2-cavity mold, tool case, textured', mold: true, cnc: true, size: 'M', cav: 2, geo: 2, slides: 0, steel: 'P20', finish: 'D-2', runner: 'cold', hard: false, base: 5200, steelCost: 2600 },
   { title: 'Appliance mold, dryer lint housing', mold: true, cnc: true, appliance: true, size: 'XL', cav: 1, geo: 1, slides: 0, steel: 'P20', finish: 'B-2', runner: 'cold', hard: false, base: 11000, steelCost: 7800 },
   { title: 'Appliance mold, crisper drawer front, 1 slide', mold: true, cnc: true, appliance: true, size: 'XL', cav: 1, geo: 2, slides: 1, steel: 'P20', finish: 'B-1', runner: 'hot', hard: false, base: 12500, steelCost: 8200 },
   { title: '16-cavity closure mold, stainless, hot runner', mold: true, cnc: true, packaging: true, size: 'M', cav: 16, geo: 2, slides: 0, steel: '420 SS', finish: 'A-2', runner: 'hot', hard: true, base: 9500, steelCost: 7200 },
@@ -100,7 +101,7 @@ export const TEMPLATES = [
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 
-export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench', vmc: 'VMC', sinker: 'sinker EDM', wire: 'wire EDM', heat: 'oven (or Quench & Sons)', base: 'DMV (vendor)', manifold: 'Mould-Majors (vendor)', tryout: 'sampling press (or the molder)', press: 'sampling press', design: 'office PC', fitspot: 'bench or spotting press', electrode: 'graphite mill (or a dusty VMC)', weld: 'laser welder', spot: 'spotting press', graphite: 'graphite mill', cmm: 'CMM', laser: 'laser welder' }[kind] || kind; }
+export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench', vmc: 'VMC', sinker: 'sinker EDM', wire: 'wire EDM', heat: 'oven (or Quench & Sons)', base: 'DMV (vendor)', manifold: 'Mould-Majors (vendor)', tryout: 'sampling press (or the molder)', press: 'sampling press', design: 'office PC', fitspot: 'bench or spotting press', electrode: 'graphite mill (or a dusty VMC)', weld: 'laser welder', spot: 'spotting press', graphite: 'graphite mill', cmm: 'CMM', laser: 'laser welder', texture: 'texture house (Mold-Tex)'}[kind] || kind; }
 // which stations can run which stage kinds
 export function matches(stageKind, stationKind) {
   if (stageKind === stationKind) return true;
@@ -111,7 +112,7 @@ export function matches(stageKind, stationKind) {
   if (stageKind === 'heat') return stationKind === 'heat';
   return false;
 }
-export const VENDOR_KINDS = new Set(['heat', 'base', 'manifold', 'tryout']);
+export const VENDOR_KINDS = new Set(['heat', 'base', 'manifold', 'tryout', 'texture']);
 // how long a vendor stage takes when the shop does it itself
 export const IN_HOUSE_MIN = { heat: 240, tryout: 90 };
 // the shop has its own press or oven, so that stage is not automatically sent out
@@ -169,7 +170,8 @@ export function moldItems(t) {
     stages.push(st('vmc', 'Finish', 540 * sizeK * geoK * k));
     if (t.geo >= 2) { stages.push(st('electrode', 'Cut the electrodes', 90 * geoK * k)); stages.push(st('sinker', 'Burn the detail', 300 * geoK * k)); }
     stages.push(st('grinder', 'Grind the parting line', 60 * sizeK));
-    stages.push(st('bench', `Polish to ${t.finish}`, 90 * polish * sizeK * k));
+    if (t.finish && t.finish.startsWith('D')) { stages.push(st('bench', 'Polish to B-2, for the texture', 90 * 3 * sizeK * k)); stages.push(st('texture', `Texture ${t.finish} at Mold-Tex`, 0)); }
+    else stages.push(st('bench', `Polish to ${t.finish}`, 90 * polish * sizeK * k));
     return { name, stages };
   };
   const cavK = t.cav >= 16 ? 2.2 + (t.cav - 16) * 0.05 : Math.sqrt(t.cav); // high cavitation is inserts, not one block; it scales, but not forever
@@ -226,7 +228,7 @@ export function customerOf(id) { return CUSTOMERS.find((c) => c.id === id); }
 
 export function shopHas(state, kind, byId) { if (VENDOR_KINDS.has(kind) || kind === 'design') return true; if (kind === 'electrode') return state.machines.some((m) => m.placed && (byId(m.id).stations.includes('graphite') || byId(m.id).stations.includes('cnc'))); if (kind === 'fitspot') return state.machines.some((m) => m.placed && (byId(m.id).stations.includes('fit') || byId(m.id).stations.includes('spot'))); return state.machines.some((m) => m.placed && byId(m.id).stations.includes(stationKindToStation(kind))); }
 // station names on machine defs vs. stage kinds
-export function stationKindToStation(kind) { return { heat: 'heat', tryout: 'tryout', press: 'tryout', saw: 'saw', lathe: 'turn', mill: 'rough', drill: 'drill', grinder: 'grind', bench: 'fit', vmc: 'cnc', sinker: 'sinker', wire: 'wire', fitspot: 'fit', electrode: 'cnc', weld: 'weld', spot: 'spot', graphite: 'graphite', cmm: 'inspect', laser: 'weld' }[kind]; }
+export function stationKindToStation(kind) { return { heat: 'heat', tryout: 'tryout', press: 'tryout', saw: 'saw', lathe: 'turn', mill: 'rough', drill: 'drill', grinder: 'grind', bench: 'fit', vmc: 'cnc', sinker: 'sinker', wire: 'wire', fitspot: 'fit', electrode: 'cnc', weld: 'weld', spot: 'spot', graphite: 'graphite', cmm: 'inspect', laser: 'weld', texture: 'texture' }[kind]; }
 
 // the player sends a quote. decided the next morning.
 export function sendQuote(state, rfq, price) { rfq.price = Math.round(price); rfq.status = 'quoted'; rfq.read = true; }
@@ -421,6 +423,7 @@ function vendorOut(state, job, q, itemName) {
   if (q.kind === 'heat') { const v = vendorFor(state, 'heat'), cost = Math.round(HEAT_COST * v.cost), late = Math.random() < v.late; post(state, `${v.name}: heat treat, job ${job.id}${itemName ? ', ' + itemName.toLowerCase() : ''}`, -cost); q.out = { backDay: state.day + v.days + (late ? 2 : 0), cost, heat: true, vendor: v.id, crack: v.crack }; return `Job ${job.id}${itemName ? ' ' + itemName.toLowerCase() : ''} went to ${v.name}. ${v.days} days${late ? ', they said. Then they said ' + (v.days + 2) + '.' : '.'}${v.id === 'thermex' ? ' A certificate is coming with it.' : ''}`; }
   if (q.kind === 'base') { const v = vendorFor(state, 'base'), cost = Math.round(job.spec.base * v.cost), late = Math.random() < v.late; post(state, `${v.name} mold base, job ${job.id}`, -cost); q.out = { backDay: state.day + v.days + (late ? 2 : 0), cost, vendor: v.id }; return `Mold base for job ${job.id} ordered from ${v.name}. ${v.id === 'dmv' ? 'Take a number. ' : ''}${v.days + (late ? 2 : 0)} days${late ? ' (they had a reason)' : ''}.`; }
   if (q.kind === 'manifold') { const cost = job.spec.manifold; post(state, `Mould-Majors hot runner, job ${job.id}`, -cost); q.out = { backDay: state.day + 12, cost }; return `Hot runner for job ${job.id} ordered. Twelve days, they say. They always say twelve.`; }
+  if (q.kind === 'texture') { const cost = Math.round(700 * ({ S: 0.8, M: 1, L: 1.5, XL: 2.2 }[job.spec.size] || 1)), late = Math.random() < 0.2; post(state, `Mold-Tex: texture, job ${job.id}${itemName ? ', ' + itemName.toLowerCase() : ''}`, -cost); q.out = { backDay: state.day + 4 + (late ? 2 : 0), cost, vendor: 'moldtex' }; return `Job ${job.id}${itemName ? ' ' + itemName.toLowerCase() : ''} went to Mold-Tex for grain. Four days${late ? ', they said, then six. The acid was on back order.' : '.'} Do not touch it when it comes back. Do not let the customer touch it either.`; }
   if (q.kind === 'tryout') { const v = vendorFor(state, 'press'), cost = Math.round(200 * (4 + (job.spec.cav || 1)) * v.cost), late = Math.random() < v.late; post(state, `Press time, ${v.name}, job ${job.id}`, -cost); q.out = { backDay: state.day + v.days + (late ? 1 : 0), cost, tryout: true, vendor: v.id, report: !!v.report }; return `Job ${job.id} is on a truck to ${v.name} for tryout. $${cost.toLocaleString()} of press time${late ? ', when they have a slot, which is not today' : ''}.`; }
   return null;
 }
@@ -479,7 +482,7 @@ export function endOfDay(state, byId) {
       const all = job.items.flatMap((it, ii) => it.stages.map((q) => ({ q, item: it, ii }))).concat(job.jobStages.map((q) => ({ q, item: null, ii: -1 })));
       for (const { q, item, ii } of all) if (q.out && !q.done && state.day >= q.out.backDay) {
         if (q.out.heat && Math.random() < (q.out.crack != null ? q.out.crack : 0.04)) { q.out = null; scrapJob(state, job, Math.max(0, ii)); notes.push(`Job ${job.id}${item ? ' ' + item.name.toLowerCase() : ''} came back from heat treat in two pieces, in the same crate, with an invoice. Start over.`); continue; }
-        const was = q.out; q.out = null; q.done = true; const vname = was.vendor ? (VENDORS.heat.concat(VENDORS.base, VENDORS.press).find((v) => v.id === was.vendor) || {}).name : null;
+        const was = q.out; q.out = null; q.done = true; const vname = was.vendor === 'moldtex' ? 'Mold-Tex' : was.vendor ? (VENDORS.heat.concat(VENDORS.base, VENDORS.press).find((v) => v.id === was.vendor) || {}).name : null; if (was.vendor === 'moldtex' && state.achievements && !state.achievements.includes('textured')) state.achievements.push('textured');
         if (was.tryout) { job.goodReport = !!was.report; notes.push(...afterTryout(state, job, byId)); }
         else notes.push(`Job ${job.id}: ${q.label.toLowerCase()}${item ? ' (' + item.name.toLowerCase() + ')' : ''} back from ${vname || (was.heat ? 'Quench & Sons' : q.kind === 'base' ? 'DMV' : q.kind === 'manifold' ? 'Mould-Majors' : q.kind === 'design' ? 'the designer' : 'Bramalea')}.${was.vendor === 'thermex' ? ' With a certificate.' : ''}`);
         if (allDone(job)) { job.status = 'ready'; state.crates++; notes.push(`Job ${job.id} is done. Ship it.`); }
@@ -516,7 +519,7 @@ export function schedule(state, byId, days = 10) {
   // lanes: one per placed machine, keyed by the station kind it serves; vendors and the PC get one lane each
   const lanes = [];
   for (const m of state.machines) if (m.placed && !m.down) { const dk = byId(m.id); lanes.push({ name: `${dk.name}${state.machines.filter((q) => q.placed && q.id === m.id).length > 1 ? ' #' + m.uid : ''}`, kind: dk.kind, free: 0, cells: [] }); }
-  for (const k of ['design', 'base', 'manifold', 'heat', 'tryout']) lanes.push({ name: stationName(k), kind: k, vendor: true, free: 0, cells: [] });
+  for (const k of ['design', 'base', 'manifold', 'heat', 'texture', 'tryout']) lanes.push({ name: stationName(k), kind: k, vendor: true, free: 0, cells: [] });
   const laneFor = (stageKind, from) => {
     const fit = lanes.filter((l) => l.vendor ? l.kind === stageKind && !inHouse(state, stageKind, byId) : matches(stageKind, l.kind));
     if (!fit.length) return null;

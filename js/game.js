@@ -242,7 +242,7 @@ export function startShop(T, audio, state) {
       audio.cycleStart(); setTimeout(() => { audio.noise(0.8, 1500, 0.3, 'highpass'); }, 600);
       setTimeout(() => {
         unlock('interlock'); state.dumbCount = (state.dumbCount || 0) + 1; m.chips = 1; for (const q of state.machines) if (q.placed && Math.hypot(q.x - m.x, q.z - m.z) < 4) q.chips = Math.min(1, (q.chips || 0) + 0.4);
-        const eye = Math.random() < 0.3; if (eye) { post(state, 'Clinic: you, eye wash', -800); tally(state, 'wsib'); state.fatigue = Math.min(1, state.fatigue + 0.2); }
+        const eye = Math.random() < 0.3; if (eye) { if (state.facility.eyewash) { post(state, 'Eye wash station: used, for once', -20); unlock('eye_wash'); } else { post(state, 'Clinic: you, eye wash', -800); tally(state, 'wsib'); } state.fatigue = Math.min(1, state.fatigue + 0.2); }
         ui.toast(`You cycled with the door open. Chips. Everywhere. In the coffee, in the crib, in your collar, down the hallway${eye ? ', and in your eye. $800 at the clinic and a patch for the afternoon' : ''}. The interlock existed for a reason, and the reason was you.`, 6500);
         for (const q of watching) { q.morale = Math.max(0, q.morale - 0.02); if (Math.random() < 0.7) crew.say(q, pick(['OW.', 'Those are HOT.', 'Door. DOOR.', 'I am wearing the glasses. See? I am WEARING them.', 'Somebody get the broom. Not me.']), 4); }
         syncViews();
@@ -358,7 +358,8 @@ export function startShop(T, audio, state) {
     if (pAt) {
       pAt.morale = Math.max(0, pAt.morale - 0.06); unlock('chips_only');
       crew.say(pAt, pick(['HEY.', 'That is NOT for that.', 'There is a POSTER.', 'My EYE.', 'Real mature.']), 3);
-      if (Math.random() < 0.08) { post(state, `Clinic: ${pAt.name}, eye wash`, -800); pAt.morale = Math.max(0, pAt.morale - 0.2); tally(state, 'wsib'); ui.toast(`${pAt.name}: something in the eye. The eye wash station is a sink. $800 at the clinic and a form.`, 5000); }
+      if (Math.random() < 0.08 && state.facility.eyewash) { post(state, `Eye wash station: ${pAt.name}, fifteen minutes`, -20); pAt.morale = Math.max(0, pAt.morale - 0.05); unlock('eye_wash'); ui.toast(`${pAt.name}: something in the eye. Fifteen minutes at the eye wash station, which is not the sink any more. $20 of water and a form.`, 4500); }
+      else if (Math.random() < 0.08) { post(state, `Clinic: ${pAt.name}, eye wash`, -800); pAt.morale = Math.max(0, pAt.morale - 0.2); tally(state, 'wsib'); ui.toast(`${pAt.name}: something in the eye. The eye wash station is a sink. $800 at the clinic and a form.`, 5000); }
       else ui.toast(`PSSSHT. ${pAt.name} jumped. Everyone laughed. ${pAt.name} did not.`, 3200);
       return;
     }
@@ -780,6 +781,8 @@ export function startShop(T, audio, state) {
       for (const q of state.people) if (Math.random() < 0.25) crew.say(q, pick(['B4 is stuck.', 'Everybody knows B4 is stuck.', 'Hit it on the left.', 'Those are mine, technically.']), 2.5);
       return;
     }
+    if (lookAt.type === 'firstaid') { audio.tick(0.05, 900); ui.toast(pick(['Band-aids. The big ones are gone. A triangular bandage from 1994, still folded. A form.', 'You opened it. Somebody has been keeping their lunch money in it.', 'Six band-aids, a pair of tweezers, and a note that says REPLACE THE BIG ONES. The note is from last year.']), 4000); return; }
+    if (lookAt.type === 'eyewash') { audio.noise(0.6, 1800, 0.08, 'highpass'); ui.toast(pick(['You pushed the paddle. It works. Nobody has ever pushed the paddle.', 'Fifteen minutes, the sign says. Nobody has ever done fifteen minutes.', 'Cold. It is always cold. That is how you know it is real.']), 3500); return; }
     if (lookAt.type === 'crib') { audio.tick(0.05, 1200); ui.toast(pick(['End mills. The Shards are on the shelf. The good ones are in the drawer, and the key is on your ring, and you are not opening it.', 'You counted the half-inch end mills. Four. There were six on Friday.', 'Dowels, screws, O-rings, two taps that are not broken, and a note that says PUT IT BACK.', 'The drawer is locked. You check it anyway. It is locked.']), 4000); return; }
     if (lookAt.type === 'framed') { ui.toast(pick(['You look at it every morning. That is the point of it.', 'The real number is in red. You wrote it in red.', 'Somebody added a smiley face to the frame. It is not a smiley face.']), 3500); return; }
     if (lookAt.type === 'stones') {
@@ -938,7 +941,7 @@ export function startShop(T, audio, state) {
       for (const it of items.items) if (it.flying && it.from) it.throwDist = Math.hypot(it.mesh.position.x - it.from.x, it.mesh.position.z - it.from.z);
       itemsAtRest(); syncSteel();
     }
-    shop.update(paused ? 0 : dt, audio.compOn); shop.setDoor(!!state.facility.door); shop.setAir(state.facility.air); shop.setCrane(!!state.facility.crane);
+    shop.update(paused ? 0 : dt, audio.compOn); shop.setDoor(!!state.facility.door); shop.setEyewash(!!state.facility.eyewash); shop.setAir(state.facility.air); shop.setCrane(!!state.facility.crane);
     if (state.facility.crane) { const sp = state.machines.find((m) => m.running && byId(m.id).kind === 'spot'); const key = sp ? 'spot' + sp.uid : state.crates ? 'crates' : null; if (key && key !== craneKey) { craneKey = key; audio.horn(); } if (sp) shop.craneTo(sp.x, sp.z); else if (state.crates) shop.craneTo(shop.cratePos.x, shop.cratePos.z - 2); }
     for (const v of views) v.update(paused || modal ? 0 : dt * (state.speed || 0));
     for (const m of state.machines) { if (m.alarm && Math.random() < dt * 2.2) audio.alarm(0.9); if (m.running && m.oil != null && m.oil <= 0 && Math.random() < dt * 0.6) audio.squeal(0.6); }

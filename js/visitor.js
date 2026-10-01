@@ -53,7 +53,7 @@ export class Visitor {
     if (this.kind === 'inspector') {
       const m = this.target && this.target.m; const f = (k, text) => { if (this.findings.some((x) => x[0] === k)) return; this.findings.push([k, text]); out.push(text); };
       if (m) { if (m.taped) f('tape', 'Duct tape. On a machine. Writing that down.'); if ((m.chips || 0) > 0.7) f('chips', 'Chips to the ankle. Slip hazard. Writing that down.'); if (m.fire) { f('fire', 'That is on fire.'); this.leaveNow('fire'); return; } if (m.down && !(m.notes || []).length) f('lockout', 'Down, and no tag on it. Lockout. Writing that down.'); }
-      else { if (!s.facility.door) f('door', 'A tarp for a door. In this climate. Noted.'); if (!s.facility.fire && s.machines.some((q) => q.placed && byId(q.id).kind === 'sinker')) f('suppression', 'An EDM and no suppression. Noted, in capitals.'); if (s.scrapCount >= 8) f('bin', 'The scrap bin is a geology lesson.'); }
+      else { if (!s.facility.door) f('door', 'A tarp for a door. In this climate. Noted.'); if (!s.facility.eyewash && s.machines.some((q) => q.placed && ['grinder', 'sinker', 'wire', 'vmc'].includes(byId(q.id).kind))) f('eyewash', 'Where is the eye wash station? The sink is not an eye wash station. Writing that down.'); if (!s.facility.fire && s.machines.some((q) => q.placed && byId(q.id).kind === 'sinker')) f('suppression', 'An EDM and no suppression. Noted, in capitals.'); if (s.scrapCount >= 8) f('bin', 'The scrap bin is a geology lesson.'); }
       if (!out.length) this.hooks.say(this.p, pick(['Hm.', 'Fine.', 'Keep going.', 'Where is your first aid kit? Never mind.']), 3); else this.hooks.say(this.p, out[out.length - 1], 4);
       return;
     }

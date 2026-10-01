@@ -129,6 +129,7 @@ export const UPGRADES = [
   { id: 'pads', name: 'Foundation pads', group: 'floor', price: 6800, days: 4, blurb: 'Cut the slab, pour, wait. The big machines (the 5-axis, the press, the hard-milling VMC) will not sit on a four-inch floor and the dealer will not deliver onto one.', gives: { pads: true }, needs: null },
   { id: 'chips', name: 'Chip bins and coolant recycling', group: 'floor', price: 3200, days: 1, blurb: 'A bin at every machine, a coolant cart, a chip wringer. Chips pile up half as fast and the floor stops being an ankle hazard.', gives: { chips: true }, needs: null },
   { id: 'climate', name: 'Climate control', group: 'building', price: 9500, days: 3, blurb: 'Rooftop units. The inspection room holds twenty degrees, the polishers stop sweating in July, and the crew stop talking about July.', gives: { climate: true }, needs: null },
+  { id: 'eyewash', name: 'Eye wash station', group: 'safety', price: 450, days: 1, blurb: 'A real one, on the wall by the door, with the green sign. Until then the eye wash station is the sink, and the sink is $800 at the clinic. The inspector asks.', gives: { eyewash: true }, needs: null },
   { id: 'dust', name: 'Dust extraction', group: 'safety', price: 2800, days: 1, blurb: 'A vacuum for cutting graphite. Without it the dust gets into the ways, the coffee, and the crew.', gives: { dust: true }, needs: null },
 ];
 

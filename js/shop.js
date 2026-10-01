@@ -264,6 +264,7 @@ export class Shop {
       const lamp = new T.PointLight(0xdfe8ff, 6, 6, 1.8); lamp.position.set(px, 2.4, pz); s.add(lamp);
     }
     this.polisherCorner(hx - 0.55, hz * 0.05);
+    this.firstAidKit(x1 + 0.07, z0 + 2.7, Math.PI / 2); // on the office's outside wall, where you can find it with one eye
     if (!SHOP.breakroom) this.vending(x1 + 1.0, z0 + 0.45);
     if (SHOP.breakroom) {
       // the break room, beside the office: a table, chairs, a fridge, the kettle's promotion
@@ -283,6 +284,33 @@ export class Shop {
   }
 
   // the vending machine. B4 is stuck. it has been stuck since the lease.
+  // the first aid kit. on the office wall, by the door into the shop. band-aids, a triangular bandage from 1994, a form.
+  firstAidKit(x, z, rot) {
+    const T = this.T, s = this.scene, g = new T.Group(); g.position.set(x, 1.5, z); g.rotation.y = rot; s.add(g);
+    const box = new T.Mesh(new T.BoxGeometry(0.3, 0.26, 0.1), new T.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.5 })); g.add(box);
+    const v = new T.Mesh(new T.BoxGeometry(0.05, 0.18, 0.004), new T.MeshStandardMaterial({ color: 0x2e9e4a })); v.position.z = 0.052; g.add(v);
+    const h = new T.Mesh(new T.BoxGeometry(0.18, 0.05, 0.004), v.material); h.position.z = 0.052; g.add(h);
+    const lbl = new T.Mesh(new T.PlaneGeometry(0.26, 0.05), new T.MeshBasicMaterial({ map: TX.label(T, ['FIRST AID'], { size: 30, bg: '#f4f4f0', fg: '#2e9e4a', border: '#f4f4f0' }) })); lbl.position.set(0, -0.1, 0.053); g.add(lbl);
+    const latch = new T.Mesh(new T.BoxGeometry(0.04, 0.02, 0.01), new T.MeshStandardMaterial({ color: 0x888 })); latch.position.set(0, 0.0, 0.055); g.add(latch);
+    g.traverse((o) => { o.userData.interact = { type: 'firstaid', text: 'the first aid kit. band-aids, a triangular bandage from 1994, and a form.' }; }); this.interact.push(g);
+    return g;
+  }
+  // the eye wash station. green, on the wall by the door, with the sign. until it is bought, the eye wash station is the sink.
+  setEyewash(on) {
+    const T = this.T, s = this.scene; if (!!this.eyewashG === !!on) return;
+    if (!on) { s.remove(this.eyewashG); this.interact.splice(this.interact.indexOf(this.eyewashG), 1); this.eyewashG = null; return; }
+    const g = new T.Group(); g.position.set(this.binPos.x - 1.1, 0, this.hz - 0.2); s.add(g); this.eyewashG = g;
+    const green = new T.MeshStandardMaterial({ color: 0x2f9e4a, roughness: 0.5 }), white = new T.MeshStandardMaterial({ color: 0xf0f0ea, roughness: 0.4 });
+    const bowl = new T.Mesh(new T.CylinderGeometry(0.2, 0.14, 0.1, 16, 1, true), white); bowl.position.set(0, 1.05, -0.2); g.add(bowl);
+    const bowlB = new T.Mesh(new T.CircleGeometry(0.14, 16), white); bowlB.rotation.x = -Math.PI / 2; bowlB.position.set(0, 1.0, -0.2); g.add(bowlB);
+    for (const dx of [-0.05, 0.05]) { const head = new T.Mesh(new T.CylinderGeometry(0.02, 0.025, 0.05, 10), green); head.position.set(dx, 1.09, -0.2); g.add(head); }
+    const arm = new T.Mesh(new T.BoxGeometry(0.06, 0.06, 0.24), green); arm.position.set(0, 0.95, -0.08); g.add(arm);
+    const pipe = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 0.9, 8), new T.MeshStandardMaterial({ color: 0xb8bcc0, metalness: 0.7, roughness: 0.3 })); pipe.position.set(0, 0.5, 0.02); g.add(pipe);
+    const paddle = new T.Mesh(new T.BoxGeometry(0.22, 0.03, 0.12), green); paddle.position.set(0.1, 0.9, -0.1); g.add(paddle);
+    const sign = new T.Mesh(new T.PlaneGeometry(0.3, 0.3), new T.MeshBasicMaterial({ map: TX.label(T, ['EYE', 'WASH', '(not the sink)'], { size: 34, bg: '#2f9e4a', fg: '#ffffff', border: '#2f9e4a' }) })); sign.position.set(0, 1.65, -0.03); sign.rotation.y = Math.PI; g.add(sign);
+    g.traverse((o) => { o.userData.interact = { type: 'eyewash', text: 'the eye wash station. a real one. the sink is relieved.' }; }); this.interact.push(g);
+  }
+
   // the tool crib. grey shelving against the west wall: end mills in boxes, pins in boxes, dowels, screws,
   // a graphite blank, and a drawer with a padlock where the good ones live. the shop's whole inventory, in cardboard.
   toolCrib(x, z) {

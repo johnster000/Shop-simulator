@@ -350,6 +350,13 @@ Then open http://localhost:8080/.
   segment's first call is a note and an achievement, and the JOBS tab says who is calling and who
   is not, and why.
 
+- Texture, and two things on the wall. A D-grade finish (§5.5) is polished to a B first and then
+  goes to Mold-Tex for grain, four days, sometimes six (the acid was on back order), and nobody
+  touches it when it comes back. A first aid kit hangs on the office wall with band-aids, a
+  triangular bandage from 1994 and a form. The eye wash station is a safety purchase on the SHOP
+  tab: until you buy it the eye wash station is the sink and the sink is $800 at the clinic; the
+  inspector asks about it, and somebody using the real one is an achievement.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
