@@ -65,7 +65,7 @@ export function buildMachine(T, def, ghost = false) {
   // a tube from one point to another: hoses, cables, conduit
   const tube = (r, m, a, b) => { const from = new T.Vector3(...a), to = new T.Vector3(...b), len = from.distanceTo(to); const o = new T.Mesh(new T.CylinderGeometry(r, r, len, 10), m); o.position.copy(from).add(to).multiplyScalar(0.5); o.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), to.clone().sub(from).normalize()); g.add(o); return o; };
 
-  switch (def.kind) {
+  switch (def.look || def.kind) {
     case 'mill': {
       // Bridgeford. +z is the front (where the operator stands).
       box(0.72, 0.25, 0.78, steelDark, 0, 0.125, -0.42);                 // base casting, feet at the floor
@@ -198,6 +198,112 @@ export function buildMachine(T, def, ghost = false) {
       box(0.5, 0.3, 0.3, steelDark, 1.45, 0.27, 0.7);                    // chip bin
       box(1.0, 0.5, 0.4, steelDark, -0.5, 0.3, -1.1);                    // coolant tank behind
       if (!ghost) { nameplate(T, def, g, -0.5, 2.25, 0.96, 0, 0.5); parts.lamps = lightStack(T, g, -0.9, 2.6, 0.5); parts.button = greenButton(T, g, 1.645, 1.2, 0.75, Math.PI / 2); }
+      break;
+    }
+    case 'five': {
+      // Hermlin-style 5-axis. A big white enclosure with a tall window, the trunnion table inside, the tool drum on the left,
+      // the control on a swing arm on the right. +z is the front.
+      const enc = mat('encFive', { color: 0xe6e8ea, roughness: 0.5, metalness: 0.15 }), trim = mat('trimFive', { color: 0x2b3f63, roughness: 0.5, metalness: 0.3 });
+      const glass = ghost ? gm : new T.MeshStandardMaterial({ color: 0x1d2b3a, transparent: true, opacity: 0.5, roughness: 0.1, metalness: 0.3 });
+      box(3.2, 0.14, 2.9, steelDark, 0, 0.07, 0);                        // skid
+      box(3.0, 0.5, 2.8, steel, 0, 0.39, -0.05);                         // casting band
+      box(3.0, 2.3, 2.8, enc, 0, 1.79, -0.05);                           // enclosure 0.64 -> 2.94, front face z = 1.35
+      box(3.0, 0.1, 2.8, trim, 0, 2.98, -0.05);                          // roof trim
+      box(3.0, 0.16, 0.06, trim, 0, 0.72, 1.37);                         // sill stripe
+      // the big door, one slab, with a tall window and the brand down the side
+      box(1.9, 2.0, 0.06, enc, 0.1, 1.85, 1.38);
+      box(1.3, 1.3, 0.07, glass, 0.1, 1.95, 1.385);
+      box(0.05, 0.6, 0.07, dark, 1.0, 1.7, 1.42);                        // handle
+      box(2.9, 0.06, 0.1, dark, 0, 2.9, 1.4);                            // door track
+      // inside: the trunnion. two towers, a cradle, a round table with a part on it, the spindle above
+      for (const side of [-1, 1]) box(0.3, 0.7, 0.5, grey, side * 0.75, 1.1, 0.3);  // trunnion towers
+      const cradle = box(1.2, 0.18, 0.5, steelDark, 0, 1.05, 0.3); cradle.rotation.x = -0.35;
+      const table = cyl(0.32, 0.08, chrome, 0, 1.2, 0.33); table.rotation.x = -0.35; parts.spin.push({ mesh: table, axis: 'y' });
+      box(0.26, 0.16, 0.2, mat('p20', { color: 0x7a8088, metalness: 0.6, roughness: 0.4 }), 0, 1.3, 0.37);
+      box(0.5, 0.7, 0.6, steelDark, 0, 2.2, -0.2);                       // spindle head
+      const spin = cyl(0.06, 0.3, chrome, 0, 1.72, 0.2); parts.spin.push({ mesh: spin, axis: 'y' });
+      cyl(0.01, 0.1, dark, 0, 1.5, 0.2);                                 // the cutter
+      // the tool magazine: a drum on the left, in its own cabinet, with a little window
+      box(0.7, 1.6, 1.2, enc, -1.85, 1.3, -0.3);
+      const drum = cyl(0.42, 0.3, steelDark, -1.85, 1.5, -0.3, g, 0, Math.PI / 2); parts.spin.push({ mesh: drum, axis: 'z' });
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; cyl(0.025, 0.1, chrome, -1.85 - 0.16, 1.5 + Math.sin(a) * 0.34, -0.3 + Math.cos(a) * 0.34, g, Math.PI / 2); }
+      box(0.4, 0.5, 0.06, glass, -1.85, 1.5, 0.31);
+      // control on a swing arm, right side
+      cyl(0.04, 0.7, dark, 1.55, 2.0, 0.9, g, Math.PI / 2);              // arm
+      box(0.1, 0.9, 0.6, trim, 1.95, 1.65, 1.1);                         // control housing
+      const scr = new T.Mesh(new T.PlaneGeometry(0.44, 0.34), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x3a7aaa, emissiveIntensity: 0.6 })); scr.position.set(2.005, 1.85, 1.1); scr.rotation.y = Math.PI / 2; g.add(scr);
+      box(0.02, 0.22, 0.5, grey, 2.005, 1.4, 1.1);                       // keypad
+      cyl(0.05, 0.02, mat('redBtn', { color: 0xcc2222 }), 2.015, 1.26, 0.95, g, 0, Math.PI / 2); // E-stop
+      // chip conveyor out the back, coolant tank, hydraulic unit
+      box(0.5, 0.5, 1.2, steelDark, -0.9, 0.55, -1.9); box(0.5, 1.2, 0.5, steelDark, -0.9, 1.0, -2.4);
+      box(1.2, 0.6, 0.5, steelDark, 0.8, 0.35, -1.65); box(0.5, 0.7, 0.5, grey, 1.6, 0.4, -1.65);
+      if (!ghost) { nameplate(T, def, g, -0.9, 2.5, 1.41, 0, 0.55); parts.lamps = lightStack(T, g, -1.3, 3.05, 0.6); parts.button = greenButton(T, g, 2.015, 1.26, 1.25, Math.PI / 2); }
+      break;
+    }
+    case 'press': {
+      // Lad Machines 55-ton: a long horizontal machine. Clamp unit on the left with four tie bars, injection unit on the right
+      // with the barrel and the hopper, a safety gate with a window across the front, the controls at the right. +z is the front.
+      const green = mat('pressGreen', { color: 0x3b6e4f, roughness: 0.55, metalness: 0.25 }), cream = mat('pressCream', { color: 0xe4e0d2, roughness: 0.6 });
+      const glass = ghost ? gm : new T.MeshStandardMaterial({ color: 0x223344, transparent: true, opacity: 0.45, roughness: 0.1, metalness: 0.3 });
+      box(4.4, 0.6, 1.4, green, 0, 0.3, 0);                              // machine base, full length
+      box(4.4, 0.06, 1.4, steelDark, 0, 0.03, 0);
+      // clamp unit: two platens and the tie bars between them
+      box(0.25, 1.3, 1.1, steel, -1.7, 1.25, 0);                         // stationary platen (centre)
+      box(0.25, 1.3, 1.1, steel, -0.6, 1.25, 0);                         // moving platen
+      box(0.3, 1.2, 1.0, green, -2.05, 1.2, 0);                          // rear/clamp cylinder housing
+      for (const [y, z] of [[0.75, -0.4], [0.75, 0.4], [1.75, -0.4], [1.75, 0.4]]) cyl(0.05, 1.8, chrome, -1.3, y, z, g, Math.PI / 2); // tie bars
+      cyl(0.18, 0.5, steelDark, -1.98, 1.25, 0, g, Math.PI / 2);        // clamp cylinder
+      // a mold in the press: two halves, bolted up
+      box(0.22, 0.6, 0.5, mat('p20b', { color: 0x7a8088, metalness: 0.6, roughness: 0.4 }), -1.45, 1.2, 0); box(0.22, 0.6, 0.5, mat('p20b'), -0.85, 1.2, 0);
+      // injection unit: barrel, heater bands, hopper, the carriage
+      box(1.4, 0.7, 0.9, green, 1.0, 1.1, -0.1);                         // carriage
+      cyl(0.11, 1.5, steel, 0.2, 1.45, 0, g, Math.PI / 2);               // barrel
+      for (let i = 0; i < 4; i++) cyl(0.13, 0.08, dark, -0.2 + i * 0.3, 1.45, 0, g, Math.PI / 2); // heater bands
+      cyl(0.04, 0.3, chrome, -1.5, 1.45, 0, g, Math.PI / 2);             // nozzle, into the platen
+      const hop = new T.Mesh(new T.CylinderGeometry(0.32, 0.08, 0.6, 16), cream); hop.position.set(1.0, 1.95, -0.1); g.add(hop); // hopper
+      cyl(0.33, 0.06, dark, 1.0, 2.26, -0.1);                            // hopper lid
+      box(0.5, 0.5, 0.6, steelDark, 1.9, 1.05, -0.1);                    // screw drive motor
+      // the safety gate: a frame with a window across the clamp area, front
+      box(2.2, 1.5, 0.05, green, -1.3, 1.4, 0.65); box(1.6, 0.9, 0.06, glass, -1.3, 1.5, 0.66);
+      box(0.05, 0.4, 0.06, dark, -0.35, 1.3, 0.69);                      // gate handle
+      box(2.2, 0.08, 0.1, dark, -1.3, 2.18, 0.68);                       // gate rail
+      // control cabinet at the right end, screen angled to the operator
+      box(0.5, 1.3, 1.2, cream, 2.2, 1.25, 0.1);
+      const scr = new T.Mesh(new T.PlaneGeometry(0.4, 0.3), ghost ? gm : new T.MeshStandardMaterial({ color: 0x0b1a2a, emissive: 0x2a9a6a, emissiveIntensity: 0.6 })); scr.position.set(2.2, 1.6, 0.71); g.add(scr);
+      box(0.3, 0.14, 0.02, grey, 2.2, 1.3, 0.71);                        // keypad
+      // the parts chute under the mold, a bin in front
+      const chute = box(0.9, 0.04, 0.6, steelDark, -1.15, 0.72, 0.35); chute.rotation.x = 0.35;
+      box(0.6, 0.4, 0.4, mat('binGrey', { color: 0x4a4e52, roughness: 0.8 }), -1.15, 0.2, 0.95);
+      if (!ghost) { nameplate(T, def, g, 0.4, 0.75, 0.71, 0, 0.5); parts.lamps = lightStack(T, g, 2.2, 2.0, -0.3); parts.button = greenButton(T, g, 2.35, 1.15, 0.72); }
+      parts.spin.push({ mesh: hop, axis: 'y' });
+      break;
+    }
+    case 'heat': {
+      // Kilnworth vacuum furnace. A square insulated box on legs, a heavy hinged door with a wheel, a pyrometer on the
+      // control cabinet at the right, a vacuum pump at the back, a vent stack. +z is the front; the door opens toward you.
+      const skin = mat('ovenSkin', { color: 0x9aa3a8, roughness: 0.5, metalness: 0.4 }), hot = ghost ? gm : new T.MeshStandardMaterial({ color: 0x331a0a, emissive: 0xff5a1a, emissiveIntensity: 0.0, roughness: 0.9 });
+      for (const [x, z] of [[-0.7, -0.8], [0.7, -0.8], [-0.7, 0.6], [0.7, 0.6]]) box(0.1, 0.4, 0.1, steelDark, x, 0.2, z); // legs
+      box(1.7, 1.5, 1.6, skin, 0, 1.15, -0.1);                           // the box 0.4 -> 1.9
+      box(1.75, 0.08, 1.65, steelDark, 0, 1.94, -0.1);                   // top band
+      box(1.75, 0.08, 1.65, steelDark, 0, 0.44, -0.1);                   // bottom band
+      // the door: a thick slab on two hinges, a locking wheel, a sight glass glowing when it runs
+      box(1.2, 1.1, 0.16, skin, 0.05, 1.15, 0.78);
+      for (const y of [0.75, 1.55]) cyl(0.04, 0.2, steelDark, -0.6, y, 0.78, g, 0, 0); // hinges
+      const wheel = new T.Mesh(new T.TorusGeometry(0.16, 0.02, 8, 24), chrome); wheel.position.set(0.35, 1.15, 0.88); g.add(wheel);
+      for (const a of [0, Math.PI / 2]) { const sp = box(0.3, 0.02, 0.02, chrome, 0.35, 1.15, 0.88); sp.rotation.z = a; }
+      const sight = cyl(0.06, 0.02, hot, -0.2, 1.35, 0.87, g, 0, Math.PI / 2); parts.glow = sight;
+      // control cabinet on the right with the pyrometer dial and a chart recorder
+      box(0.5, 1.3, 0.7, mat('ovenCab', { color: 0xd9d5c6, roughness: 0.6 }), 1.1, 1.05, 0.3); box(0.46, 0.4, 0.66, steelDark, 1.1, 0.2, 0.3); // cabinet on its plinth
+      const dial = new T.Mesh(new T.PlaneGeometry(0.26, 0.26), ghost ? gm : new T.MeshBasicMaterial({ map: TX.label(T, ['°C', '1025'], { size: 30 }) })); dial.position.set(1.1, 1.45, 0.66); g.add(dial);
+      box(0.2, 0.16, 0.02, dark, 1.1, 1.05, 0.66);                       // chart recorder
+      cyl(0.05, 0.02, mat('redBtn', { color: 0xcc2222 }), 1.22, 0.85, 0.66, g, 0, Math.PI / 2);
+      // vacuum pump and the vent stack at the back
+      cyl(0.16, 0.5, steelDark, -0.5, 0.5, -1.15, g, Math.PI / 2); box(0.3, 0.3, 0.3, dark, -0.1, 0.5, -1.15);
+      cyl(0.08, 1.4, grey, 0.5, 2.6, -0.5);                              // stack
+      // a basket on the floor in front, with blocks in it
+      box(0.5, 0.25, 0.4, mat('basket', { color: 0x5a5e62, roughness: 0.8, metalness: 0.3 }), -0.6, 0.13, 1.1);
+      box(0.14, 0.1, 0.12, mat('p20b', { color: 0x7a8088, metalness: 0.6, roughness: 0.4 }), -0.68, 0.3, 1.08); box(0.1, 0.1, 0.1, mat('p20b'), -0.5, 0.3, 1.14);
+      if (!ghost) { nameplate(T, def, g, -0.45, 1.75, 0.87, 0, 0.3); parts.lamps = lightStack(T, g, 1.1, 1.75, 0.0); parts.button = greenButton(T, g, 1.0, 0.85, 0.66); }
       break;
     }
     case 'sinker': {
@@ -425,7 +531,8 @@ export class MachineView {
       for (const q of this.flameParts) { q.f.scale.y = 0.7 + 0.5 * Math.abs(Math.sin(this.ft * 9 + q.ph)); q.f.position.y = q.base + 0.08 * Math.sin(this.ft * 5 + q.ph); q.f.rotation.y += dt * 2; }
       this.fireLight.intensity = 14 + 8 * Math.random(); this.smoke.scale.setScalar(1 + 0.3 * Math.sin(this.ft * 2)); this.smoke.position.y = 1.1 + 0.2 * Math.sin(this.ft * 1.3);
     } else if (this.flames) this.flames.visible = false;
-    if (m.running) { this.spinAngle += dt * 24; for (const s of p.spin) s.mesh.rotation[s.axis] = this.spinAngle; }
+    if (m.running) { this.spinAngle += dt * (this.def.kind === 'press' ? 1.5 : 24); for (const s of p.spin) s.mesh.rotation[s.axis] = this.spinAngle; }
+    if (p.glow) p.glow.material.emissiveIntensity = m.running ? 1.2 + 0.3 * Math.sin((this.blink || 0) * 4) : 0;
     if (p.lamps) {
       const done = Object.values(m.checklist || {}).filter(Boolean).length;
       p.lamps.green.material.emissiveIntensity = m.running ? 1.4 : 0;

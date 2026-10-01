@@ -147,6 +147,22 @@ Then open http://localhost:8080/.
   (there is a poster). Carry the coffee to somebody instead of throwing it and morale goes up,
   and so does suspicion.
 
+- Stage 3, the big leagues. A Hermlin 5-axis (every VMC stage in half the time, and Dorval
+  Automotive starts sending RFQs for bezels with four slides, sixty-day terms and a portal that is
+  down). A Lad Machines sampling press: clamp the mold in, set the shot, and see the flash
+  yourself ninety minutes later instead of in an email three days later; T1 money lands the same
+  day. A Kilnworth heat-treat oven: four hours instead of two days at Quench & Sons, and if you
+  skip setting the temperature the block comes out shaped like a banana. The oven runs overnight.
+  The press does not sample itself.
+
+- The steel truck. Steel no longer appears on the rack by magic. Bramalea Steel Supply backs a cube
+  van up to the door at seven and the driver stands inside with a clipboard and nine more stops.
+  Press E on him to sign and the steel is on the rack. Ignore him until noon and he leaves it on
+  the pad, in the rain, with a note. The whiteboard reminds you.
+- Practice. Every cycle a person runs is practice. Fifteen on one kind of machine and their real
+  skill goes up a notch, whether or not the resume agrees. An apprentice who gets good on a mill,
+  lathe or grinder asks for the machinist's rate and gets it.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

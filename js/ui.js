@@ -3,7 +3,7 @@ import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
 import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
-import { customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel } from './jobs.js';
+import { IN_HOUSE_MIN, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel } from './jobs.js';
 import { hire, fire, raise, fixGrievance, tough, moraleWord, SKILLS } from './people.js';
 import { hasCad as hasCadFn } from './sim.js';
 
@@ -284,6 +284,8 @@ export class UI {
       cmm: [['probe', 'Qualify the probe', 'probe'], ['program', 'Load the inspection program', 'program']],
       graphite: [['clamp', 'Clamp the blank', 'clamp'], ['probe', 'Probe the blank', 'probe'], ['program', 'Select the program', 'program']],
       laser: [['indicate', 'Line up the ding', 'indicate'], ['speed', 'Set the pulse', 'speed']],
+      press: [['clamp', 'Clamp the mold in', 'clamp'], ['speed', 'Set the shot size', 'speed']],
+      heat: [['clamp', 'Load the basket', 'clamp'], ['speed', 'Set the temperature', 'speed']],
       bench: [],
     })[d.kind] || [];
     const cl = m.checklist || (m.checklist = {});
@@ -313,14 +315,14 @@ export class UI {
         ${d.kind === 'bench' ? '' : `<div class="maint"><span>Way oil ${Math.round(oil * 100)}%${oil <= 0 ? ' · <b style="color:var(--red)">DRY</b>' : oil < 0.15 ? ' · low' : ''}</span><button class="btn sm ghost" data-maint="oil">TOP UP · $40</button><button class="btn sm ghost" data-maint="service">SERVICE · ${money(sc)}</button>
           <span class="note">Oil is fifty hours a fill and nobody checks it. A service costs a day and buys back some condition${m.taped ? ', and takes the tape off' : ''}.</span></div>`}
         <p class="note">${d.cnc && !hasCam(s) ? '<b style="color:var(--red)">No CAM. Nothing can be programmed. The machine is a very expensive table.</b>' : opts.length ? 'Work waiting for this machine:' : d.kind === 'bench' ? 'Nothing to fit. The bench is for bench stages: deburring, polishing, assembly.' : 'No job needs this machine right now.'}</p>
-        <ul class="pickjob">${opts.map((o, k) => `<li><span><b>Job ${o.job.id}</b>${o.item && o.job.mold ? ' · ' + o.item.name : ''} · ${o.stage.label} · ${o.stage.min >= 120 ? (o.stage.min / 60).toFixed(1) + ' h' : o.stage.min + ' min'}<br><span class="note">${o.job.title}${o.job.qty > 1 ? ' × ' + o.job.qty : ''} · due day ${o.job.dueDay}</span></span><button data-pick="${k + 1}">LOAD IT</button></li>`).join('')}
+        <ul class="pickjob">${opts.map((o, k) => `<li><span><b>Job ${o.job.id}</b>${o.item && o.job.mold ? ' · ' + o.item.name : ''} · ${o.stage.label} · ${(o.stage.min || IN_HOUSE_MIN[o.stage.kind] || 30) >= 120 ? ((o.stage.min || IN_HOUSE_MIN[o.stage.kind]) / 60).toFixed(1) + ' h' : (o.stage.min || IN_HOUSE_MIN[o.stage.kind] || 30) + ' min'}<br><span class="note">${o.job.title}${o.job.qty > 1 ? ' × ' + o.job.qty : ''} · due day ${o.job.dueDay}</span></span><button data-pick="${k + 1}">LOAD IT</button></li>`).join('')}
         ${d.kind === 'bench' ? '' : `<li class="practice"><span>Practice cut on a scrap block · ${30} min</span><button data-pick="0">LOAD IT</button></li>`}</ul>`;
       body.querySelectorAll('[data-maint]').forEach((b) => b.addEventListener('click', () => { const r = maintain(s, m, b.dataset.maint); if (!r.ok) { this.audio.nope(); this.toast(r.why || 'no'); return; } this.audio.cash(); this.toast(r.note, 4000); this.renderPanel(); }));
       body.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
         const id = +b.dataset.pick; this.audio.click();
         if (d.cnc && !hasCam(s)) { this.audio.nope(); this.toast('No CAM. No program. No cut.'); return; }
         if (id === 0) m.job = { jobId: 0, itemIndex: 0, index: -1, label: 'practice cut', min: 30 };
-        else { const o = opts[id - 1]; m.job = { jobId: o.job.id, itemIndex: o.itemIndex, item: o.item ? o.item.name : null, index: o.index, label: o.stage.label, min: o.stage.min }; }
+        else { const o = opts[id - 1]; m.job = { jobId: o.job.id, itemIndex: o.itemIndex, item: o.item ? o.item.name : null, index: o.index, label: o.stage.label, min: o.stage.min || IN_HOUSE_MIN[o.stage.kind] || 30, kind: o.stage.kind }; }
         m.checklist = {}; this.renderPanel();
       }));
       return;

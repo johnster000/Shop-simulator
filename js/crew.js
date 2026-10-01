@@ -2,8 +2,8 @@
 // Time rules: the shop clock (minutes) decides arrivals, lunch and leaving; real seconds move the legs.
 import { buildPerson, pose } from './person.js';
 import { byId } from './catalog.js';
-import { runnableStages } from './jobs.js';
-import { canRun, setupRoll, speedFactor, line, skillFor } from './people.js';
+import { runnableStages, IN_HOUSE_MIN } from './jobs.js';
+import { canRun, setupRoll, speedFactor, line, skillFor, practice } from './people.js';
 import { CLOSE_MIN } from './sim.js';
 
 const SETUP_MIN = 6;          // shop minutes to set a machine up
@@ -15,7 +15,9 @@ export class Crew {
     this.T = T; this.scene = scene; this.shop = shop; this.nav = nav; this.state = state; this.hooks = hooks; // hooks: { machineViews(), runMachine(m, skipped, p), toast(msg), say(p, text) }
     this.views = new Map();
     this.door = { x: shop.door.x, z: shop.hz - 0.6 }; this.outside = { x: shop.door.x, z: shop.hz + 2.5 };
-    this.breakSpot = { x: shop.office.x1 + 1.2, z: shop.office.z0 + 1.2 };
+    const br = (shop.rooms || []).find((r) => r.name === 'breakroom');
+    // the break room, if there is one; otherwise the strip of wall by the office where the coffee was
+    this.breakSpot = br ? { x: (br.x0 + br.x1) / 2, z: br.z1 + 0.9 } : { x: shop.office.x1 + 1.2, z: shop.office.z0 + 1.2 };
     this.t = 0;
     this.bubbles = new Map(); // person id -> { el, until }
     this.layer = document.getElementById('bubbles');
@@ -98,7 +100,7 @@ export class Crew {
     const d = byId(m.id); const opts = runnableStages(this.state, d.kind).filter((o) => !this.hooks.machineViews().some((q) => q.m.job && q.m.job.jobId === o.job.id && q.m.job.itemIndex === o.itemIndex));
     if (!opts.length || m.running || m.job) return false;
     const o = opts[0];
-    m.job = { jobId: o.job.id, itemIndex: o.itemIndex, item: o.item ? o.item.name : null, index: o.index, label: o.stage.label, min: o.stage.min, operator: p.id }; m.checklist = {};
+    m.job = { jobId: o.job.id, itemIndex: o.itemIndex, item: o.item ? o.item.name : null, index: o.index, label: o.stage.label, min: o.stage.min || IN_HOUSE_MIN[o.stage.kind] || 30, kind: o.stage.kind, operator: p.id }; m.checklist = {};
     v.machine = m; this.goTo(v, this.spotFor(m), 'toMachine');
     return true;
   }
@@ -150,7 +152,7 @@ export class Crew {
             const steps = d.kind === 'bench' ? 0 : d.kind === 'drill' || d.kind === 'saw' ? 2 : 3;
             let skipped = 0; for (let k = 0; k < steps; k++) if (!setupRoll(p, d.kind)) skipped++;
             if (skipped && Math.random() < 0.5) this.hooks.say(p, pick(['Close enough.', 'It will hold.', 'Eh.', 'That is how we did it at the old place.']));
-            this.hooks.runMachine(m, skipped, p); p.workedToday = true;
+            this.hooks.runMachine(m, skipped, p); p.workedToday = true; practice(p, byId(m.id).kind);
             v.mode = m.running ? 'work' : 'idle'; if (!m.running) v.machine = null;
           }
         }

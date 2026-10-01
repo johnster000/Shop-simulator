@@ -275,6 +275,8 @@ export function auditCheck(state) {
 // ---- achievements. most are for disasters.
 export const ACHIEVEMENTS = {
   pin_aim_squeeze: ['Pull, Aim, Squeeze', 'Put out a fire on the shop floor. The tag was from 2009.'], chips_only: ['For Chips Only', 'The air hose. On a person. There is a poster about this.'], my_round: ['My Round', 'Brought somebody a coffee. Unthrown.'],
+  five_axis: ['Five Axes', 'Bought the one everybody wants. Fourteen months, they said.'], press_time: ['Press Time', 'Ran a tryout on your own press. Saw the flash yourself.'], banana: ['The Banana', 'Heat treated a block into a curve. Quench & Sons sent a card.'], in_house_heat: ['Hard, In House', 'Heat treated a block in your own oven. It came out straight.'],
+  signed: ['Sign Here. And Here.', 'Signed for the steel before noon. The driver noticed.'],
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   gold_watch: ['The Gold Watch', 'Ten years. You could retire. You did not.'], retired: ['Sold the Shop', 'Somebody else\'s compressor now.'],
   first_cycle: ['First Cycle Start', 'Press the button.'], one_out: ['One Out the Door', 'Ship a mold. Or a pin. It counts.'], oops: ['OOPS', 'First scrapped block. There will be more.'],
@@ -354,7 +356,7 @@ export function buy(state, def, used, financed = false) {
     running: false, runLeft: 0, checklist: {}, placed: false, tools: def.tools || 0,
   };
   state.machines.push(m);
-  state.stats.bought++; m.oil = m.used ? 0.4 + Math.random() * 0.4 : 1; m.down = null;
+  state.stats.bought++; m.oil = m.used ? 0.4 + Math.random() * 0.4 : 1; m.down = null; if (def.five) achieve(state, 'five_axis');
   return { ok: true, machine: m };
 }
 

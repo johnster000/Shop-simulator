@@ -92,6 +92,24 @@ export const MACHINES = [
     w: 0.9, d: 0.8, h: 1.6, priceNew: 60000, priceUsed: 25000, stage: 2, power: 1, air: false,
     stations: ['weld'], manual: true,
   },
+  {
+    id: 'fiveaxis', kind: 'vmc', look: 'five', name: '5-axis mill', brand: 'Hermlin', model: 'C 42ish', cnc: true, five: true,
+    blurb: 'The one everybody wants. Trunnion table, forty tools, a window you can watch through for an hour. Every VMC stage in half the time, and the automotive people start calling. Delivery was fourteen months; it is on the truck now.',
+    w: 3.2, d: 3.0, h: 3.1, priceNew: 850000, priceUsed: 420000, stage: 3, power: 4, air: true,
+    stations: ['cnc'], manual: false, tools: 40, speed: 0.5,
+  },
+  {
+    id: 'press', kind: 'press', name: 'Sampling press', brand: 'Lad Machines', model: '55T', cnc: false,
+    blurb: 'A 55-ton injection press for tryouts. Clamp your mold in, set the shot, see the flash yourself instead of reading about it in an email three days later. Needs a moldmaker, or somebody who has watched one.',
+    w: 4.4, d: 1.5, h: 2.1, priceNew: 180000, priceUsed: 70000, stage: 3, power: 3, air: true,
+    stations: ['tryout'], manual: false, tools: 0,
+  },
+  {
+    id: 'oven', kind: 'heat', name: 'Heat-treat oven', brand: 'Kilnworth', model: 'HT-12', cnc: false,
+    blurb: 'A vacuum furnace, used, with a pyrometer that is probably right. Heat treat in-house in four hours instead of two days at Quench & Sons. Set the temperature wrong and the block comes out shaped like a banana.',
+    w: 1.8, d: 2.0, h: 2.3, priceNew: 60000, priceUsed: 24000, stage: 3, power: 3, air: false,
+    stations: ['heat'], manual: false, tools: 0,
+  },
 ];
 
 export const byId = (id) => MACHINES.find((m) => m.id === id);

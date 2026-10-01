@@ -24,6 +24,8 @@ export const CUSTOMERS = [
   { id: 'erie', name: 'Erie Shore Packaging', kind: 'molder', stingy: 0.85, terms: 30, blurb: 'Caps and closures, millions a week. Everything is urgent. Everything.' },
   // consumer products: they only call once you have a CNC
   { id: 'maplewood', name: 'Maplewood Housewares', kind: 'consumer', stingy: 1.0, terms: 30, cnc: true, blurb: 'Bins, lids and a salad spinner. Their engineer is twenty-six and certain.' },
+  // automotive: they call once there is a 5-axis on the floor. they pay in 60 days and audit you first.
+  { id: 'dorval', name: 'Dorval Automotive Mouldings', kind: 'auto', stingy: 1.15, terms: 60, cnc: true, five: true, blurb: 'Tier 2. A quality manual thicker than the mold. Sixty-day terms and a portal that is down.' },
   { id: 'trillium', name: 'Trillium Outdoor', kind: 'consumer', stingy: 1.05, terms: 30, cnc: true, blurb: 'Cooler parts and paddle grips. Nice people. Slow to approve anything.' },
 ];
 
@@ -56,6 +58,8 @@ export const TEMPLATES = [
   { title: 'Single-cavity mold, paddle grip', mold: true, cnc: true, size: 'S', cav: 1, geo: 2, slides: 1, steel: 'P20', finish: 'B-1', runner: 'cold', hard: false, base: 2600, steelCost: 700 },
   { title: '2-cavity mold, closure', mold: true, cnc: true, size: 'S', cav: 2, geo: 2, slides: 0, steel: 'NAP80', finish: 'A-3', runner: 'cold', hard: false, base: 3400, steelCost: 1600 },
   { title: '2-cavity mold, cooler latch', mold: true, cnc: true, size: 'S', cav: 2, geo: 2, slides: 2, steel: 'H13', finish: 'B-2', runner: 'cold', hard: true, base: 3600, steelCost: 1900 },
+  { title: 'Automotive mold, door handle bezel, 2 slides + lifter', mold: true, cnc: true, five: true, size: 'L', cav: 2, geo: 3, slides: 2, steel: 'H13', finish: 'A-2', runner: 'hot', hard: true, base: 9000, steelCost: 6500 },
+  { title: 'Automotive mold, instrument cluster bezel, 4 slides', mold: true, cnc: true, five: true, size: 'L', cav: 1, geo: 3, slides: 4, steel: 'H13', finish: 'A-1', runner: 'hot', hard: true, base: 14000, steelCost: 9000 },
   { title: '4-cavity mold, cap, hot runner', mold: true, cnc: true, size: 'S', cav: 4, geo: 2, slides: 0, steel: '420 SS', finish: 'A-3', runner: 'hot', hard: true, base: 5200, steelCost: 3400, manifold: 9800 },
   { title: 'Slide body, hardened H13', cnc: true, qty: [1, 2], material: 150, steel: 'H13', stages: [['saw', 'Cut block', 15, true], ['vmc', 'Rough soft', 90, true], ['heat', 'Heat treat', 0], ['wire', 'Wire the gib slots', 80, true], ['sinker', 'Burn the detail', 60, true], ['bench', 'Fit and polish', 40, true]] },
 ];
@@ -63,16 +67,28 @@ export const TEMPLATES = [
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 
-export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench', vmc: 'VMC', sinker: 'sinker EDM', wire: 'wire EDM', heat: 'heat treater (vendor)', base: 'DMV (vendor)', manifold: 'Mould-Majors (vendor)', tryout: 'molder (vendor)', design: 'office PC', fitspot: 'bench or spotting press', electrode: 'graphite mill (or a dusty VMC)', weld: 'laser welder', spot: 'spotting press', graphite: 'graphite mill', cmm: 'CMM', laser: 'laser welder' }[kind] || kind; }
+export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench', vmc: 'VMC', sinker: 'sinker EDM', wire: 'wire EDM', heat: 'oven (or Quench & Sons)', base: 'DMV (vendor)', manifold: 'Mould-Majors (vendor)', tryout: 'sampling press (or the molder)', press: 'sampling press', design: 'office PC', fitspot: 'bench or spotting press', electrode: 'graphite mill (or a dusty VMC)', weld: 'laser welder', spot: 'spotting press', graphite: 'graphite mill', cmm: 'CMM', laser: 'laser welder' }[kind] || kind; }
 // which stations can run which stage kinds
 export function matches(stageKind, stationKind) {
   if (stageKind === stationKind) return true;
   if (stageKind === 'fitspot') return stationKind === 'bench' || stationKind === 'spot';
   if (stageKind === 'electrode') return stationKind === 'graphite' || stationKind === 'vmc';
   if (stageKind === 'weld') return stationKind === 'laser';
+  if (stageKind === 'tryout') return stationKind === 'press';
+  if (stageKind === 'heat') return stationKind === 'heat';
   return false;
 }
 export const VENDOR_KINDS = new Set(['heat', 'base', 'manifold', 'tryout']);
+// how long a vendor stage takes when the shop does it itself
+export const IN_HOUSE_MIN = { heat: 240, tryout: 90 };
+// the shop has its own press or oven, so that stage is not automatically sent out
+export function inHouse(state, kind, byId) { const st = { heat: 'heat', tryout: 'tryout' }[kind]; return !!st && state.machines.some((m) => m.placed && !m.down && byId(m.id).stations.includes(st)); }
+// after a tryout, in-house or at the molder: the defects, and the T1 money
+export function afterTryout(state, job, byId) {
+  const t1 = job.tryouts === 0; const notes = resolveTryout(state, job, byId);
+  if (t1) { const pay = Math.round(job.price * 0.3); job.paid = (job.paid || 0) + pay; post(state, `T1 payment, ${customerOf(job.customer).name}, job ${job.id}`, pay); notes.push(`T1 money in: $${pay.toLocaleString()}.`); }
+  return notes;
+}
 export function isCnc(kind) { return kind === 'vmc' || kind === 'sinker' || kind === 'wire'; }
 
 export function initJobs(state) {
@@ -123,7 +139,7 @@ export function moldItems(t) {
     st('design', 'Mold design', 420 * sizeK * (1 + t.slides * 0.2)),
     st('fitspot', 'Fit and spot', 720 * sizeK * (1 + t.slides * 0.3) * Math.sqrt(t.cav)),
     st('bench', 'Assemble ejection, water, hardware', 240 * sizeK * (t.runner === 'hot' ? 1.5 : 1)),
-    st('tryout', 'Tryout at the molder', 0),
+    st('tryout', 'Tryout T1', 0),
   ];
   return { items, jobStages };
 }
@@ -167,7 +183,7 @@ export function customerOf(id) { return CUSTOMERS.find((c) => c.id === id); }
 
 export function shopHas(state, kind, byId) { if (VENDOR_KINDS.has(kind) || kind === 'design') return true; if (kind === 'electrode') return state.machines.some((m) => m.placed && (byId(m.id).stations.includes('graphite') || byId(m.id).stations.includes('cnc'))); if (kind === 'fitspot') return state.machines.some((m) => m.placed && (byId(m.id).stations.includes('fit') || byId(m.id).stations.includes('spot'))); return state.machines.some((m) => m.placed && byId(m.id).stations.includes(stationKindToStation(kind))); }
 // station names on machine defs vs. stage kinds
-export function stationKindToStation(kind) { return { saw: 'saw', lathe: 'turn', mill: 'rough', drill: 'drill', grinder: 'grind', bench: 'fit', vmc: 'cnc', sinker: 'sinker', wire: 'wire', fitspot: 'fit', electrode: 'cnc', weld: 'weld', spot: 'spot', graphite: 'graphite', cmm: 'inspect', laser: 'weld' }[kind]; }
+export function stationKindToStation(kind) { return { heat: 'heat', tryout: 'tryout', press: 'tryout', saw: 'saw', lathe: 'turn', mill: 'rough', drill: 'drill', grinder: 'grind', bench: 'fit', vmc: 'cnc', sinker: 'sinker', wire: 'wire', fitspot: 'fit', electrode: 'cnc', weld: 'weld', spot: 'spot', graphite: 'graphite', cmm: 'inspect', laser: 'weld' }[kind]; }
 
 // the player sends a quote. decided the next morning.
 export function sendQuote(state, rfq, price) { rfq.price = Math.round(price); rfq.status = 'quoted'; rfq.read = true; }
@@ -180,7 +196,7 @@ export function winChance(state, rfq) {
   return Math.max(0.02, Math.min(0.97, p));
 }
 
-function startJob(state, rfq) {
+export function startJob(state, rfq) {
   const c = customerOf(rfq.customer);
   const items = (rfq.items || [{ name: 'Part', stages: rfq.stages }]).map((it) => ({ name: it.name, stages: it.stages.map((q) => ({ ...q })) }));
   const job = {
@@ -337,14 +353,14 @@ export function endOfDay(state, byId) {
   state.rfqs = state.rfqs.filter((r) => r.status === 'open' || r.status === 'quoted' || state.day - r.day < 6);
   // steel and outsourced work; vendor stages go out by themselves the night they come up
   for (const job of state.jobs) {
-    if (job.status === 'material' && state.day >= job.materialDay) { job.status = 'work'; notes.push(`Steel on the rack for job ${job.id}.`); }
+    if (job.status === 'material' && state.day >= job.materialDay && !job.truck) { job.truck = true; notes.push(`Steel for job ${job.id} is on the truck. It will be at the door at seven. Somebody has to sign for it.`); }
     if (job.status === 'work') {
       // anything a vendor does, kick off
       const designDone = !job.mold || job.jobStages[0].done;
-      job.items.forEach((item) => { const i = item.stages.findIndex((q) => !q.done); const q = item.stages[i]; if (q && VENDOR_KINDS.has(q.kind) && !q.out && (designDone || q.kind === 'base' || q.kind === 'manifold')) { const n = vendorOut(state, job, q, item.name); if (n) notes.push(n); } });
+      job.items.forEach((item) => { const i = item.stages.findIndex((q) => !q.done); const q = item.stages[i]; if (q && VENDOR_KINDS.has(q.kind) && !q.out && !inHouse(state, q.kind, byId) && (designDone || q.kind === 'base' || q.kind === 'manifold')) { const n = vendorOut(state, job, q, item.name); if (n) notes.push(n); } });
       const itemsDone = job.items.every((it) => it.stages.every((q) => q.done));
       const j = job.jobStages.findIndex((q) => !q.done); const jq = job.jobStages[j];
-      if (jq && VENDOR_KINDS.has(jq.kind) && !jq.out && itemsDone && (j === 0 || job.jobStages[j - 1].done)) { const n = vendorOut(state, job, jq, null); if (n) notes.push(n); }
+      if (jq && VENDOR_KINDS.has(jq.kind) && !jq.out && !inHouse(state, jq.kind, byId) && itemsDone && (j === 0 || job.jobStages[j - 1].done)) { const n = vendorOut(state, job, jq, null); if (n) notes.push(n); }
       // no crane: a real mold cannot be fitted here. it goes to Bramalea on a flatbed, with riggers at both ends.
       if (jq && job.mold && jq.kind === 'fitspot' && !jq.out && itemsDone && (j === 0 || job.jobStages[j - 1].done) && !state.facility.crane) { const cost = Math.round((jq.min / 60) * OUT_RATE) + 900; post(state, `Bramalea Moldworks: fit and spot, job ${job.id}, plus riggers`, -cost); jq.out = { backDay: state.day + 4, cost }; job.risk = (job.risk || 0) + 0.05; notes.push(`No crane. Job ${job.id} went to Bramalea on a flatbed for fit and spot. $${cost.toLocaleString()}, four days, and their guy's idea of a parting line.`); }
       // things coming back
@@ -352,7 +368,7 @@ export function endOfDay(state, byId) {
       for (const { q, item, ii } of all) if (q.out && !q.done && state.day >= q.out.backDay) {
         if (q.out.heat && Math.random() < 0.04) { q.out = null; scrapJob(state, job, Math.max(0, ii)); notes.push(`Job ${job.id}${item ? ' ' + item.name.toLowerCase() : ''} came back from heat treat in two pieces, in the same crate, with an invoice. Start over.`); continue; }
         const was = q.out; q.out = null; q.done = true;
-        if (was.tryout) { const t1 = job.tryouts === 0; notes.push(...resolveTryout(state, job, byId)); if (t1) { const pay = Math.round(job.price * 0.3); job.paid = (job.paid || 0) + pay; post(state, `T1 payment, ${customerOf(job.customer).name}, job ${job.id}`, pay); notes.push(`T1 money in: $${pay.toLocaleString()}.`); } }
+        if (was.tryout) notes.push(...afterTryout(state, job, byId));
         else notes.push(`Job ${job.id}: ${q.label.toLowerCase()}${item ? ' (' + item.name.toLowerCase() + ')' : ''} back from ${was.heat ? 'Quench & Sons' : q.kind === 'base' ? 'DMV' : q.kind === 'manifold' ? 'Mould-Majors' : q.kind === 'design' ? 'the designer' : 'Bramalea'}.`);
         if (allDone(job)) { job.status = 'ready'; state.crates++; notes.push(`Job ${job.id} is done. Ship it.`); }
       }
@@ -366,8 +382,9 @@ export function endOfDay(state, byId) {
   const n = (Math.random() < 0.35 + state.rep * 0.5 ? 1 : 0) + (hasCnc && Math.random() < 0.4 ? 1 : 0);
   for (let i = 0; i < n; i++) {
     const hasLaser = state.machines.some((m) => m.placed && byId(m.id).stations.includes('weld'));
-    const custs = CUSTOMERS.filter((c) => !c.cnc || hasCnc), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc).filter((t) => !t.mold || (hasCnc && state.rep >= 0.5)).filter((t) => !t.weld || hasLaser);
-    const c = pick(custs), t = c.cnc ? pick(temps.filter((q) => q.cnc)) : pick(temps.filter((q) => !q.mold));
+    const hasFive = state.machines.some((m) => m.placed && byId(m.id).five);
+    const custs = CUSTOMERS.filter((c) => (!c.cnc || hasCnc) && (!c.five || hasFive)), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc).filter((t) => !t.mold || (hasCnc && state.rep >= 0.5)).filter((t) => !t.weld || hasLaser).filter((t) => !t.five || hasFive);
+    const c = pick(custs), t = c.five ? pick(temps.filter((q) => q.five)) : c.cnc ? pick(temps.filter((q) => q.cnc && !q.five)) : pick(temps.filter((q) => !q.mold && !q.five));
     const r = makeRfq(state, t, c); state.rfqs.push(r); notes.push(`RFQ from ${c.name}: ${t.title}.`);
   }
   return notes;

@@ -6,8 +6,9 @@ import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
 import { crewVerdict } from './events.js';
+import { Delivery } from './truck.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY } from './sim.js';
-import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages } from './jobs.js';
+import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
 import { Items, ITEM_KINDS } from './items.js';
@@ -73,9 +74,10 @@ export function startShop(T, audio, state) {
   const extItem = items.make('extinguisher', shop.extPos.x, shop.extPos.z, { y: shop.extPos.y });
   const hoseItem = items.make('airhose', shop.hosePos.x, shop.hosePos.z, { y: shop.hosePos.y });
   let coffeeItem = items.items.find((it) => it.kind === 'coffee');
+  const delivery = new Delivery(T, scene, shop, state);
   let steelItem = null;
   function syncSteel() {
-    const want = state.jobs.some((j) => j.status === 'work' || j.status === 'material' && state.day >= j.materialDay);
+    const want = state.jobs.some((j) => j.status === 'work');
     if (want && !steelItem) steelItem = items.make('steel', -shop.hx + 0.55, shop.hz * 0.45 - 0.6, { y: 1.24 });
     if (!want && steelItem && !steelItem.flying && items.held !== steelItem) { items.remove(steelItem); steelItem = null; }
   }
@@ -235,7 +237,7 @@ export function startShop(T, audio, state) {
   function runMachine(m, skipped, p) {
     const def = byId(m.id);
     audio.cycleStart();
-    const risk = def.kind === 'bench' ? 0.02 : skipped * 0.18 + (1 - m.condition) * 0.12;
+    const risk = def.kind === 'bench' ? 0.02 : def.kind === 'press' || def.kind === 'heat' ? 0 : skipped * 0.18 + (1 - m.condition) * 0.12; // a press and an oven have their own ways of going wrong
     m.running = true; m.runTotal = m.job.min * (def.speed || 1) * (0.9 + Math.random() * 0.25) * (p ? 1.4 - Math.min(5, (p.actual[{ mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench' }[def.kind] || 'general'] || 0)) * 0.1 : 1); m.runLeft = m.runTotal; // shop minutes
     state.stats.cycleStarts++;
     const who = p ? p.name : 'You';
@@ -243,6 +245,8 @@ export function startShop(T, audio, state) {
     if (jobNow && def.kind === 'spot') jobNow.spotted = true;
     if (jobNow && def.kind === 'bench' && m.job.label === 'Fit and spot') { jobNow.risk = (jobNow.risk || 0) + 0.1; ui.toast('Fit and spot at the bench, with bluing and a straightedge. A press would be better. The flash will tell you.', 3600); }
     if (def.kind === 'vmc' && /electrode/i.test(m.job.label) && !state.facility.dust) { m.condition = Math.max(0, m.condition - 0.03); for (const q of state.people) q.morale = Math.max(0, q.morale - 0.02); ui.toast('Graphite on the VMC. Black dust in the ways, the coffee, and everyone\'s nose. A vacuum is $2,800.', 4200); }
+    if (def.kind === 'press' && m.job.jobId) { const j = state.jobs.find((q) => q.id === m.job.jobId); if (j) j.risk = (j.risk || 0) + skipped * 0.12; }
+    if (def.kind === 'heat') { m.job.banana = m.checklist && m.checklist.speed !== true; }
     if (def.kind === 'sinker' || def.kind === 'wire') {
       const flushSkipped = m.checklist && m.checklist.clamp !== true && def.kind === 'sinker';
       const pFire = flushSkipped ? 0.3 : def.kind === 'sinker' ? 0.015 : 0.004;
@@ -280,6 +284,7 @@ export function startShop(T, audio, state) {
     const lines = ['TO DO:'];
     const due = state.jobs.filter((j) => j.status === 'work' || j.status === 'ready').sort((a, b) => a.dueDay - b.dueDay).slice(0, 2);
     for (const j of due) lines.push(`- job ${j.id} due day ${j.dueDay}${state.day > j.dueDay ? ' !!!' : ''}`);
+    if (state.jobs.some((j) => j.truck && j.status === 'material')) lines.push('- SIGN FOR THE STEEL');
     if (!state.facility.door) lines.push('- fix the door');
     const g = state.people.find((p) => p.grievance); if (g) lines.push(`- talk to ${g.name}`);
     if (!state.machines.length) lines.push('- buy a mill');
@@ -295,7 +300,7 @@ export function startShop(T, audio, state) {
     const nightMin = (24 * 60 - (7 * 60 + state.t)) + 7 * 60; // minutes until 7:00 tomorrow
     for (const m of state.machines) {
       const def = byId(m.id); if (!m.running) continue;
-      if (!def.cnc) { notes.push(`${def.brand} ${def.name}: stopped where it was. Manual machines do not run without a person.`); continue; }
+      if (!def.cnc && def.kind !== 'heat') { notes.push(`${def.brand} ${def.name}: stopped where it was. ${def.kind === 'press' ? 'A press does not sample itself.' : 'Manual machines do not run without a person.'}`); continue; }
       const hours = Math.min(m.runLeft, nightMin) / 60;
       const pBreak = (state.facility.toolbreak ? 0.004 : 0.016) * (1.3 - m.condition * 0.5), pFire = def.kind === 'sinker' ? (state.facility.fire ? 0.00005 : 0.0006) : 0;
       let broke = -1, fire = false;
@@ -371,7 +376,7 @@ export function startShop(T, audio, state) {
     if (!coffeeItem) coffeeItem = items.make('coffee', shop.pcPos.x + 0.6, shop.pcPos.z + 0.1, { y: 0.77 });
     if (items.held) items.drop();
     hoseItem.mesh.position.set(shop.hosePos.x, shop.hosePos.y, shop.hosePos.z); hoseItem.mesh.rotation.set(0, 0, 0); hoseItem.flying = false;
-    crew.night();
+    crew.night(); delivery.night();
     const lightsOut = runLightsOut();
     const n = goHome(state); save(state);
     if (lightsOut.length) n.notes = (n.notes || []).concat(lightsOut);
@@ -423,20 +428,21 @@ export function startShop(T, audio, state) {
   // ---- interaction
   const ray = new T.Raycaster(); const centre = new T.Vector2(0, 0);
   let lookAt = null;
+  const HANG_SURFACES = new Set(['hook', 'bracket', 'compressor', 'panel', 'door', 'tarp', 'rack']);
   function look() {
     if (iso.active || modal) { ui.hint(''); ui.tag(''); lookAt = null; return; }
     ray.setFromCamera(centre, camera);
     const hits = ray.intersectObjects(scene.children, true);
-    lookAt = null;
+    lookAt = null; let lookDist = 99;
     for (const h of hits) {
       if (h.distance > 3.2) break;
       const i = h.object.userData.interact; if (!i || i.type === 'floor') continue;
-      lookAt = i; break;
+      lookAt = i; lookDist = h.distance; break;
     }
-    // a small thing hanging on a wall or a bracket beats the wall behind it
-    if (lookAt && lookAt.type !== 'machine' && lookAt.type !== 'person' && lookAt.type !== 'item' && !items.held) {
+    // a small thing hanging in front of a wall or a hook beats the wall behind it, if it is nearer than the wall
+    if (lookAt && HANG_SURFACES.has(lookAt.type) && !items.held) {
       const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
-      for (const it of items.items) { if (it.flying) continue; const dx = it.mesh.position.x - camera.position.x, dz = it.mesh.position.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 1.6 && (dx * fx + dz * fz) / (d || 1) > 0.86) { lookAt = { type: 'item', kind: it.kind, ref: it, text: ITEM_KINDS[it.kind].hint }; break; } }
+      for (const it of items.items) { if (it.flying) continue; const dx = it.mesh.position.x - camera.position.x, dz = it.mesh.position.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 1.6 && camera.position.distanceTo(it.mesh.position) < lookDist - 0.04 && (dx * fx + dz * fz) / (d || 1) > 0.86) { lookAt = { type: 'item', kind: it.kind, ref: it, text: ITEM_KINDS[it.kind].hint }; break; } }
     }
     if (!lookAt) {
       // forgiving: a machine right in front of you counts, even if the dot is a little off
@@ -480,7 +486,8 @@ export function startShop(T, audio, state) {
     } else if (lookAt.type === 'person') {
       const p = state.people.find((q) => q.id === lookAt.id);
       if (p) { ui.tag(`${p.name.toUpperCase()} · ${p.roleName.toUpperCase()} · ${crew.status(p)}`); ui.hint('talk'); }
-    } else { ui.tag(''); ui.hint(lookAt.text || lookAt.type); $('hint').classList.remove('alarm'); }
+    } else if (lookAt.type === 'driver') { ui.tag('THE DRIVER · BRAMALEA STEEL'); ui.hint('sign for the steel'); $('hint').classList.remove('alarm'); }
+    else { ui.tag(''); ui.hint(lookAt.text || lookAt.type); $('hint').classList.remove('alarm'); }
   }
   function use() {
     if (items.held) {
@@ -497,6 +504,13 @@ export function startShop(T, audio, state) {
     audio.click();
     if (lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid); if (m.alarm) { estop(m); return; } if (m.job && m.job.operator && m.job.operator !== 'owner' && !m.running) { ui.toast(`${state.people.find((q) => q.id === m.job.operator).name} is setting this one up.`); return; } if (player.locked) document.exitPointerLock(); ui.openPanel(m); return; }
     if (lookAt.type === 'person') { const p = state.people.find((q) => q.id === lookAt.id); if (p) { if (player.locked) document.exitPointerLock(); ui.openPerson(p); } return; }
+    if (lookAt.type === 'driver' || lookAt.type === 'truck') {
+      const r = delivery.sign();
+      if (!r) { ui.toast(lookAt.type === 'truck' ? 'The truck. It is leaving.' : 'The driver is leaving. He waved. It was not a friendly wave.'); return; }
+      audio.paper(); syncSteel(); unlock('signed');
+      ui.toast(`"${r.line}" Signed. Steel for job${r.jobs.length > 1 ? 's' : ''} ${r.jobs.map((j) => j.id).join(', ')} on the rack. ${pick(['He left before you finished reading the sheet.', 'He took the pen.', 'Nine more stops.'])}`, 5000);
+      return;
+    }
     if (lookAt.type === 'crate') { ui.toast('Finished work. Ship it from the clipboard, JOBS tab.'); return; }
     if (lookAt.type === 'pc') { if (player.locked) document.exitPointerLock(); ui.openPC(); return; }
     if (lookAt.type === 'tarp') { audio.tarp(); ui.toast(pick(['It flaps.', 'A real door is on the list.', 'It let the winter in last year too.'])); return; }
@@ -585,8 +599,19 @@ export function startShop(T, audio, state) {
           audio.ding(); const v = viewOf(ev.uid); const m = v && v.m;
           const op = m && m.job && m.job.operator && m.job.operator !== 'owner' ? state.people.find((q) => q.id === m.job.operator) : null;
           const who = op ? op.name + ' finished' : 'Done:';
-          if (m && m.job && m.job.jobId) {
+          if (m && m.job && m.job.jobId && m.job.kind === 'heat' && m.job.banana && Math.random() < 0.45) {
             const job = state.jobs.find((j) => j.id === m.job.jobId);
+            if (job) { scrapJob(state, job, m.job.itemIndex); shop.setScrap(state.scrapCount); unlock('banana'); ui.toast(`The block came out of the oven shaped like a banana. Wrong temperature. Job ${job.id}${m.job.item ? ' ' + m.job.item.toLowerCase() : ''}: start over. Quench & Sons would like you to know they saw this coming.`, 6000); }
+            m.job = null;
+          } else if (m && m.job && m.job.jobId) {
+            const job = state.jobs.find((j) => j.id === m.job.jobId);
+            if (job && m.job.kind === 'heat') unlock('in_house_heat');
+            if (job && m.job.kind === 'tryout') {
+              const q = (m.job.itemIndex >= 0 ? job.items[m.job.itemIndex].stages : job.jobStages)[m.job.index]; if (q) { q.done = true; q.out = null; } unlock('press_time');
+              const notes = afterTryout(state, job, byId); ui.toast(`T${job.tryouts} on your own press. ${notes.join(' ')}`, 6000); audio.ding();
+              if (allDone(job)) { job.status = 'ready'; state.crates++; shop.setCrates(state.crates); }
+              m.job = null; continue;
+            }
             const finished = job ? stageDone(state, job, m.job.itemIndex, m.job.index) : false;
             if (finished) { shop.setCrates(state.crates); ui.toast(`Job ${job.id} is done${op ? ` (${op.name} did the last of it)` : ''}. ${customerOf(job.customer).name} is waiting. Ship it from the clipboard.`, 4000); }
             else if (job) ui.toast(`${who} ${m.job.label.toLowerCase()}${m.job.item && job.mold ? ' on the ' + m.job.item.toLowerCase() : ''}. Next: ${nextLabel(job)}.`, 3600);
@@ -606,6 +631,7 @@ export function startShop(T, audio, state) {
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
     if (!paused && !modal) {
     fireTick(dt);
+    if (!paused && !modal && !night) delivery.update(dt, (line) => { ui.toast(line, 5000); syncSteel(); });
       items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })));
       for (const it of items.items) if (it.flying && it.from) it.throwDist = Math.hypot(it.mesh.position.x - it.from.x, it.mesh.position.z - it.from.z);
       itemsAtRest(); syncSteel();
@@ -617,13 +643,13 @@ export function startShop(T, audio, state) {
     audio.update(dt, {
       listener: { x: camera.position.x, z: camera.position.z }, iso: iso.active,
       running: paused ? [] : state.machines.filter((m) => m.running && m.placed).map((m) => ({ x: m.x, z: m.z, kind: byId(m.id).kind })),
-      compressor: shop.compressorPos,
+      compressor: shop.compressorPos, truck: delivery.here || delivery.leaving ? { x: delivery.truck.position.x, z: delivery.truck.position.z } : null,
     });
     look(); ui.update(); crew.projectBubbles(iso.active ? iso.camera : camera, iso.active);
     if (ui.panelOpen && ui.panelM && ui.panelM.running) ui.renderPanel();
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, items, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

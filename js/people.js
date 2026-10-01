@@ -70,9 +70,27 @@ export function fire(state, p) {
   return sev;
 }
 
-export function skillFor(p, kind) { return p.actual[{ mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench', saw: 'general', drill: 'general', vmc: 'mill', sinker: 'mill', wire: 'mill', spot: 'bench', cmm: 'general', graphite: 'mill', laser: 'bench' }[kind] || 'general'] || 0; }
+export function skillKey(kind) { return { mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench', saw: 'general', drill: 'general', vmc: 'mill', sinker: 'mill', wire: 'mill', spot: 'bench', cmm: 'general', graphite: 'mill', laser: 'bench', press: 'bench', heat: 'general' }[kind] || 'general'; }
+export function skillFor(p, kind) { return p.actual[skillKey(kind)] || 0; }
+// a cycle run is practice. fifteen of them on one kind of machine and the hands know something the resume did not.
+export function practice(p, kind) { const k = skillKey(kind); p.practice = p.practice || {}; p.practice[k] = (p.practice[k] || 0) + 1; }
+const SKILL_WORD = { mill: 'the mill', lathe: 'the lathe', grind: 'the grinder', bench: 'the bench', general: 'the rest of it' };
+export function growSkills(state, p) {
+  const notes = []; if (!p.practice) return notes;
+  for (const k of SKILLS) {
+    if ((p.practice[k] || 0) >= 15 && (p.actual[k] || 0) < 5) {
+      p.practice[k] = 0; p.actual[k] = (p.actual[k] || 0) + 1; p.claimed[k] = Math.max(p.claimed[k] || 0, p.actual[k]);
+      notes.push(`${p.name} is getting good on ${SKILL_WORD[k]}. ${p.actual[k] >= 4 ? `${p.name} knows it, and so does the shop across town.` : `${p.name} does not know it yet.`}`);
+      if (p.role === 'apprentice' && p.actual[k] >= 3 && (k === 'mill' || k === 'lathe' || k === 'grind')) {
+        p.role = 'machinist'; p.roleName = ROLES.machinist.name; p.wage += 4; p.morale = Math.min(1, p.morale + 0.15);
+        notes.push(`${p.name} asked for the machinist's rate. You gave it. The resume now says machinist, and this time it is true.`);
+      }
+    }
+  }
+  return notes;
+}
 // CNC wants a machinist or a moldmaker; an apprentice on a VMC is how you learn what a VMC costs
-export function canRun(p, kind) { if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
+export function canRun(p, kind) { if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'press') return p.role === 'moldmaker' || (p.role === 'machinist' && skillFor(p, 'general') >= 3); if (kind === 'heat') return true; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
 // one setup step: pass or skip
 export function setupRoll(p, kind) { const sk = skillFor(p, kind); return Math.random() < 0.42 + sk * 0.115 + (p.morale - 0.5) * 0.12; }
 export function moraleWord(m) { return m >= 0.85 ? 'happy' : m >= 0.6 ? 'fine' : m >= 0.4 ? 'grumbling' : m >= 0.2 ? 'disgruntled' : 'done'; }
@@ -107,6 +125,7 @@ export function endOfDay(state) {
     if (p.startDay > state.day) continue;
     p.daysWorked++;
     if (p.workedToday) p.morale = Math.min(1, p.morale + 0.015); else { p.daysIdle++; p.morale = Math.max(0, p.morale - 0.03); }
+    notes.push(...growSkills(state, p));
     p.workedToday = false; p.saidToday = false;
     if (!p.revealed && p.daysWorked >= 3) { p.revealed = true; const lied = SKILLS.some((k) => p.actual[k] < p.claimed[k]); if (lied) notes.push(`${p.name}'s resume was optimistic. You can see it now.`); }
     if (!p.grievance && Math.random() < 0.08) { const g = pick(GRIEVANCES); p.grievance = { id: g[0], label: g[1], text: g[2], fix: g[3] }; p.morale = Math.max(0, p.morale - 0.08); notes.push(`${p.name} has something to say about ${g[1]}.`); }
