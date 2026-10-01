@@ -215,11 +215,15 @@ export class UI {
         <div class="foot">${w.price ? money(w.price) + ' + ' : ''}${w.weekly ? '$' + w.weekly + '/wk maintenance' : w.pirated ? 'no maintenance, no invoice, no record' : ''}</div>
         <div class="buy">${have ? '<button disabled>INSTALLED</button>' : `<button data-sw="${w.id}" ${s.cash < w.price ? 'disabled' : ''}>${w.price ? money(w.price) : 'DOWNLOAD'}</button>`}</div></li>`; };
     el.innerHTML = `<div class="row2"><div class="big">${money(s.cash)}</div><div class="note">Panel: ${free} of ${circuits(s)} circuits free. Air: ${airFree} of ${airSlots(s)}. CAM: ${hasCam(s) ? SOFTWARE.find((w) => w.id === sw.cam).name : '<b style="color:var(--red)">none</b>'}. Trucks arrive today, which is to say now.</div></div>
+      <h4 class="sect">THE TRADE SHOW</h4>
+      <div class="note">${s.tradeShow ? 'Booked. You leave tonight. Two days. The crew has the keys and your number, which they will not use.' : (s.lastShow && s.day < s.lastShow + 60) ? `You went on day ${s.lastShow}. The next one is in ${s.lastShow + 60 - s.day} days. The pens are still in the bag.` : 'A booth, a lanyard, two days away from the shop, and a stack of business cards that turn into RFQs. $2,400 and whatever the crew does while you are gone.'}</div>
+      <div class="pacts">${!s.tradeShow && !(s.lastShow && s.day < s.lastShow + 60) ? '<button data-show="1">GO TO THE SHOW · $2,400</button>' : ''}</div>
       <h4 class="sect">MACHINES</h4><ul class="cat">${MACHINES.map(machineCard).join('')}</ul>
       <p class="note">Used machines come with a history. New machines come with a warranty and a payment. Financing is 10% down, 60 months at 8%. Neither comes with a crane.</p>
       <h4 class="sect">THE BUILDING</h4><ul class="cat">${UPGRADES.map(upCard).join('')}</ul>
       <h4 class="sect">SOFTWARE</h4><ul class="cat">${SOFTWARE.map(swCard).join('')}</ul>
       <p class="note">A CNC without CAM is a very expensive table. *The Community Edition is free the way a found wallet is free.</p>`;
+    el.querySelectorAll('[data-show]').forEach((b) => b.addEventListener('click', () => { if (s.cash < 2400) { this.audio.nope(); this.toast('$2,400. You have less. The show will still be there next year.'); return; } post(s, 'Trade show: booth, hotel, hot dog', -2400); s.tradeShow = true; this.audio.paper(); this.toast('Booked. Go home tonight and you are gone two days. Tell the crew. Or do not.', 4500); this.renderShop(); }));
     el.querySelectorAll('.buy button[data-id]').forEach((b) => b.addEventListener('click', () => {
       const def = byId(b.dataset.id), used = b.dataset.used === '1';
       let r;

@@ -222,6 +222,14 @@ Then open http://localhost:8080/.
   red, and "needs a machine you do not have" when it does. A projection: one shift, nobody sick,
   vendors on time. So, no.
 
+- The crate and the show. Two more contract types from the bible: a prototype tool (aluminum
+  inserts for the customer's frame, quick, cheap, and the manual mill will do it) and a transfer
+  tool, somebody else's mold in a crate. Open the crate at the bench and there is always a
+  surprise: a cracked cavity, a missing slide, bent pins, rust, welded water lines, or a mouse
+  and its house. Another stage, another day, $400 on the invoice; they did not know. The SHOP
+  tab sells the trade show: $2,400, two days away, a lanyard, a $14 hot dog, two to four RFQs,
+  and whatever the crew did while you were gone.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

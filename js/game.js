@@ -12,7 +12,7 @@ import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
 import { practice } from './people.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost } from './sim.js';
-import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message } from './jobs.js';
+import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message, openCrate } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
 import { Items, ITEM_KINDS } from './items.js';
@@ -443,7 +443,7 @@ export function startShop(T, audio, state) {
       $('nightLine').textContent = `YEAR ${y.year} IS DONE. ${y.shipped} job${y.shipped === 1 ? '' : 's'} shipped, ${y.molds} mold${y.molds === 1 ? '' : 's'}. ${onTime}${money(y.revenue)} in. ${y.hired} hired, ${y.left} quit; ${y.people} on the crew, ${y.machines} machine${y.machines === 1 ? '' : 's'}, ${y.crashes} scrapped block${y.crashes === 1 ? '' : 's'}. Reputation ${y.rep}.${y.best ? ` Best day: ${y.best}.` : ''}${y.worst ? ` Worst: ${y.worst}.` : ''} The shop is worth ${money(y.valuation.total)}. ${y.line}${y.retire ? ' Ten years. There is a second button tonight.' : ''}`;
       unlock('year'); if (y.retire) retireNow = true;
     }
-    else $('nightLine').textContent = (n.weekend ? pick(['The weekend. Two days. You thought about the shop both of them. ', 'Saturday: errands. Sunday: the drive past the shop to check the door. ', 'The weekend. The compressor ran the whole time, for nobody. ']) : '') + line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '') + (n.notes && n.notes.length ? ' Overnight: ' + n.notes.join(' ') : '');
+    else $('nightLine').textContent = (n.weekend ? pick(['The weekend. Two days. You thought about the shop both of them. ', 'Saturday: errands. Sunday: the drive past the shop to check the door. ', 'The weekend. The compressor ran the whole time, for nobody. ']) : '') + line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '') + (n.show ? ' ' + n.show : '') + (n.notes && n.notes.length ? ' Overnight: ' + n.notes.join(' ') : '');
     $('wakeBtn').classList.add('hidden');
     nightEl.classList.remove('hidden'); nightEl.classList.remove('fade');
     // the clock runs through the night
@@ -699,6 +699,7 @@ export function startShop(T, audio, state) {
               if (allDone(job)) { job.status = 'ready'; state.crates++; shop.setCrates(state.crates); }
               m.job = null; continue;
             }
+            if (job && m.job.label === 'Open the crate') { const laser = state.machines.some((q) => q.placed && byId(q.id).kind === 'laser'); const txt = openCrate(state, job, laser); setTimeout(() => ui.toast(`The crate is open. ${txt} Another stage, another day, $400 on the invoice. They did not know.`, 7000), 1500); unlock('the_crate'); crew.gatherRound(m.x, m.z); }
             const finished = job ? stageDone(state, job, m.job.itemIndex, m.job.index) : false;
             if (finished) { shop.setCrates(state.crates); ui.toast(`Job ${job.id} is done${op ? ` (${op.name} did the last of it)` : ''}. ${customerOf(job.customer).name} is waiting. Ship it from the clipboard.`, 4000); }
             else if (job) ui.toast(`${who} ${m.job.label.toLowerCase()}${m.job.item && job.mold ? ' on the ' + m.job.item.toLowerCase() : ''}. Next: ${nextLabel(job)}.`, 3600);

@@ -4,7 +4,7 @@
 // Monday is day 1.
 
 import { byId, SHOP, BUILDINGS, UPGRADES, SOFTWARE } from './catalog.js';
-import { initJobs, endOfDay } from './jobs.js';
+import { initJobs, endOfDay, makeRfq, CUSTOMERS, TEMPLATES } from './jobs.js';
 import { initPeople, endOfDay as peopleEndOfDay } from './people.js';
 import { nightlyEvents, yearSummary } from './events.js';
 
@@ -291,6 +291,7 @@ export const ACHIEVEMENTS = {
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   glad_once: ['Glad Of It, Exactly Once', 'A fire, with insurance. The adjuster said "huh".'], uninsured: ['Should Have', 'A fire, without insurance. The Monday you turned it down.'],
   swept: ['Billable, Apparently', 'Swept the floor yourself. Ten times. The crew watched.'], chips_deep: ['Ankle Deep', 'A machine with chips to the top of its boots. Somebody should sweep.'],
+  lanyard: ['The Lanyard', 'Went to the trade show. Came back with pens and RFQs.'], the_crate: ['The Crate', 'Opened somebody else\'s mold. There was a surprise. There is always a surprise.'],
   the_speech: ['The Speech', 'Somebody quit on the floor, out loud, with everyone watching.'],
   stayed: ['Everybody Stays', 'Kept the crew late. Time and a half, and a look.'], watched: ['Supervision', 'Stood behind somebody while they ran a machine. It helped. They hated it.'],
   gold_watch: ['The Gold Watch', 'Ten years. You could retire. You did not.'], retired: ['Sold the Shop', 'Somebody else\'s compressor now.'],
@@ -359,6 +360,18 @@ export function goHome(state) {
     const sw = softwareWeekly(state); if (sw) { post(state, 'Software maintenance', -sw); extra.push(`Software maintenance: $${sw}.`); }
     if (state.insured) { const ins = insuranceWeekly(state); post(state, 'Insurance premium', -ins); extra.push(`Insurance: $${ins}.`); }
     extra.push(...loansWeekly(state));
+  }
+  // the trade show: two days away, a lanyard, a hot dog, and a stack of business cards that turn into RFQs
+  if (state.tradeShow) {
+    state.tradeShow = false; state.lastShow = state.day;
+    for (let i = 0; i < 2; i++) state.day = (state.day - 1) % 7 === 4 ? state.day + 3 : state.day + 1;
+    const hasCnc = state.machines.some((m) => m.placed && byId(m.id).cnc), hasFive = state.machines.some((m) => m.placed && byId(m.id).five);
+    const custs = CUSTOMERS.filter((c) => (!c.cnc || hasCnc) && (!c.five || hasFive)), temps = TEMPLATES.filter((t) => (!t.cnc || hasCnc) && (!t.five || hasFive) && !t.weld && (!t.mold || t.proto || (hasCnc && state.rep >= 0.4)));
+    const n = 2 + Math.floor(Math.random() * 3); const got = [];
+    for (let i = 0; i < n; i++) { const c = custs[Math.floor(Math.random() * custs.length)], t = temps[Math.floor(Math.random() * temps.length)]; if (c && t) { state.rfqs.push(makeRfq(state, t, c)); got.push(c.name); } }
+    state.rep = Math.min(1, state.rep + 0.03); achieve(state, 'lanyard');
+    const crewLine = state.people.length ? (Math.random() < 0.3 ? (() => { const m = state.machines.find((q) => q.placed); if (m) { m.condition = Math.max(0, m.condition - 0.08); return `The crew, alone for two days, had an incident with the ${byId(m.id).name.toLowerCase()}. Nobody will say what.`; } return 'The crew were fine. Suspiciously fine.'; })() : 'The crew ran the place. Nothing burned. The radio station changed.') : 'The shop sat dark for two days. The compressor cycled anyway.';
+    night.show = `Two days at the show. A lanyard, a $14 hot dog, a bag of pens, and ${n} RFQ${n === 1 ? '' : 's'} from ${[...new Set(got)].join(', ')}. ${crewLine}`;
   }
   night.day = state.day;
   night.notes = upgradeDue(state).concat(extra, overnightMachines(state), endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state), nightlyEvents(state), bankCheck(state));

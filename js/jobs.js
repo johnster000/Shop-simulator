@@ -54,6 +54,10 @@ export const TEMPLATES = [
   { title: 'Repair: blend a ding in a cavity', weld: true, qty: [1, 1], material: 0, steel: 'customer supplied', stages: [['weld', 'Weld the ding', 30], ['bench', 'Blend and polish', 90]] },
   { title: 'Stripper plate, 4140', cnc: true, qty: [1, 1], material: 260, steel: '4140', stages: [['saw', 'Cut plate', 20], ['vmc', 'Mill pockets and pattern', 150], ['drill', 'Drill and tap waterlines', 40], ['grinder', 'Grind flat', 45]] },
   // Molds. Real tool builds: items in parallel, then fit, assemble, tryout, revise, ship.
+  // a prototype tool: aluminum inserts for the customer's MUD frame. quick, cheap, manual machines will do.
+  { title: 'Prototype tool, aluminum inserts, 1 cavity', mold: true, proto: true, cnc: false, size: 'S', cav: 1, geo: 1, slides: 0, steel: '7075 aluminum', finish: 'B-3', runner: 'cold', hard: false, base: 0, steelCost: 350 },
+  // a transfer tool: somebody else's mold arrives in a crate. the crate always contains a surprise.
+  { title: 'Transfer tool: somebody else\'s mold, in a crate', mold: true, transfer: true, cnc: false, size: 'M', cav: 2, geo: 1, slides: 0, steel: 'P20, allegedly', finish: 'B-2', runner: 'cold', hard: false, base: 0, steelCost: 0 },
   { title: 'Single-cavity mold, bin lid', mold: true, cnc: true, size: 'M', cav: 1, geo: 1, slides: 0, steel: 'P20', finish: 'B-2', runner: 'cold', hard: false, base: 3200, steelCost: 900 },
   { title: 'Single-cavity mold, paddle grip', mold: true, cnc: true, size: 'S', cav: 1, geo: 2, slides: 1, steel: 'P20', finish: 'B-1', runner: 'cold', hard: false, base: 2600, steelCost: 700 },
   { title: '2-cavity mold, closure', mold: true, cnc: true, size: 'S', cav: 2, geo: 2, slides: 0, steel: 'NAP80', finish: 'A-3', runner: 'cold', hard: false, base: 3400, steelCost: 1600 },
@@ -118,6 +122,14 @@ const st = (kind, label, min) => ({ kind, label, min: Math.round(min), done: fal
 
 // A mold is a set of work items that move through the shop on their own, then come together.
 export function moldItems(t) {
+  if (t.proto) {
+    const ins = (name) => ({ name, stages: [st('mill', 'Rough the insert', 200), st('mill', 'Finish the insert', 160), st('bench', 'Polish to B-3', 60)] });
+    return { items: [ins('Cavity insert'), ins('Core insert')], jobStages: [st('design', 'Insert design', 180), st('fitspot', 'Fit the inserts to the frame', 180), st('bench', 'Pins, water, a label', 60), st('tryout', 'Tryout T1', 0)] };
+  }
+  if (t.transfer) {
+    return { items: [{ name: 'The crate', stages: [st('bench', 'Open the crate', 30), st('bench', 'Clean it up', 120)] }],
+      jobStages: [st('design', 'Assess the damage from the photos', 120), st('fitspot', 'Fit and spot what they sent', 240), st('bench', 'Make it run', 120), st('tryout', 'Tryout T1', 0)] };
+  }
   const polish = { 'C-1': 1, 'B-2': 3, 'B-1': 4, 'A-3': 7, 'A-2': 9 }[t.finish] || 3;
   const sizeK = { S: 0.8, M: 1, L: 1.5 }[t.size] || 1, geoK = 0.8 + t.geo * 0.25;
   const items = [];
@@ -155,7 +167,7 @@ export function makeRfq(state, template, customer) {
     const expected = Math.round(estimate * customer.stingy * (0.92 + Math.random() * 0.16));
     const lead = rint(30, 45);
     return { id: state.nextRfq++, status: 'open', read: false, day: state.day, expires: state.day + 4, customer: customer.id, title: template.title, qty: 1, steel: template.steel,
-      items, jobStages, stages: items.flatMap((it) => it.stages).concat(jobStages), minutes, material, estimate, expected, lead, price: estimate, rate: MOLD_RATE, cnc: true, heat, mold: true, spec: { ...template } };
+      items, jobStages, stages: items.flatMap((it) => it.stages).concat(jobStages), minutes, material, estimate, expected, lead, price: estimate, rate: MOLD_RATE, cnc: !template.proto && !template.transfer, heat, mold: true, spec: { ...template } };
   }
   const qty = rint(template.qty[0], template.qty[1]);
   const stages = template.stages.map(([kind, label, min, perPiece]) => ({ kind, label, min: Math.round(min * (perPiece ? qty : 1)), done: false, out: null }));
@@ -384,8 +396,8 @@ export function endOfDay(state, byId) {
     const hasLaser = state.machines.some((m) => m.placed && byId(m.id).stations.includes('weld'));
     const hasFive = state.machines.some((m) => m.placed && byId(m.id).five);
     const sour = state.sour || {};
-    const custs = CUSTOMERS.filter((c) => (!c.cnc || hasCnc) && (!c.five || hasFive) && !(sour[c.id] > state.day)), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc).filter((t) => !t.mold || (hasCnc && state.rep >= 0.5)).filter((t) => !t.weld || hasLaser).filter((t) => !t.five || hasFive);
-    const c = pick(custs), t = c.five ? pick(temps.filter((q) => q.five)) : c.cnc ? pick(temps.filter((q) => q.cnc && !q.five)) : pick(temps.filter((q) => !q.mold && !q.five));
+    const custs = CUSTOMERS.filter((c) => (!c.cnc || hasCnc) && (!c.five || hasFive) && !(sour[c.id] > state.day)), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc).filter((t) => !t.mold || t.proto || t.transfer || (hasCnc && state.rep >= 0.5)).filter((t) => !t.weld || hasLaser).filter((t) => !t.five || hasFive).filter((t) => !t.transfer || state.rep >= 0.4);
+    const c = pick(custs), t = c.five ? pick(temps.filter((q) => q.five)) : c.cnc ? pick(temps.filter((q) => q.cnc && !q.five)) : pick(temps.filter((q) => (!q.mold || q.proto || q.transfer) && !q.five));
     const r = makeRfq(state, t, c); state.rfqs.push(r); notes.push(`RFQ from ${c.name}: ${t.title}.`);
   }
   return notes;
@@ -426,4 +438,22 @@ export function schedule(state, byId, days = 10) {
     summary.push({ id: j.id, title: j.title, due: j.dueDay, end: t, endDay: Math.round(endDay), late: Math.round(endDay) > j.dueDay, missing, beyond: t > cols.length });
   }
   return { cols, lanes: lanes.filter((l) => l.cells.length), summary };
+}
+
+// what is in the crate. always something.
+export const SURPRISES = [
+  { text: 'A cracked cavity. Somebody ran it with a stuck part and kept going.', stage: (laser) => laser ? st('weld', 'Weld the crack and blend it', 90) : st('bench', 'Peen, fill and blend the crack', 180) },
+  { text: 'One slide missing. Not in the crate, not in the truck, not in their shop.', stage: () => st('mill', 'Make a new slide from nothing', 240) },
+  { text: 'Half the ejector pins are bent. The other half are the wrong length.', stage: () => st('bench', 'Replace every pin', 90) },
+  { text: 'A mouse. A dead one, and its house, in the water manifold.', stage: () => st('bench', 'The mouse, the house, and a lot of bleach', 30), morale: -0.03 },
+  { text: 'Rust. The whole parting line. It sat outside for a winter and then some.', stage: () => st('bench', 'Stone the rust off the parting line', 150) },
+  { text: 'Somebody welded the cooling lines shut. On purpose, it looks like.', stage: () => st('drill', 'Re-drill the water', 90) },
+];
+export function openCrate(state, job, laser) {
+  const sp = SURPRISES[Math.floor(Math.random() * SURPRISES.length)];
+  const crate = job.items[0]; crate.stages.push(sp.stage(laser));
+  if (sp.morale) for (const p of state.people) p.morale = Math.max(0, p.morale + sp.morale);
+  job.price += 400; job.dueDay += 1;
+  message(state, customerOf(job.customer).name, 'Re: the crate', `${sp.text} We did not know. We would like it noted that we did not know. Add it to the invoice.`);
+  return sp.text;
 }
