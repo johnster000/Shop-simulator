@@ -219,7 +219,7 @@ export function startJob(state, rfq) {
     id: state.jobNo++, rfqId: rfq.id, customer: rfq.customer, title: rfq.title, qty: rfq.qty, steel: rfq.steel, mold: !!rfq.mold, spec: rfq.spec || null,
     items, jobStages: (rfq.jobStages || []).map((q) => ({ ...q })), price: rfq.price, material: rfq.material, minutes: rfq.minutes, cnc: !!rfq.cnc,
     poDay: state.day, dueDay: state.day + rfq.lead, materialDay: rfq.material > 0 ? state.day + 1 : state.day,
-    status: rfq.material > 0 ? 'material' : 'work', shippedDay: null, scrap: 0, risk: 0, tryouts: 0, defects: [], program: !!rfq.program,
+    status: rfq.material > 0 ? 'material' : 'work', shippedDay: null, scrap: 0, risk: 0, tryouts: 0, defects: [], program: !!rfq.program, estimate: rfq.estimate, heat: rfq.heat || 0,
   };
   state.jobs.push(job); if (rfq.program && state.program) state.program.jobs.push(job.id);
   // deposit: 50% on PO for component work; 30/30/40 on a mold (bible §7.5). steel goes out today.
@@ -263,8 +263,37 @@ export function nextLabel(job) {
 export function stageDone(state, job, itemIndex, index) {
   const q = stageAt(job, itemIndex, index); if (!q) return false;
   q.done = true;
-  if (allDone(job)) { job.status = 'ready'; state.crates++; return true; }
+  if (allDone(job)) { job.status = 'ready'; state.crates++; if (!job.mold && job.hiddenOut == null) job.hiddenOut = Math.random() < 0.07 * (state.machines.some((m) => m.placed && m.bumped) ? 2.5 : 1) * (job.cnc ? 1.4 : 1); return true; }
   return false;
+}
+
+// ---- cutting corners (bible §12.2). the game lets you. the game remembers.
+export const CHEAP_STEELS = { P20: '1045', H13: '4140', S7: 'something from the rack', 'NAP80': 'P20, pre-hard', '420 SS': '420 from the other place', 4140: '1018', 'D2': 'A2' };
+export function canCheapSteel(job) { return job.status === 'material' && !job.cheap && !!CHEAP_STEELS[job.steel] && !(job.spec && job.spec.transfer); }
+export function cheapSteel(state, job) {
+  if (!canCheapSteel(job)) return { ok: false };
+  const steel = job.mold ? job.spec.steelCost : job.material; const back = Math.round(steel * 0.45);
+  job.cheap = true; job.realSteel = job.steel; job.steelUsed = CHEAP_STEELS[job.steel];
+  post(state, `Steel for job ${job.id}: credit, ${job.steelUsed} instead`, back);
+  return { ok: true, back, used: job.steelUsed };
+}
+export function canInspect(state, job, byId) { return job.status === 'ready' && !job.mold && !job.inspected && state.machines.some((m) => m.placed && !m.down && byId(m.id).stations.includes('inspect')); }
+export function inspect(state, job) {
+  if (job.status !== 'ready' || job.inspected) return { ok: false };
+  job.inspected = true; state.t += 20; // twenty minutes on the CMM. the CMM does not hurry.
+  if (job.hiddenOut && Math.random() < 0.85) {
+    job.hiddenOut = false; job.status = 'work'; state.crates = Math.max(0, state.crates - 1);
+    job.items[0].stages.push({ kind: job.cnc ? 'vmc' : 'mill', label: 'Re-cut to size (the CMM said so)', min: 60, done: false, out: null });
+    return { ok: true, found: true };
+  }
+  return { ok: true, found: false };
+}
+export function canShipEarly(job) { return job.mold && job.status === 'work' && job.tryouts >= 1 && job.items.every((it) => it.stages.every((q) => q.done)) && job.jobStages.some((q) => !q.done); }
+export function shipEarly(state, job) {
+  if (!canShipEarly(job)) return { ok: false };
+  const skipped = job.jobStages.filter((q) => !q.done); for (const q of skipped) { q.done = true; q.skipped = true; }
+  job.shippedEarly = true; job.status = 'ready'; state.crates++;
+  return { ok: true, skipped: skipped.length };
 }
 
 // a scrapped item: its steel is gone, its stages start over. on a component job, that is the job.
@@ -356,6 +385,11 @@ export function ship(state, job) {
   if (late > 0) { const pen = Math.round(job.price * Math.min(0.3, 0.05 * late)); balance -= pen; note = ` ${late} day${late === 1 ? '' : 's'} late. They knocked $${pen.toLocaleString()} off and will remember.`; state.rep = Math.max(0, state.rep - 0.08); }
   else { state.rep = Math.min(1, state.rep + (job.mold ? 0.1 : 0.04)); }
   if (job.mold && job.tryouts === 1 && !job.defects.length) state.firstTimeRight = (state.firstTimeRight || 0) + 1;
+  if (job.shippedEarly) job.publicTryout = state.day + 3 + Math.floor(Math.random() * 3);
+  if (!job.mold && job.hiddenOut && !job.inspected) job.foundAtCustomer = state.day + 2 + Math.floor(Math.random() * 4);
+  if (job.cheap) job.wearDay = state.day + (job.mold ? 25 + Math.floor(Math.random() * 30) : Math.random() < 0.35 ? 5 + Math.floor(Math.random() * 6) : null); if (job.wearDay === null) delete job.wearDay;
+  // quote badly wrong: the real number next to the quoted one, in a frame
+  if (job.estimate) { const actual = Math.round(job.estimate + job.scrap * (job.mold ? job.spec.steelCost : job.material) * 1.5 + Math.max(0, job.tryouts - 1) * 400 + (late > 0 ? late * 60 : 0)); if (job.price < actual * 0.78) { state.framed = { quote: job.price, actual, title: job.title, day: state.day }; note += ` The margin on this one was ${Math.round((job.price / actual - 1) * 100)}%. The estimate sheet is going in a frame.`; } }
   state.receivables.push({ due: state.day + c.terms, amount: balance, text: `${c.name}, job ${job.id} balance` });
   message(state, c.name, `Received: job ${job.id}`, `${job.title} received.${note} Balance of $${balance.toLocaleString()} on net ${c.terms}.`);
   return { late, balance };

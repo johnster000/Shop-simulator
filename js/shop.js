@@ -377,6 +377,18 @@ export class Shop {
   }
   setWhiteboard(lines, doodle = null) { if (!this.wbMat) return; this.wbMat.map = TX.whiteboard(this.T, lines, doodle); this.wbMat.needsUpdate = true; }
 
+  // the estimate sheet, framed, with the real number next to it. on the office wall, beside the whiteboard, where you sit.
+  setFramed(f) {
+    const T = this.T, s = this.scene; if (this.framedG) { s.remove(this.framedG); this.interact.splice(this.interact.indexOf(this.framedG), 1); this.framedG = null; }
+    if (!f) return;
+    const o = this.office, g = new T.Group(); g.position.set(o.x1 - 0.07, 1.45, o.z0 + 0.5); g.rotation.y = -Math.PI / 2; s.add(g); this.framedG = g;
+    const frame = new T.Mesh(new T.BoxGeometry(0.4, 0.5, 0.03), new T.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.6 })); g.add(frame);
+    const money = (n) => '$' + Math.round(n).toLocaleString();
+    const paper = new T.Mesh(new T.PlaneGeometry(0.33, 0.43), new T.MeshBasicMaterial({ map: TX.label(T, ['ESTIMATE', '', 'QUOTED', money(f.quote), 'ACTUAL', money(f.actual), '', '(never again)'], { size: 22, bg: '#f4f1e6', fg: '#222', border: '#f4f1e6', w: 256, h: 320 }) })); paper.position.z = 0.017; g.add(paper);
+    const glass = new T.Mesh(new T.PlaneGeometry(0.34, 0.44), new T.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, roughness: 0.05 })); glass.position.z = 0.02; g.add(glass);
+    this.tag(g, 'framed', `the estimate sheet. quoted ${money(f.quote)}, cost ${money(f.actual)}. framed, so you remember.`);
+  }
+
   // the overhead crane: runway beams along both long walls, a bridge, a trolley and a hook
   setCrane(on) {
     if (this.craneOn === on) return; this.craneOn = on;

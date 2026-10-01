@@ -56,7 +56,8 @@ export function startShop(T, audio, state) {
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
     goHome() { leaveForTheNight(); },
-    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (j && j.program) { const line = programShipped(state, j, Math.max(0, state.day - j.dueDay)); if (line) { setTimeout(() => ui.toast(line, 6000), 1500); if (state.program && state.program.finished && state.program.late === 0) unlock('the_program'); } } if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); state.cake = { day: state.day, job: j.id }; syncCake(); unlock('cake'); setTimeout(() => ui.toast(pick(['A mold shipped. There is cake on the table. The grocery store had one left. It is not for us, strictly, but it is cake.', 'Ship day. Cake. The crew have already found it.']), 4500), 800); for (const q of state.people) if (Math.random() < 0.6) crew.say(q, pick(['Cake.', 'Corner piece is mine.', 'Who is Barb?', 'Is there a plate? There is no plate.', 'I will have a small one. Three small ones.']), 3.5); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
+    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (state.framed && state.framed.day === state.day && !state.framedShown) { state.framedShown = state.framed.day; shop.setFramed(state.framed); unlock('framed'); setTimeout(() => ui.toast(`The estimate sheet for the ${state.framed.title.toLowerCase()} is in a frame on the office wall now. Quoted ${money(state.framed.quote)}. Cost ${money(state.framed.actual)}. It stays up.`, 6000), 2500); } if (j && j.program) { const line = programShipped(state, j, Math.max(0, state.day - j.dueDay)); if (line) { setTimeout(() => ui.toast(line, 6000), 1500); if (state.program && state.program.finished && state.program.late === 0) unlock('the_program'); } } if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); state.cake = { day: state.day, job: j.id }; syncCake(); unlock('cake'); setTimeout(() => ui.toast(pick(['A mold shipped. There is cake on the table. The grocery store had one left. It is not for us, strictly, but it is cake.', 'Ship day. Cake. The crew have already found it.']), 4500), 800); for (const q of state.people) if (Math.random() < 0.6) crew.say(q, pick(['Cake.', 'Corner piece is mine.', 'Who is Barb?', 'Is there a plate? There is no plate.', 'I will have a small one. Three small ones.']), 3.5); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
+    crateSync() { shop.setCrates(state.crates); },
     crew() { return crew; },
     crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.returned && p.startDay != null)) unlock('boomerang'); if (state.people.some((p) => (p.quirkId === 'cncOnly' || p.quirkId === 'manualOnly') && p.startDay != null)) unlock('principles'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
     achievement(a) { showAchievement(a); },
@@ -199,7 +200,7 @@ export function startShop(T, audio, state) {
     if (Math.random() < 0.2) { m.condition = Math.min(1, m.condition + 0.08); ui.toast(pick(['WHACK. It... sounds better? Percussive maintenance. Do not ask why.', 'WHACK. Something inside clicked back into place. Nobody will ever know what.']), 3600); audio.ding(); }
     else { const bill = d.cnc ? 1200 : 120; post(state, d.cnc ? 'Pendant screen, replaced' : 'Bent handwheel', -bill); m.condition = Math.max(0, m.condition - 0.08); ui.toast(d.cnc ? `WHACK. The pendant screen is a spiderweb now. ${money(bill)}.` : `WHACK. A handwheel is bent and the ${d.name.toLowerCase()} is sulking. ${money(bill)}.`, 4000); }
   }
-  shop.setCrates(state.crates || 0); shop.setScrap(state.scrapCount || 0); shop.setOrphans((state.orphans || []).length);
+  shop.setCrates(state.crates || 0); shop.setScrap(state.scrapCount || 0); shop.setOrphans((state.orphans || []).length); shop.setFramed(state.framed || null);
   $('hud').classList.remove('hidden');
 
   function syncViews() {
@@ -716,6 +717,7 @@ export function startShop(T, audio, state) {
       for (const q of state.people) if (Math.random() < 0.25) crew.say(q, pick(['B4 is stuck.', 'Everybody knows B4 is stuck.', 'Hit it on the left.', 'Those are mine, technically.']), 2.5);
       return;
     }
+    if (lookAt.type === 'framed') { ui.toast(pick(['You look at it every morning. That is the point of it.', 'The real number is in red. You wrote it in red.', 'Somebody added a smiley face to the frame. It is not a smiley face.']), 3500); return; }
     if (lookAt.type === 'stones') {
       state.touchedStones = (state.touchedStones || 0) + 1; audio.tick(0.05, 1800);
       const pol = state.people.filter((p) => p.startDay != null && p.startDay <= state.day).sort((a, b) => (b.actual.bench || 0) - (a.actual.bench || 0))[0];
@@ -885,6 +887,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped, p) => runMachine(m, skipped, p || null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { ui, get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped, p) => runMachine(m, skipped, p || null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

@@ -3,7 +3,7 @@ import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
 import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor, insuranceWeekly } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
-import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel } from './jobs.js';
+import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel, canCheapSteel, cheapSteel, canInspect, inspect, canShipEarly, shipEarly, CHEAP_STEELS } from './jobs.js';
 import { hire, fire, raise, fixGrievance, tough, moraleWord, SKILLS } from './people.js';
 import { hasCad as hasCadFn } from './sim.js';
 import { hasEstimator } from './people.js';
@@ -126,12 +126,20 @@ export class UI {
         ${j.mold ? itemsHtml + jobLevel : itemsHtml}
         <div class="acts">
           ${j.status === 'ready' ? `<button class="ship" data-ship="${j.id}">SHIP IT</button>` : ''}
+          ${canInspect(s, j, byId) ? `<button class="btn sm ghost" data-inspect="${j.id}" title="twenty minutes on the CMM">INSPECT FIRST</button>` : ''}
+          ${j.status === 'ready' && !j.mold && j.inspected ? '<span class="note">Inspected. Report in the box.</span>' : ''}
+          ${canShipEarly(j) ? `<button class="btn sm ghost" data-early="${j.id}" title="their tryout is your tryout, in public">SHIP WITHOUT T${j.tryouts + 1}</button>` : ''}
+          ${canCheapSteel(j) ? `<button class="btn sm ghost" data-cheap="${j.id}" title="who checks">BUILD IT IN ${CHEAP_STEELS[j.steel].toUpperCase()} (+${money(Math.round((j.mold ? j.spec.steelCost : j.material) * 0.45))})</button>` : ''}
+          ${j.cheap && j.status !== 'shipped' ? `<span class="note">Invoiced as ${j.realSteel}. Built in ${j.steelUsed}. Nobody checks.</span>` : ''}
           ${j.status === 'work' ? `<span class="note">Next: ${nextLabel(j)}.</span>` : ''}
         </div></div>`;
     };
     el.innerHTML = board + `${live.length ? live.map(jobHtml).join('') : '<p class="note">No jobs. Quote something.</p>'}${done.length ? `<h4 class="sect">SHIPPED</h4>${done.map(jobHtml).join('')}` : ''}
       <p class="note">Reputation ${Math.round(s.rep * 100)}. On-time ships raise it. Late ones drop it faster. A mold with no notes at T1 is the one they remember.</p>`;
     el.querySelectorAll('[data-ship]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.ship); const r = ship(s, j); s.stats.shipped++; this.audio.cash(); this.toast(r.late ? `Shipped. ${r.late} day${r.late === 1 ? '' : 's'} late. They noticed.` : j.mold ? 'Shipped. A mold went out the door. Cake.' : 'Shipped. One out the door.', 3200); this.hooks.shipped(j); this.renderJobs(); }));
+    el.querySelectorAll('[data-inspect]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.inspect); const r = inspect(s, j); if (!r.ok) { this.audio.nope(); return; } this.audio.paper(); this.toast(r.found ? `The CMM found one. Out by two thou. Back on the ${j.cnc ? 'VMC' : 'mill'} for an hour. Better here than there.` : 'Twenty minutes on the CMM. Everything in. Report in the box, for when they ask.', 4200); this.hooks.crateSync && this.hooks.crateSync(); this.renderJobs(); }));
+    el.querySelectorAll('[data-early]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.early); const r = shipEarly(s, j); if (!r.ok) { this.audio.nope(); return; } this.audio.paper(); this.toast(`Marked ready without T${j.tryouts + 1}. ${r.skipped} stage${r.skipped === 1 ? '' : 's'} skipped. Their tryout is your tryout now. In public.`, 4500); this.hooks.crateSync && this.hooks.crateSync(); this.renderJobs(); }));
+    el.querySelectorAll('[data-cheap]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.cheap); const r = cheapSteel(s, j); if (!r.ok) { this.audio.nope(); return; } this.audio.cash(); this.toast(`${money(r.back)} back on the steel. It is ${r.used} now. The PO still says ${j.realSteel}. Who checks.`, 4200); this.renderJobs(); }));
     el.querySelectorAll('[data-out]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.out); const r = sendOut(s, j, +b.dataset.ii, +b.dataset.i); if (!r.ok) { this.audio.nope(); this.toast(r.why); return; } this.audio.cash(); this.toast(`Sent out. ${money(r.cost)}. A few days.`); this.renderJobs(); }));
   }
 

@@ -309,6 +309,14 @@ Then open http://localhost:8080/.
   Bridgeford, and the old moldmaker who will not run anything with a screen; both say so, to the
   machine, when it is the only one free.
 
+- Cutting corners (§12.2), the rest of the table. On the JOBS tab: build it in cheaper steel
+  than the PO says (money back now; the mold washes out at forty thousand shots and they have it
+  tested, and they know everyone); ship a mold without the last tryout (their tryout is your
+  tryout, in public, with a chargeback and a Monday); skip inspection on a component (their CMM
+  finds the two thou yours would have, and asks if you inspect) or put it on your CMM first for
+  twenty minutes. Quote something badly wrong and ship it anyway, and the estimate sheet goes in a
+  frame on the office wall with the real number next to it. It stays up.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
