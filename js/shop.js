@@ -284,6 +284,32 @@ export class Shop {
   }
 
   // the vending machine. B4 is stuck. it has been stuck since the lease.
+  // the sample parts from the last tryout, on a tray on the polisher's bench shelf. each one looks like what went wrong.
+  setSamples(sm) {
+    const T = this.T, s = this.scene; if (this.samplesG) { s.remove(this.samplesG); this.interact.splice(this.interact.indexOf(this.samplesG), 1); this.samplesG = null; }
+    if (!sm || !this.polisherPos) return;
+    const g = new T.Group(); g.position.set(this.polisherPos.x + 0.85, 0.27, this.polisherPos.z + 0.2); s.add(g); this.samplesG = g;
+    const tray = new T.Mesh(new T.BoxGeometry(0.5, 0.02, 0.34), new T.MeshStandardMaterial({ color: 0x4a5560, roughness: 0.7 })); g.add(tray);
+    const plastic = new T.MeshPhysicalMaterial({ color: 0xdfe6ee, transparent: true, opacity: 0.75, roughness: 0.35 });
+    const names = sm.defects.length ? sm.defects.slice(0, 4) : ['Good'];
+    names.forEach((name, i) => {
+      const x = -0.17 + i * 0.115, z = (i % 2 ? 0.06 : -0.06);
+      const part = new T.Mesh(new T.BoxGeometry(0.08, 0.05, 0.08), plastic); part.position.set(x, 0.035, z); g.add(part);
+      if (name === 'Flash') for (const a of [0, Math.PI / 2]) { const fin = new T.Mesh(new T.BoxGeometry(0.11, 0.002, 0.11), plastic); fin.position.set(x, 0.035, z); fin.rotation.y = a; g.add(fin); }
+      if (name === 'Short shot') { part.scale.set(0.7, 1, 0.7); part.position.x -= 0.012; }
+      if (name === 'Burn marks') { const b = new T.Mesh(new T.BoxGeometry(0.084, 0.012, 0.084), new T.MeshStandardMaterial({ color: 0x5a3a1a })); b.position.set(x, 0.058, z); g.add(b); }
+      if (name === 'Stuck part') for (let k = 0; k < 4; k++) { const sc = new T.Mesh(new T.BoxGeometry(0.002, 0.045, 0.002), new T.MeshStandardMaterial({ color: 0x8a8a8a })); sc.position.set(x + 0.041, 0.035, z - 0.03 + k * 0.02); g.add(sc); }
+      if (name === 'Ejector pin marks') for (const [dx, dz] of [[-0.02, -0.02], [0.02, -0.02], [-0.02, 0.02], [0.02, 0.02]]) { const pm = new T.Mesh(new T.CylinderGeometry(0.006, 0.006, 0.004, 8), new T.MeshStandardMaterial({ color: 0xb8c0c8 })); pm.position.set(x + dx, 0.062, z + dz); g.add(pm); }
+      if (name === 'Warp') { part.rotation.z = 0.18; part.position.y += 0.008; }
+      if (name === 'Hot runner drool') for (let k = 0; k < 3; k++) { const hair = new T.Mesh(new T.CylinderGeometry(0.0015, 0.0015, 0.05, 4), plastic); hair.position.set(x - 0.02 + k * 0.02, 0.085, z); hair.rotation.z = (k - 1) * 0.5; g.add(hair); }
+      if (name === 'Water leak') { const pud = new T.Mesh(new T.CircleGeometry(0.06, 14), new T.MeshStandardMaterial({ color: 0x7fa6c9, transparent: true, opacity: 0.6 })); pud.rotation.x = -Math.PI / 2; pud.position.set(x, 0.011, z); g.add(pud); }
+      if (name === 'Dimension out') { const paper = new T.Mesh(new T.PlaneGeometry(0.07, 0.09), new T.MeshBasicMaterial({ map: TX.label(T, ['CMM', '-----', '--x--'], { size: 22, bg: '#f4f1e6', fg: '#c0392b', border: '#f4f1e6' }) })); paper.rotation.x = -Math.PI / 2; paper.position.set(x, 0.012, z + 0.09); g.add(paper); }
+      if (name === 'Sink marks') for (const [dx, dz] of [[-0.02, 0], [0.02, 0]]) { const dm = new T.Mesh(new T.SphereGeometry(0.012, 8, 6), new T.MeshStandardMaterial({ color: 0xc8d0d8 })); dm.position.set(x + dx, 0.06, z + dz); dm.scale.y = 0.3; g.add(dm); }
+    });
+    const lbl = new T.Mesh(new T.PlaneGeometry(0.2, 0.06), new T.MeshBasicMaterial({ map: TX.label(T, [`T${sm.t} · JOB ${sm.job}`], { size: 24, bg: '#f4f1e6', fg: '#222', border: '#999' }) })); lbl.position.set(0.0, 0.011, 0.14); lbl.rotation.x = -Math.PI / 2; g.add(lbl);
+    g.traverse((o) => { o.userData.interact = { type: 'samples', text: `the sample parts from T${sm.t} on job ${sm.job}. ${sm.defects.length ? sm.defects.join(', ').toLowerCase() + '.' : 'no notes. frame them.'}` }; }); this.interact.push(g);
+  }
+
   // the first aid kit. on the office wall, by the door into the shop. band-aids, a triangular bandage from 1994, a form.
   firstAidKit(x, z, rot) {
     const T = this.T, s = this.scene, g = new T.Group(); g.position.set(x, 1.5, z); g.rotation.y = rot; s.add(g);

@@ -194,14 +194,20 @@ export function maintain(state, m, what) {
   if (what === 'oil') { if (state.cash < 40) return { ok: false, why: 'no money for oil' }; post(state, `Way oil, ${def.name}`, -40); m.oil = 1; m.dryWarned = false; state.t = Math.min(HARD_STOP_MIN, state.t + 8); return { ok: true, note: 'Topped up. Eight minutes and a rag.' }; }
   if (what === 'service') {
     const c = serviceCost(def); if (state.cash < c) return { ok: false, why: `${money(c)} for a service. You have ${money(state.cash)}.` };
-    post(state, `Service, ${def.name}`, -c); m.oil = 1; m.dryWarned = false; m.taped = false; m.bumped = false; m.found = false; m.condition = Math.min(0.97, m.condition + 0.15); m.down = { why: 'being serviced', until: state.day + 1, kind: 'service' }; m.job = null; m.checklist = {};
+    post(state, `Service, ${def.name}`, -c); m.oil = 1; m.dryWarned = false; m.taped = false; m.bumped = false; m.found = false; delete m.capped; m.condition = Math.min(0.97, m.condition + 0.15); m.down = { why: 'being serviced', until: state.day + 1, kind: 'service' }; m.job = null; m.checklist = {};
     return { ok: true, note: `Serviced. ${money(c)}. It is down until tomorrow; the tech found two other things and fixed one.` };
   }
   if (what === 'tech') {
     if (!m.down) return { ok: false, why: 'nothing wrong with it. yet.' };
     const t = techFor(def); if (state.cash < t.cost) return { ok: false, why: `${money(t.cost)} for the tech. You have ${money(state.cash)}.` };
-    post(state, `Tech visit, ${def.name}`, -t.cost); m.down = { ...m.down, kind: 'tech', until: state.day + t.days, who: t.who };
+    post(state, `Tech visit, ${def.name}`, -t.cost); m.down = { ...m.down, kind: 'tech', until: state.day + t.days, who: t.who }; delete m.capped;
     return { ok: true, note: `Called ${t.who}. ${money(t.cost)}. ${t.parts} Back in ${t.days} day${t.days === 1 ? '' : 's'}.` };
+  }
+  if (what === 'local') { // the band-aid with a van: a local tech, a used part, "it'll run". condition capped, accuracy suspect, until a proper service.
+    if (!m.down) return { ok: false, why: 'nothing wrong with it. yet.' };
+    const t = techFor(def), cost = Math.max(200, Math.round(t.cost * 0.4)); if (state.cash < cost) return { ok: false, why: `${money(cost)} for the local guy. You have ${money(state.cash)}.` };
+    post(state, `Local tech, used part, ${def.name}`, -cost); m.down = { ...m.down, kind: 'tech', until: state.day + 1, who: 'the local guy, with a van' }; m.capped = 0.72; m.condition = Math.min(m.condition, 0.72); m.bumped = true; achieve(state, 'band_aid');
+    return { ok: true, note: `The local guy. ${money(cost)}. A used part from a machine he will not name. It will run tomorrow. It will not run true until somebody who is not him services it.` };
   }
   if (what === 'tape') {
     if (!m.down) return { ok: false, why: 'nothing to tape' };
@@ -307,6 +313,7 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  band_aid: ['It\'ll Run', 'Had the local guy fix it with a used part. It runs. It does not run true.'], samples: ['On the Bench', 'Sample parts from a tryout, on the bench, where everyone can see what went wrong.'],
   net_thirty: ['Net Thirty', 'The steel supplier gave you terms. The invoice still comes. Later.'],
   lifted: ['Certified', 'Lifted a crate with the forklift. Everyone watched. Nobody helped.'], dock: ['Staged', 'Put a crate down at the door with the forks. The truck still came late.'],
   eye_wash: ['Not the Sink', 'Somebody used the eye wash station. The real one. Fifteen minutes, like the sign says.'], textured: ['Grain', 'Sent a cavity out for texture and got it back. Nobody touched it. Nobody.'],

@@ -382,18 +382,23 @@ const DEFECTS = [
   ['Dimension out', 'the CMM report with a red line', 'finish', 'Re-cut the cavity to size', 150, 0.6],
   ['Burn marks', 'brown edges where the air could not get out', 'fit', 'Add vents', 35, 0.5],
   ['Slide hang-up', 'the press alarm, a scratch, a sweating moldmaker', 'slide', 'Fit the slide again', 90, 0.8],
+  ['Warp', 'a flat part that rocks on the table', 'design', 'Move the water lines', 120, 0.45],
+  ['Hot runner drool', 'plastic hair on the gates', 'assemble', 'Re-set the manifold heats and the wiring', 60, 0.6],
 ];
+export { DEFECTS };
 export function resolveTryout(state, job, byId) {
   job.tryouts++;
   const spec = job.spec || {}, c = customerOf(job.customer);
   const hasCmm = byId && state.machines.some((m) => m.placed && byId(m.id).stations.includes('inspect'));
-  const base = 0.12 + (job.risk || 0) + (spec.slides || 0) * 0.08 + (spec.finish && spec.finish.startsWith('A') ? 0.1 : 0) + (job.tryouts > 1 ? -0.15 : 0);
+  const base = 0.12 + (job.risk || 0) + (spec.slides || 0) * 0.08 + (spec.finish && spec.finish.startsWith('A') ? 0.1 : 0) + (job.tryouts > 1 ? -0.15 : 0) + (job.cheap ? 0.08 : 0) + (spec.runner === 'hot' ? 0.04 : 0) + (job.greenFitter ? 0.08 : 0); // bible §6.5: the build risk factors
   const found = [];
   for (const d of DEFECTS) {
     if (d[2] === 'slide' && !(spec.slides > 0)) continue;
+    if (d[0] === 'Hot runner drool' && spec.runner !== 'hot') continue;
     let w = d[5]; if (d[0] === 'Dimension out' && hasCmm) w *= 0.3; if (d[0] === 'Dimension out' && state.machines.some((m) => m.placed && m.bumped)) w *= 2.5; if (d[0] === 'Flash' && job.spotted) w *= 0.4; if (d[0] === 'Stuck part' && job.rushedPolish) w *= 2.2;
     if (Math.random() < Math.max(0.02, base * w)) found.push(d);
   }
+  state.samples = { job: job.id, t: job.tryouts, defects: found.map((d) => d[0]), day: state.day, customer: c.name }; // the sample parts, on the bench, for everyone to see
   const notes = [];
   job.defects = found.map((d) => d[0]);
   if (!found.length) {

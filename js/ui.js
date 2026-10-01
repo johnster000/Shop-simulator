@@ -339,7 +339,7 @@ export class UI {
       const t = techFor(d);
       body.innerHTML = `<p><b style="color:var(--red)">DOWN.</b> ${m.down.why}.</p>
         ${m.down.until != null ? `<p class="note">${m.down.kind === 'service' ? 'Being serviced.' : `${m.down.who || 'The tech'} is coming.`} Back on day ${m.down.until}${m.down.until <= s.day ? ' (today, after lunch, they said)' : ''}.</p>`
-          : `<div class="maint"><button class="btn sm" data-maint="tech">CALL THE TECH · ${money(t.cost)}</button><button class="btn sm ghost" data-maint="tape">DUCT TAPE · $60</button>
+          : `<div class="maint"><button class="btn sm" data-maint="tech">CALL THE TECH · ${money(t.cost)}</button><button class="btn sm ghost" data-maint="local">THE LOCAL GUY · ${money(Math.max(200, Math.round(t.cost * 0.4)))}</button><button class="btn sm ghost" data-maint="tape">DUCT TAPE · $60</button>
              <span class="note">${t.who[0].toUpperCase() + t.who.slice(1)}: ${t.days} day${t.days === 1 ? '' : 's'}, ${money(t.cost)}, fixed. Tape: back now, louder, and the next crash is yours.</span></div>`}`;
       body.querySelectorAll('[data-maint]').forEach((b) => b.addEventListener('click', () => { const r = maintain(s, m, b.dataset.maint); if (!r.ok) { this.audio.nope(); this.toast(r.why || 'no'); return; } this.audio.cash(); if (b.dataset.maint === 'tape') { achieve(s, 'tape'); m.notes = (m.notes || []).concat(['TAPE IS|LOAD|BEARING']).slice(-4); } this.toast(r.note, 4500); this.renderPanel(); }));
       return;
@@ -348,7 +348,7 @@ export class UI {
     if (!m.job) {
       const opts = runnableStages(s, d.kind);
       const oil = m.oil == null ? 1 : m.oil, sc = serviceCost(d);
-      body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}${m.taped ? ' · <b style="color:var(--red)">TAPED</b>' : ''}</span></div>
+      body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}${m.taped ? ' · <b style="color:var(--red)">TAPED</b>' : ''}${m.capped ? ' · <b style="color:var(--red)">USED PART, accuracy suspect</b>' : ''}</span></div>
         <div class="bar"><i style="width:${Math.round(m.condition * 100)}%"></i></div>
         ${d.kind === 'bench' ? '' : `<div class="maint"><span>Way oil ${Math.round(oil * 100)}%${oil <= 0 ? ' · <b style="color:var(--red)">DRY</b>' : oil < 0.15 ? ' · low' : ''}</span><button class="btn sm ghost" data-maint="oil">TOP UP · $40</button><button class="btn sm ghost" data-maint="service">SERVICE · ${money(sc)}</button>
           <span class="note">Oil is fifty hours a fill and nobody checks it. A service costs a day and buys back some condition${m.taped ? ', and takes the tape off' : ''}.</span></div>`}

@@ -13,7 +13,7 @@ import { Phone } from './phone.js';
 import { Forklift } from './forklift.js';
 import { practice, nightShift, setupRoll, skillFor } from './people.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost, saturdayWorth, isSaturday } from './sim.js';
-import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message, openCrate } from './jobs.js';
+import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message, openCrate, DEFECTS } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
 import { Items, ITEM_KINDS } from './items.js';
@@ -260,7 +260,7 @@ export function startShop(T, audio, state) {
     if (Math.random() < 0.2) { m.condition = Math.min(1, m.condition + 0.08); ui.toast(pick(['WHACK. It... sounds better? Percussive maintenance. Do not ask why.', 'WHACK. Something inside clicked back into place. Nobody will ever know what.']), 3600); audio.ding(); }
     else { const bill = d.cnc ? 1200 : 120; post(state, d.cnc ? 'Pendant screen, replaced' : 'Bent handwheel', -bill); m.condition = Math.max(0, m.condition - 0.08); ui.toast(d.cnc ? `WHACK. The pendant screen is a spiderweb now. ${money(bill)}.` : `WHACK. A handwheel is bent and the ${d.name.toLowerCase()} is sulking. ${money(bill)}.`, 4000); }
   }
-  shop.setCrates(state.crates || 0); shop.setScrap(state.scrapCount || 0); shop.setOrphans((state.orphans || []).length); shop.setFramed(state.framed || null);
+  shop.setCrates(state.crates || 0); shop.setScrap(state.scrapCount || 0); shop.setOrphans((state.orphans || []).length); shop.setFramed(state.framed || null); shop.setSamples(state.samples || null);
   $('hud').classList.remove('hidden');
 
   function syncViews() {
@@ -416,6 +416,7 @@ export function startShop(T, audio, state) {
     if (p && (def.kind === 'press' || /spot/i.test(m.job.label))) { p.blueUntil = state.day + 2; crew.sync(); if (Math.random() < 0.4) crew.say(p, pick(['Blue hands. Again.', 'It does not come off. It is not supposed to.', 'My wife asked. I said spotting. She said that is not an answer.']), 3.5); unlock('blue_hands'); }
     if (p && p.role === 'apprentice' && def.kind === 'bench' && Math.random() < 0.12) { m.runTotal *= 1.6; m.runLeft = m.runTotal; unlock('wrong_edge'); setTimeout(() => { crew.say(p, pick(['I deburred it. The whole edge.', 'Which edge? I did an edge.', 'It looked like it needed it.']), 3.5); ui.toast(`${p.name} deburred the wrong edge. Beautifully. It will take a while longer now, and a print.`, 4000); }, 1500); }
     if (jobNow && /polish/i.test(m.job.label) && skipped) { jobNow.rushedPolish = true; unlock('rushed_polish'); ui.toast(`${who} rushed the polish. Across the draw, not along it. The part will tell you at T1. It will not come out to tell you.`, 4200); }
+    if (jobNow && p && /fit and spot|fit the inserts|fit and spot what/i.test(m.job.label) && skillFor(p, 'bench') < 2 && !jobNow.greenFitter) { jobNow.greenFitter = true; ui.toast(`${p.name} is fitting the mold. ${p.name} has fitted one mold. The flash at T1 will say which one.`, 4200); }
     if (jobNow && def.kind === 'bench' && m.job.label === 'Fit and spot') { jobNow.risk = (jobNow.risk || 0) + 0.1; ui.toast('Fit and spot at the bench, with bluing and a straightedge. A press would be better. The flash will tell you.', 3600); }
     if (def.kind === 'vmc' && /electrode/i.test(m.job.label) && !state.facility.dust) { m.condition = Math.max(0, m.condition - 0.03); for (const q of state.people) q.morale = Math.max(0, q.morale - 0.02); ui.toast('Graphite on the VMC. Black dust in the ways, the coffee, and everyone\'s nose. A vacuum is $2,800.', 4200); }
     if ((m.oil <= 0 || m.taped) && !def.manual && def.kind !== 'press' && def.kind !== 'heat' && Math.random() < 0.08) {
@@ -630,6 +631,7 @@ export function startShop(T, audio, state) {
     setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
     camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
     syncWalked(); syncCake(); if (!jarItem) { jarItem = items.make('jar', shop.jarPos.x, shop.jarPos.z, { y: shop.jarPos.y }); } jarShake();
+    if (state.samples && state.samples.day === state.day - 1 || (state.samples && !shop.samplesG)) { shop.setSamples(state.samples); if (state.samples.defects.length) { unlock('samples'); setTimeout(() => ui.toast(`Sample parts from T${state.samples.t} on job ${state.samples.job} are on the bench. ${state.samples.defects.join(', ')}. Everyone has looked. Nobody has touched.`, 5000), 2000); } }
     if (!phoneItem) phoneItem = items.make('phone', shop.cribPos.phone.x, shop.cribPos.phone.z, { y: shop.cribPos.phone.y });
     if (!pinsItem) pinsItem = items.make('pins', shop.cribPos.pins.x, shop.cribPos.pins.z, { y: shop.cribPos.pins.y }); if (!electrodeItem) electrodeItem = items.make('electrode', shop.cribPos.electrode.x, shop.cribPos.electrode.z, { y: shop.cribPos.electrode.y });
     if ((state.day - 1) % 7 === 0) { state.doodle = null; const sour = state.people.filter((p) => p.morale < 0.45 && p.startDay != null && p.startDay <= state.day); if (sour.length && Math.random() < 0.5) { state.doodle = pick(['THE BOSS', 'YOU', '"management"', state.shopName.split(' ')[0].toUpperCase()]); unlock('the_foreman'); setTimeout(() => ui.toast('Somebody drew you on the whiteboard. The eyebrows are accurate. Nobody saw anything.', 4000), 3000); } }
@@ -782,6 +784,7 @@ export function startShop(T, audio, state) {
       for (const q of state.people) if (Math.random() < 0.25) crew.say(q, pick(['B4 is stuck.', 'Everybody knows B4 is stuck.', 'Hit it on the left.', 'Those are mine, technically.']), 2.5);
       return;
     }
+    if (lookAt.type === 'samples') { const sm = state.samples; const looks = DEFECTS.filter((d) => sm.defects.includes(d[0])).map((d) => `${d[0]}: ${d[1]}.`); ui.toast(sm.defects.length ? looks.slice(0, 3).join(' ') + (sm.defects.length > 3 ? ' And more.' : '') : 'No notes. The parts look like parts. Frame one.', 6000); return; }
     if (lookAt.type === 'firstaid') { audio.tick(0.05, 900); ui.toast(pick(['Band-aids. The big ones are gone. A triangular bandage from 1994, still folded. A form.', 'You opened it. Somebody has been keeping their lunch money in it.', 'Six band-aids, a pair of tweezers, and a note that says REPLACE THE BIG ONES. The note is from last year.']), 4000); return; }
     if (lookAt.type === 'eyewash') { audio.noise(0.6, 1800, 0.08, 'highpass'); ui.toast(pick(['You pushed the paddle. It works. Nobody has ever pushed the paddle.', 'Fifteen minutes, the sign says. Nobody has ever done fifteen minutes.', 'Cold. It is always cold. That is how you know it is real.']), 3500); return; }
     if (lookAt.type === 'crib') { audio.tick(0.05, 1200); ui.toast(pick(['End mills. The Shards are on the shelf. The good ones are in the drawer, and the key is on your ring, and you are not opening it.', 'You counted the half-inch end mills. Four. There were six on Friday.', 'Dowels, screws, O-rings, two taps that are not broken, and a note that says PUT IT BACK.', 'The drawer is locked. You check it anyway. It is locked.']), 4000); return; }

@@ -368,6 +368,14 @@ Then open http://localhost:8080/.
   account is overdrawn when it comes due. A name draws better resumes (§8.2). The moldmaker in
   the polisher's corner is bent over the lamp now, not standing beside it.
 
+- What T1 finds, the rest of the table (§6.5), and the repair choice (§4.4). Two more defects:
+  warp (a flat part that rocks on the table) and hot runner drool (plastic hair on the gates),
+  plus the risk factors the bible lists: a green fitter on the spotting, a hot runner, and steel
+  that was not the steel. After every tryout the sample parts sit on a tray on the polisher's
+  bench, each one shaped like what went wrong, with the CMM report folded under the bad one.
+  A down machine now has three answers: the factory tech, the local guy with a van and a used
+  part (it'll run; it will not run true until a real service), or duct tape.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
