@@ -4,6 +4,7 @@
 // Monday is day 1.
 
 import { byId, SHOP } from './catalog.js';
+import { initJobs, endOfDay } from './jobs.js';
 
 export const SAVE_KEY = 'shopsim.save.v1';
 export const OPEN_HOUR = 7;
@@ -30,10 +31,11 @@ export function newState(shopName) {
     machines: [],      // { uid, id, x, z, rot, used, condition, hours, running, checklist }
     nextUid: 1,
     ledger: [{ day: 1, text: 'Opening balance', amount: 0 }],
-    stats: { cycleStarts: 0, skipped: 0, bought: 0 },
+    stats: { cycleStarts: 0, skipped: 0, bought: 0, shipped: 0 },
     firstCycle: false,
   };
 }
+export function fresh(shopName) { const s = newState(shopName); initJobs(s); return s; }
 
 export function load() {
   try {
@@ -41,6 +43,7 @@ export function load() {
     if (!raw) return null;
     const s = JSON.parse(raw);
     if (!s || s.v !== 1) return null;
+    initJobs(s);
     return s;
   } catch (e) { return null; }
 }
@@ -109,7 +112,7 @@ export function goHome(state) {
   const sleep = Math.max(0, (24 - leftAt) + 6.5 - 0.5 - 0.5); // home by leftAt+0.5, up at 6:00, half an hour of being a person
   // ten hours is a full night. less than that and it starts to show.
   const fatigue = Math.max(0, Math.min(1, (9.5 - sleep) / 4.5));
-  const overtime = Math.max(0, state.t - CLOSE_MIN);
+  const overtime = state.t - CLOSE_MIN > 5 ? state.t - CLOSE_MIN : 0; // END DAY overshoots by a fraction of a minute
   const night = { leftAt: hourText(state.t), sleep, fatigue, overtime, dayDone: state.day };
   state.lastSleep = sleep; state.fatigue = fatigue;
   state.day += 1; state.t = 0; state.closingShown = false; state.speed = 1;
@@ -120,6 +123,7 @@ export function goHome(state) {
     night.week = { rent: RENT_WEEKLY, power };
   }
   night.day = state.day;
+  night.notes = endOfDay(state, byId);
   return night;
 }
 

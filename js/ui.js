@@ -3,13 +3,14 @@ import { MACHINES, byId } from './catalog.js';
 import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
+import { customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE } from './jobs.js';
 
 const $ = (id) => document.getElementById(id);
 
 export class UI {
   constructor(state, audio, hooks) {
     this.state = state; this.audio = audio; this.hooks = hooks; // hooks: { place(m), refreshMachines(), pause(), resume(), modal(bool) }
-    this.toastTimer = 0; this.lastCash = null; this.tab = 'shop';
+    this.toastTimer = 0; this.lastCash = null; this.tab = 'inbox';
     $('shopSign').textContent = state.shopName;
     $('speeds').addEventListener('click', (e) => {
       const b = e.target.closest('button'); if (!b) return; audio.click();
@@ -46,6 +47,8 @@ export class UI {
     $('clockText').textContent = clockText(s);
     const late = afterHours(s), ed = $('endDay');
     if (late !== this.lastLate) { this.lastLate = late; ed.textContent = late ? 'GO HOME' : 'END DAY'; ed.classList.toggle('home', late); }
+    const u = unread(s);
+    if (u !== this.lastUnread) { this.lastUnread = u; $('mail').classList.toggle('hidden', u === 0); $('mailCount').textContent = u; $('inboxBadge').classList.toggle('hidden', u === 0); $('inboxBadge').textContent = u; }
     const ft = fatigueText(s.fatigue || 0), fe = $('fatigue');
     if (ft !== this.lastFt) { this.lastFt = ft; fe.textContent = ft; fe.classList.toggle('show', !!ft); fe.classList.toggle('bad', ft === 'EXHAUSTED'); document.body.classList.toggle('tired', (s.fatigue || 0) >= 0.25); }
   }
@@ -59,7 +62,61 @@ export class UI {
     this.tab = tab;
     for (const b of $('clipTabs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.tab === tab);
     for (const t of document.querySelectorAll('.tab')) t.classList.toggle('hidden', t.id !== 'tab-' + tab);
-    if (tab === 'shop') this.renderShop(); if (tab === 'machines') this.renderMachines(); if (tab === 'bank') this.renderBank();
+    if (tab === 'inbox') this.renderInbox(); if (tab === 'jobs') this.renderJobs(); if (tab === 'shop') this.renderShop(); if (tab === 'machines') this.renderMachines(); if (tab === 'bank') this.renderBank();
+  }
+
+  renderInbox() {
+    const s = this.state, el = $('tab-inbox');
+    const open = s.rfqs.filter((r) => r.status === 'open' || r.status === 'quoted');
+    const has = (kind) => shopHas(s, kind, byId);
+    const rfqHtml = (r) => {
+      const c = customerOf(r.customer);
+      const missing = r.stages.filter((st) => !has(st.kind)).map((st) => st.kind);
+      return `<div class="rfq ${r.status}" data-rfq="${r.id}">
+        <div class="from">RFQ · ${c.name} · day ${r.day} · ${r.status === 'quoted' ? 'quoted, waiting' : `answer by day ${r.expires}`}</div>
+        <h3>${r.title}${r.qty > 1 ? ` × ${r.qty}` : ''}</h3>
+        <div class="note">${c.blurb}</div>
+        <ul class="stages">${r.stages.map((st) => `<li class="${has(st.kind) ? '' : 'missing'}" title="${stationName(st.kind)}">${st.label} · ${st.min} min</li>`).join('')}</ul>
+        <div class="note">${r.minutes} min of work at $${SHOP_RATE}/hr + $${r.material} ${r.steel} = estimate <b>${money(r.estimate)}</b>. Lead time ${r.lead} days.${missing.length ? ` <span style="color:var(--red)">You have no ${[...new Set(missing)].map(stationName).join(' or ')}: those stages would go out to Bramalea at $110/hr.</span>` : ''}</div>
+        ${r.status === 'open' ? `<div class="quote"><input type="range" min="${Math.round(r.estimate * 0.5)}" max="${Math.round(r.estimate * 2)}" step="5" value="${r.price}" id="q${r.id}"><span class="price" id="p${r.id}">${money(r.price)}</span><span class="est" id="w${r.id}"></span><button data-send="${r.id}">SEND QUOTE</button><button class="ghost" data-decline="${r.id}">DECLINE</button></div>` : `<div class="note">You quoted <b>${money(r.price)}</b>. They will let you know tomorrow.</div>`}
+      </div>`;
+    };
+    el.innerHTML = `${open.length ? open.map(rfqHtml).join('') : '<p class="note">No requests for quote. The phone will ring. Reputation makes it ring more.</p>'}
+      <h4 style="letter-spacing:.2em;font-size:12px;margin:18px 0 4px">MESSAGES</h4>
+      ${s.inbox.slice(0, 20).map((m) => `<div class="msg ${m.read ? '' : 'unread'}"><div class="from">${m.from} · day ${m.day}</div><div class="subj">${m.subj || m.subject}</div><div class="body">${m.body}</div></div>`).join('') || '<p class="note">Nothing.</p>'}`;
+    for (const r of open) { r.read = true; }
+    for (const m of s.inbox) m.read = true;
+    el.querySelectorAll('input[type=range]').forEach((inp) => {
+      const r = s.rfqs.find((q) => q.id === +inp.id.slice(1));
+      const upd = () => { r.price = +inp.value; $('p' + r.id).textContent = money(r.price); const w = winChance(s, r); $('w' + r.id).textContent = w > 0.7 ? 'they will probably bite' : w > 0.4 ? 'could go either way' : w > 0.15 ? 'a stretch' : 'they will laugh'; };
+      inp.addEventListener('input', upd); upd();
+    });
+    el.querySelectorAll('[data-send]').forEach((b) => b.addEventListener('click', () => { const r = s.rfqs.find((q) => q.id === +b.dataset.send); sendQuote(s, r, r.price); this.audio.paper(); this.toast('Quote sent. You will hear tomorrow.'); this.renderInbox(); }));
+    el.querySelectorAll('[data-decline]').forEach((b) => b.addEventListener('click', () => { const r = s.rfqs.find((q) => q.id === +b.dataset.decline); declineRfq(s, r); this.audio.click(); this.renderInbox(); }));
+  }
+
+  renderJobs() {
+    const s = this.state, el = $('tab-jobs');
+    const live = s.jobs.filter((j) => j.status !== 'shipped').slice().reverse();
+    const done = s.jobs.filter((j) => j.status === 'shipped').slice().reverse().slice(0, 8);
+    const has = (kind) => shopHas(s, kind, byId);
+    const jobHtml = (j) => {
+      const c = customerOf(j.customer), late = j.status !== 'shipped' && s.day > j.dueDay;
+      const next = j.stages.findIndex((st) => !st.done);
+      return `<div class="job ${j.status} ${late ? 'late' : ''}">
+        <div class="from">JOB ${j.id} · ${c.name} · ${j.status === 'material' ? `steel arrives day ${j.materialDay}` : j.status === 'ready' ? 'READY TO SHIP' : j.status === 'shipped' ? `shipped day ${j.shippedDay}` : 'in work'}</div>
+        <h3 style="margin:4px 0">${j.title}${j.qty > 1 ? ` × ${j.qty}` : ''}</h3>
+        <div class="meta">${money(j.price)} · due day ${j.dueDay}${late ? ` · <b style="color:var(--red)">${s.day - j.dueDay} day${s.day - j.dueDay === 1 ? '' : 's'} LATE</b>` : ''}${j.scrap ? ` · scrapped ${j.scrap}×` : ''}</div>
+        <ul class="stages">${j.stages.map((st, i) => `<li class="${st.done ? 'done' : st.out ? 'out' : i === next && !has(st.kind) ? 'missing' : ''}">${st.label} · ${st.min} min${st.out ? ` · back day ${st.out.backDay}` : ''}</li>`).join('')}</ul>
+        <div class="acts">
+          ${j.status === 'ready' ? `<button class="ship" data-ship="${j.id}">SHIP IT</button>` : ''}
+          ${j.status === 'work' && next >= 0 && !j.stages[next].out ? (has(j.stages[next].kind) ? `<span class="note">Next: ${j.stages[next].label.toLowerCase()} on the ${stationName(j.stages[next].kind)}. Walk over and load it.</span>` : `<button class="ghost" data-out="${j.id}" data-i="${next}">SEND OUT: ${j.stages[next].label} (${money(Math.round(j.stages[next].min / 60 * 110) + 40)})</button><span class="note">You have no ${stationName(j.stages[next].kind)}.</span>`) : ''}
+        </div></div>`;
+    };
+    el.innerHTML = `${live.length ? live.map(jobHtml).join('') : '<p class="note">No jobs. Quote something.</p>'}${done.length ? `<h4 style="letter-spacing:.2em;font-size:12px;margin:18px 0 4px">SHIPPED</h4>${done.map(jobHtml).join('')}` : ''}
+      <p class="note">Reputation ${Math.round(s.rep * 100)}. On-time ships raise it. Late ones drop it faster.</p>`;
+    el.querySelectorAll('[data-ship]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.ship); const r = ship(s, j); s.stats.shipped++; this.audio.cash(); this.toast(r.late ? `Shipped. ${r.late} day${r.late === 1 ? '' : 's'} late. They noticed.` : 'Shipped. One out the door.', 3200); this.hooks.shipped(); this.renderJobs(); }));
+    el.querySelectorAll('[data-out]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.out); const r = sendOut(s, j, +b.dataset.i); if (!r.ok) { this.audio.nope(); this.toast(r.why); return; } this.audio.cash(); this.toast(`Off to Bramalea. ${money(r.cost)}. Back in two days.`); this.renderJobs(); }));
   }
 
   renderShop() {
@@ -126,15 +183,34 @@ export class UI {
     })[d.kind] || [];
     const cl = m.checklist || (m.checklist = {});
     const body = $('panelBody');
-    if (d.kind === 'bench') { body.innerHTML = `<p>A vise, a lamp, a drawer that sticks.</p><p class="note">Fitting, polishing and assembly happen here, once there is something to fit. There is not, yet. The next build brings the first contract.</p>`; return; }
     if (m.running) {
+      const jt = m.job ? `Job ${m.job.jobId}: ${m.job.label}` : 'A practice cut on a scrap block';
       body.innerHTML = `<p>Running. <span class="note">${d.manual ? 'You are standing here. That is the job.' : ''}</span></p>
         <div class="bar"><i style="width:${Math.round((1 - m.runLeft / m.runTotal) * 100)}%"></i></div>
-        <p class="note">${Math.ceil(m.runLeft)} minutes to go. No contracts yet, so this is a practice cut on a scrap block. Chips are chips.</p>`;
+        <p class="note">${jt}. ${Math.ceil(m.runLeft)} minutes to go.</p>`;
       return;
     }
-    body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}</span></div>
-      <div class="bar"><i style="width:${Math.round(m.condition * 100)}%"></i></div>
+    // what is there to do on this machine?
+    if (!m.job) {
+      const opts = runnableStages(s, d.kind);
+      body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}</span></div>
+        <div class="bar"><i style="width:${Math.round(m.condition * 100)}%"></i></div>
+        <p class="note">${opts.length ? 'Work waiting for this machine:' : d.kind === 'bench' ? 'Nothing to fit. The bench is for bench stages: deburring, polishing, assembly.' : 'No job needs this machine right now.'}</p>
+        <ul class="pickjob">${opts.map((o) => `<li><span><b>Job ${o.job.id}</b> · ${o.stage.label} · ${o.stage.min} min<br><span class="note">${o.job.title}${o.job.qty > 1 ? ' × ' + o.job.qty : ''} · due day ${o.job.dueDay}</span></span><button data-pick="${o.job.id}" data-i="${o.index}">LOAD IT</button></li>`).join('')}
+        ${d.kind === 'bench' ? '' : `<li class="practice"><span>Practice cut on a scrap block · ${30} min</span><button data-pick="0">LOAD IT</button></li>`}</ul>`;
+      body.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
+        const id = +b.dataset.pick; this.audio.click();
+        if (id === 0) m.job = { jobId: 0, index: -1, label: 'practice cut', min: 30 };
+        else { const o = opts.find((q) => q.job.id === id); m.job = { jobId: o.job.id, index: o.index, label: o.stage.label, min: o.stage.min }; }
+        m.checklist = {}; this.renderPanel();
+      }));
+      return;
+    }
+    if (d.kind === 'bench') { body.innerHTML = `<p><b>Job ${m.job.jobId}</b> · ${m.job.label} · ${m.job.min} min</p><p class="note">Bench work. You stand here and do it.</p><button class="cycle" id="cycleStart">START</button><button class="btn sm ghost" id="unload">PUT IT BACK</button>`;
+      $('cycleStart').addEventListener('click', () => { this.hooks.cycleStart(m, []); this.closePanel(); });
+      $('unload').addEventListener('click', () => { m.job = null; m.checklist = {}; this.renderPanel(); });
+      return; }
+    body.innerHTML = `<div class="row2"><span><b>${m.job.jobId ? `Job ${m.job.jobId}` : 'Practice'}</b> · ${m.job.label} · ${m.job.min} min</span><button class="btn sm ghost" id="unload">PUT IT BACK</button></div>
       <ul class="check">${steps.map(([k, t]) => `<li class="${cl[k] === true ? 'done' : cl[k] === 'skip' ? 'skipped' : ''}"><span>${cl[k] === true ? '✓ ' : cl[k] === 'skip' ? '✗ ' : '□ '}${t}</span>
         <span>${cl[k] ? '' : `<button data-do="${k}">DO IT</button> <button class="skip" data-skip="${k}">SKIP</button>`}</span></li>`).join('')}</ul>
       <button class="cycle" id="cycleStart">CYCLE START</button>
@@ -151,6 +227,7 @@ export class UI {
       });
     }));
     body.querySelectorAll('[data-skip]').forEach((b) => b.addEventListener('click', () => { cl[b.dataset.skip] = 'skip'; s.stats.skipped++; this.audio.click(0.2, 400); this.renderPanel(); }));
+    $('unload').addEventListener('click', () => { m.job = null; m.checklist = {}; this.audio.click(); this.renderPanel(); });
     $('cycleStart').addEventListener('click', () => {
       if (this.fumble(0.6)) { this.audio.nope(); this.toast(this.fumbleLine() + ' The red one. Nothing happened.', 2600); return; }
       this.hooks.cycleStart(m, steps.map(([k]) => k)); this.closePanel();

@@ -6,6 +6,7 @@ import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED } from './sim.js';
+import { stageDone, scrapJob, customerOf } from './jobs.js';
 
 const $ = (id) => document.getElementById(id);
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -41,7 +42,9 @@ export function startShop(T, audio, state) {
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
     goHome() { leaveForTheNight(); },
+    shipped() { shop.setCrates(state.crates); },
   });
+  shop.setCrates(state.crates || 0); shop.setScrap(state.scrapCount || 0);
   $('hud').classList.remove('hidden');
 
   function syncViews() {
@@ -92,8 +95,9 @@ export function startShop(T, audio, state) {
     const def = byId(m.id);
     audio.cycleStart();
     const skipped = keys.filter((k) => m.checklist[k] !== true);
-    const risk = skipped.length * 0.18 + (1 - m.condition) * 0.12;
-    m.running = true; m.runTotal = 25 + Math.random() * 35; m.runLeft = m.runTotal; // shop minutes
+    const risk = def.kind === 'bench' ? 0.02 : skipped.length * 0.18 + (1 - m.condition) * 0.12;
+    if (!m.job) m.job = { jobId: 0, index: -1, label: 'practice cut', min: 30 };
+    m.running = true; m.runTotal = m.job.min * (0.9 + Math.random() * 0.25); m.runLeft = m.runTotal; // shop minutes
     state.stats.cycleStarts++;
     if (!state.firstCycle) { state.firstCycle = true; ui.toast('ACHIEVEMENT: FIRST CYCLE START', 3200); audio.ding(); }
     else ui.toast(skipped.length ? pick(['You skipped a step. The machine noticed.', 'Bold.', 'That is how it starts.']) : pick(['Chips.', 'Making chips.', 'Nothing wrong with that.']));
@@ -102,10 +106,16 @@ export function startShop(T, audio, state) {
       setTimeout(() => {
         if (!m.running) return;
         m.running = false; m.runLeft = 0; m.checklist = {};
+        const job = m.job && m.job.jobId ? state.jobs.find((j) => j.id === m.job.jobId) : null;
+        m.job = null;
         audio.thunk(); audio.nope();
-        if (sev < 0.6) { post(state, 'Broken cutter', -45); m.condition = Math.max(0, m.condition - 0.01); ui.toast('BANG. Broken cutter. $45. It happens. It happened because you skipped a step.', 4000); }
-        else if (sev < 0.9) { post(state, 'Chatter, scrapped block', -180); m.condition = Math.max(0, m.condition - 0.04); ui.toast('Chatter. The block is scrap. $180 of steel in the bin. OOPS.', 4000); }
-        else { const bill = def.manual ? 900 : 4000; post(state, 'Crash: tech visit', -bill); m.condition = Math.max(0, m.condition - 0.2); ui.toast(`Crash. A tech has to come. ${money(bill)}. He arrives Thursday.`, 4500); }
+        if (sev < 0.6) { post(state, 'Broken cutter', -45); m.condition = Math.max(0, m.condition - 0.01); ui.toast('BANG. Broken cutter. $45. The part is fine. Load it again.', 4000); }
+        else if (sev < 0.9) {
+          m.condition = Math.max(0, m.condition - 0.04);
+          if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); ui.toast(`Chatter. Job ${job.id} is scrap. ${money(job.material)} of ${job.steel} in the bin. Start over. OOPS.`, 4500); }
+          else { post(state, 'Chatter, scrapped block', -40); state.scrapCount++; shop.setScrap(state.scrapCount); ui.toast('Chatter. The scrap block is more scrap now. OOPS.', 4000); }
+        }
+        else { const bill = def.manual ? 900 : 4000; post(state, 'Crash: tech visit', -bill); m.condition = Math.max(0, m.condition - 0.2); if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); } ui.toast(`Crash. A tech has to come. ${money(bill)}.${job ? ` Job ${job.id} is scrap too.` : ''} He arrives Thursday.`, 4500); }
       }, 1500 + Math.random() * 6000);
     }
   }
@@ -136,7 +146,7 @@ export function startShop(T, audio, state) {
     const line = n.fatigue >= 0.6 ? `You left at ${n.leftAt}. ${n.sleep.toFixed(1)} hours of sleep. Tomorrow is going to be a day.`
       : n.fatigue >= 0.25 ? `You left at ${n.leftAt}. ${n.sleep.toFixed(1)} hours of sleep. Not enough. You will feel it.`
       : n.overtime > 0 ? `You left at ${n.leftAt}. Late, but you slept.` : pick(['You left at five. The compressor kept going.', 'Dinner. Television. A thought about the mill. Sleep.', 'You dreamed about the tarp door. It flapped.']);
-    $('nightLine').textContent = line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '');
+    $('nightLine').textContent = line + (n.week ? ` Monday: rent ${money(n.week.rent)}, hydro ${money(n.week.power)}.` : '') + (n.notes && n.notes.length ? ' Overnight: ' + n.notes.join(' ') : '');
     $('wakeBtn').classList.add('hidden');
     nightEl.classList.remove('hidden'); nightEl.classList.remove('fade');
     // the clock runs through the night
@@ -265,7 +275,16 @@ export function startShop(T, audio, state) {
       for (const ev of events) {
         if (ev.type === 'closing') closingTime();
         if (ev.type === 'hardstop') { ui.toast('Eleven o\'clock. You cannot keep your eyes open.', 2500); setTimeout(() => leaveForTheNight(), 1200); }
-        if (ev.type === 'cycleDone') { audio.ding(); const v = viewOf(ev.uid); if (v) ui.toast(`${v.def.brand} ${v.def.name}: done. A perfectly good scrap block, slightly smaller.`, 3000); }
+        if (ev.type === 'cycleDone') {
+          audio.ding(); const v = viewOf(ev.uid); const m = v && v.m;
+          if (m && m.job && m.job.jobId) {
+            const job = state.jobs.find((j) => j.id === m.job.jobId);
+            const finished = job ? stageDone(state, job, m.job.index) : false;
+            if (finished) { shop.setCrates(state.crates); ui.toast(`Job ${job.id} is done. ${customerOf(job.customer).name} is waiting. Ship it from the clipboard.`, 4000); }
+            else if (job) ui.toast(`${m.job.label}: done. Next: ${job.stages.find((st) => !st.done).label.toLowerCase()}.`, 3200);
+          } else if (v) ui.toast(`${v.def.brand} ${v.def.name}: done. A perfectly good scrap block, slightly smaller.`, 3000);
+          if (m) m.job = null;
+        }
       }
       if (state.speed === END_DAY_SPEED && state.t >= 600 && !state.closingShown) closingTime();
     }

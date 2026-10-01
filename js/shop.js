@@ -126,6 +126,7 @@ export class Shop {
     const binLabel = new T.Mesh(new T.PlaneGeometry(0.6, 0.25), new T.MeshBasicMaterial({ map: TX.label(T, ['SCRAP'], { size: 48, bg: '#f0b429' }) }));
     binLabel.position.set(dx - 3.2, 0.5, hz - 1.11); binLabel.rotation.y = Math.PI; s.add(binLabel);
     this.tag(bin, 'bin', 'scrap bin. empty. it will not stay empty.'); this.solid(dx - 3.2, hz - 0.7, 0.5, 0.4);
+    this.binPos = { x: dx - 3.2, z: hz - 0.7 }; this.scrapBlocks = []; this.crates = []; this.cratePos = { x: dx + 1.6, z: hz - 1.0 };
 
     // pallet jack
     const pj = new T.Group(); pj.position.set(dx + 0.3, 0, hz - 2.2); pj.rotation.y = 0.4;
@@ -215,4 +216,30 @@ export class Shop {
   }
 
   setIso(iso) { for (const m of this.roofStuff) m.visible = !iso; }
+
+  // crates by the door: finished work waiting for the truck
+  setCrates(n) {
+    const T = this.T;
+    while (this.crates.length < n) {
+      const i = this.crates.length;
+      const g = new T.Group(); g.position.set(this.cratePos.x + (i % 2) * 0.7, 0, this.cratePos.z - Math.floor(i / 2) * 0.7);
+      const c = new T.Mesh(new T.BoxGeometry(0.55, 0.45, 0.55), new T.MeshStandardMaterial({ color: 0xc9a86a, roughness: 0.9 })); c.position.y = 0.225; g.add(c);
+      for (const y of [0.1, 0.35]) { const b = new T.Mesh(new T.BoxGeometry(0.57, 0.04, 0.57), new T.MeshStandardMaterial({ color: 0x8a6a3a })); b.position.y = y; g.add(b); }
+      const lbl = new T.Mesh(new T.PlaneGeometry(0.3, 0.14), new T.MeshBasicMaterial({ map: TX.label(T, ['SHIP', this.name.slice(0, 12)], { size: 26 }) })); lbl.position.set(0, 0.25, 0.28); g.add(lbl);
+      this.tag(g, 'crate', 'a finished job, waiting for the truck. ship it from the clipboard.');
+      this.scene.add(g); this.crates.push(g);
+    }
+    while (this.crates.length > n) { const g = this.crates.pop(); this.scene.remove(g); this.interact.splice(this.interact.indexOf(g), 1); }
+  }
+
+  // blocks in the scrap bin: every one a story
+  setScrap(n) {
+    const T = this.T;
+    while (this.scrapBlocks.length < Math.min(n, 12)) {
+      const i = this.scrapBlocks.length;
+      const b = new T.Mesh(new T.BoxGeometry(0.12 + Math.random() * 0.15, 0.08 + Math.random() * 0.12, 0.1 + Math.random() * 0.15), new T.MeshStandardMaterial({ color: 0x6a7076, metalness: 0.5, roughness: 0.5 }));
+      b.position.set(this.binPos.x + (Math.random() - 0.5) * 0.7, 0.2 + i * 0.07, this.binPos.z + (Math.random() - 0.5) * 0.5); b.rotation.set(Math.random(), Math.random(), Math.random());
+      this.scene.add(b); this.scrapBlocks.push(b);
+    }
+  }
 }

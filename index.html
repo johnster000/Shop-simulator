@@ -40,6 +40,7 @@
 
 <div id="hud" class="hidden">
   <div id="shopSign"></div>
+  <div id="mail" class="hidden">INBOX <b id="mailCount">0</b></div>
   <div id="cash">$0</div>
   <div id="clock">
     <span id="clockText">Day 1 &middot; Mon 8:00</span>
@@ -78,11 +79,15 @@
   <div class="board">
     <div class="clipTop"><span class="clipTitle" id="clipTitle">CLIPBOARD</span><button id="clipClose" class="x" aria-label="close">&times;</button></div>
     <nav id="clipTabs">
-      <button data-tab="shop" class="on">SHOP</button>
+      <button data-tab="inbox" class="on">INBOX <i id="inboxBadge" class="badge hidden"></i></button>
+      <button data-tab="jobs">JOBS</button>
+      <button data-tab="shop">SHOP</button>
       <button data-tab="machines">MACHINES</button>
       <button data-tab="bank">BANK</button>
     </nav>
-    <section id="tab-shop" class="tab"></section>
+    <section id="tab-inbox" class="tab"></section>
+    <section id="tab-jobs" class="tab hidden"></section>
+    <section id="tab-shop" class="tab hidden"></section>
     <section id="tab-machines" class="tab hidden"></section>
     <section id="tab-bank" class="tab hidden"></section>
   </div>

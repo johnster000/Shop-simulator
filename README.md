@@ -53,7 +53,14 @@ Then open http://localhost:8080/.
   (clamp it, indicate it in, pick a speed). Botch one and that step is skipped. Then press CYCLE START.
   Skipped steps are how things break. Money fixes it.
 
-Not yet: contracts, jobs, people, CNC, the inbox. Next.
+- Contracts. RFQs from other mold shops and local molders arrive in the inbox: component work,
+  inserts, plates, repairs. Quote against the estimate (the slider tells you how they will take it),
+  hear back overnight, get a deposit, wait for the steel, run the stages on your machines in order,
+  ship from the clipboard, and get the balance on terms. Stages you have no machine for can go out
+  to the shop down the road at twice the rate. Scrap a stage and you buy the steel again. Late
+  ships cost money and reputation; on-time ones bring more RFQs.
+
+Not yet: people, CNC, real molds. Next.
 
 ## Layout
 
@@ -70,6 +77,7 @@ js/iso.js         the overhead view and placing machines in it
 js/player.js      first-person controls, collision, touch
 js/ui.js          HUD, clipboard (shop, machines, bank), machine panel
 js/minigames.js   the setup minigames: clamp, indicate, speed
+js/jobs.js        contracts: customers, RFQ templates, quoting, jobs and stages, shipping, terms
 js/game.js        render loop, interaction, keys, pause, autosave
 js/audio.js       every sound, synthesized. the compressor is most of them.
 js/textures.js    canvas textures: concrete, block, tarp, nameplates, the sign

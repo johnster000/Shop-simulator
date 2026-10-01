@@ -74,8 +74,19 @@ export class Iso {
     this.pad.visible = this.rect.visible = true;
     // a machine being moved starts parked where it is; a new one starts parked in the open, waiting for you
     this.parked = true; this.dragging = false;
-    this.moveTo(m.placed ? m.x : 0, m.placed ? m.z : 1.5);
+    if (m.placed) this.moveTo(m.x, m.z); else { const spot = this.freeSpot(); this.moveTo(spot.x, spot.z); }
     if (this.onChange) this.onChange();
+  }
+  // the nearest free half-metre spot to the middle of the floor, so a new machine never starts on top of another
+  freeSpot() {
+    let best = null, bestD = 1e9;
+    for (let z = -this.shop.hz + 1; z <= this.shop.hz - 1; z += 0.5) for (let x = -this.shop.hx + 1; x <= this.shop.hx - 1; x += 0.5) {
+      this.pos.x = x; this.pos.z = z; this.updateGhost();
+      if (!this.valid) continue;
+      const d = Math.hypot(x, z - 1);
+      if (d < bestD) { bestD = d; best = { x, z }; }
+    }
+    return best || { x: 0, z: 1.5 };
   }
   moveTo(x, z) { this.pos.x = Math.round(x * 2) / 2; this.pos.z = Math.round(z * 2) / 2; this.updateGhost(); }
   nudge(dx, dz) { if (!this.pending) return; this.moveTo(this.pos.x + dx, this.pos.z + dz); this.parked = true; if (this.onChange) this.onChange(); }
