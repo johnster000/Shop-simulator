@@ -129,6 +129,15 @@ Then open http://localhost:8080/.
   and an offer that depends on the number. ONE MORE YEAR is always there. SELL THE SHOP ends the
   game; the wall of achievements comes with you into the next one.
 
+- Things break. Every machine has way oil, fifty hours a fill, and nobody checks it; dry, it sings
+  and the condition drains. The machine panel sells a top-up and a service (a day down, condition
+  back). Tired machines quit overnight with a reason ("the Z axis lost its mind"). Call the tech:
+  the cheap brands send the dealer, who is also the dealer, in two to four days; the good brands
+  send a factory tech tomorrow for more money. Or duct tape it: back now, louder, next crash is
+  yours. When a crash is coming the stack light goes red, the alarm sounds, the crew says so, and
+  the hint says E-STOP!: press E in time and it costs a cutter instead of a spindle. Four weeks
+  in the red and the bank calls it; the autosave from the start of the month is on the desk.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

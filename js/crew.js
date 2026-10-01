@@ -69,7 +69,7 @@ export class Crew {
     const taken = new Set(); for (const v of this.views.values()) if (v.machine) taken.add(v.machine.uid);
     let best = null;
     for (const mv of views) {
-      const m = mv.m; if (!m.placed || m.running || m.job || taken.has(m.uid)) continue;
+      const m = mv.m; if (!m.placed || m.running || m.job || m.down || taken.has(m.uid)) continue;
       const d = byId(m.id); if (!canRun(p, d.kind)) continue;
       for (const o of runnableStages(s, d.kind)) {
         // a stage already loaded on another machine is spoken for

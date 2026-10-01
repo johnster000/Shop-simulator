@@ -27,19 +27,19 @@ export const MACHINES = [
     stations: ['fit', 'polish', 'assemble'], manual: true,
   },
   {
-    id: 'drill_press', kind: 'drill', name: 'Drill press', brand: 'Grizzled Tools', model: 'G-7',
+    id: 'drill_press', kind: 'drill', name: 'Drill press', brand: 'Grizzled Tools', cheap: true, model: 'G-7',
     blurb: 'Drills. Arrives in a crate. Some assembly required, and then some.',
     w: 0.7, d: 0.7, h: 1.7, priceNew: 600, priceUsed: 250, stage: 0, power: 0, air: false,
     stations: ['drill'], manual: true,
   },
   {
-    id: 'band_saw', kind: 'saw', name: 'Band saw', brand: 'Jat', model: 'HBS-7',
+    id: 'band_saw', kind: 'saw', name: 'Band saw', brand: 'Jat', cheap: true, model: 'HBS-7',
     blurb: 'Cuts stock. Eventually. The blade is always the wrong one.',
     w: 1.6, d: 0.7, h: 1.2, priceNew: 900, priceUsed: 400, stage: 0, power: 0, air: false,
     stations: ['saw'], manual: true,
   },
   {
-    id: 'vmc', kind: 'vmc', name: '3-axis VMC', brand: 'Hoss', model: 'VF-ish 2', cnc: true,
+    id: 'vmc', kind: 'vmc', name: '3-axis VMC', brand: 'Hoss', cheap: true, model: 'VF-ish 2', cnc: true,
     blurb: 'The first real machine. Enclosed, a tool changer, a pendant with a screen. Needs CAM, air, and a circuit the panel does not have.',
     w: 2.2, d: 2.0, h: 2.8, priceNew: 90000, priceUsed: 40000, stage: 1, power: 2, air: true,
     stations: ['cnc'], manual: false, tools: 20,
@@ -51,7 +51,7 @@ export const MACHINES = [
     stations: ['sinker'], manual: false, tools: 1,
   },
   {
-    id: 'wire', kind: 'wire', name: 'Wire EDM', brand: 'Excusetek', model: 'EX-400', cnc: true,
+    id: 'wire', kind: 'wire', name: 'Wire EDM', brand: 'Excusetek', cheap: true, model: 'EX-400', cnc: true,
     blurb: 'A brass wire through hardened steel, all night, unattended. Comes with excuses pre-loaded.',
     w: 2.4, d: 1.7, h: 2.5, priceNew: 150000, priceUsed: 60000, stage: 1, power: 2, air: false,
     stations: ['wire'], manual: false, tools: 1,
@@ -87,7 +87,7 @@ export const MACHINES = [
     stations: ['grind'], manual: false, tools: 1, speed: 0.6,
   },
   {
-    id: 'laser', kind: 'laser', name: 'Laser welder', brand: 'Alfa Lazer', model: 'AL-200', cnc: false,
+    id: 'laser', kind: 'laser', name: 'Laser welder', brand: 'Alfa Lazer', cheap: true, model: 'AL-200', cnc: false,
     blurb: 'Welds a ding in a cavity without cooking the steel around it. Repairs and revisions without scrapping. Needs somebody who can weld. You can weld.',
     w: 0.9, d: 0.8, h: 1.6, priceNew: 60000, priceUsed: 25000, stage: 2, power: 1, air: false,
     stations: ['weld'], manual: true,

@@ -49,6 +49,8 @@ function upgradeState(s) {
   if (!s.achievements) s.achievements = [];
   if (!s.stats.shipped) s.stats.shipped = 0;
   if (!s.yr) s.yr = { hired: 0, left: 0, onTime: 0, late: 0, crashes: 0, wsib: 0 };
+  for (const m of s.machines) { if (m.oil == null) m.oil = 1; if (m.down === undefined) m.down = null; m.alarm = false; m.estopped = false; }
+  if (s.redDays == null) s.redDays = 0;
 }
 // the running tally for the year-end summary. reset when the year turns.
 export function tally(state, key, n = 1) { if (!state.yr) state.yr = { hired: 0, left: 0, onTime: 0, late: 0, crashes: 0, wsib: 0 }; state.yr[key] = (state.yr[key] || 0) + n; }
@@ -171,6 +173,65 @@ export function buySoftware(state, sw) {
 }
 export function softwareWeekly(state) { let t = 0; for (const id of [state.software.cad, state.software.cam]) { const sw = SOFTWARE.find((x) => x.id === id); if (sw && sw.weekly) t += sw.weekly; } return state.software.cad && state.software.cad === state.software.cam ? t / 2 : t; }
 
+// ---- maintenance. money fixes anything. a little money band-aids it.
+export const BREAKDOWNS = [
+  'the spindle bearing is singing', 'the way lube pump quit', 'the Z axis lost its mind', 'the control shows an error in a language nobody here reads',
+  'a coolant line let go, inside the cabinet', 'the tool changer dropped a tool and will not say where', 'something in the gearbox went BANG', 'the DRO reads in a unit of its own',
+];
+export function techFor(def) { // who you call, how long, how much
+  const price = def.priceNew || 1000;
+  return def.cheap ? { who: 'the dealer\'s tech, who is also the dealer', days: 2 + Math.floor(Math.random() * 3), cost: Math.max(300, Math.round(price * 0.015)), parts: 'Parts are coming from somewhere. They did not say where.' }
+    : { who: 'a factory tech', days: 1, cost: Math.max(450, Math.round(price * 0.03)), parts: 'Parts are on the truck. The tech is on the plane.' };
+}
+export function serviceCost(def) { return Math.max(150, Math.round((def.priceNew || 1000) * 0.012)); }
+export function maintain(state, m, what) {
+  const def = byId(m.id);
+  if (m.running) return { ok: false, why: 'it is running' };
+  if (what === 'oil') { if (state.cash < 40) return { ok: false, why: 'no money for oil' }; post(state, `Way oil, ${def.name}`, -40); m.oil = 1; m.dryWarned = false; state.t = Math.min(HARD_STOP_MIN, state.t + 8); return { ok: true, note: 'Topped up. Eight minutes and a rag.' }; }
+  if (what === 'service') {
+    const c = serviceCost(def); if (state.cash < c) return { ok: false, why: `${money(c)} for a service. You have ${money(state.cash)}.` };
+    post(state, `Service, ${def.name}`, -c); m.oil = 1; m.dryWarned = false; m.taped = false; m.condition = Math.min(0.97, m.condition + 0.15); m.down = { why: 'being serviced', until: state.day + 1, kind: 'service' }; m.job = null; m.checklist = {};
+    return { ok: true, note: `Serviced. ${money(c)}. It is down until tomorrow; the tech found two other things and fixed one.` };
+  }
+  if (what === 'tech') {
+    if (!m.down) return { ok: false, why: 'nothing wrong with it. yet.' };
+    const t = techFor(def); if (state.cash < t.cost) return { ok: false, why: `${money(t.cost)} for the tech. You have ${money(state.cash)}.` };
+    post(state, `Tech visit, ${def.name}`, -t.cost); m.down = { ...m.down, kind: 'tech', until: state.day + t.days, who: t.who };
+    return { ok: true, note: `Called ${t.who}. ${money(t.cost)}. ${t.parts} Back in ${t.days} day${t.days === 1 ? '' : 's'}.` };
+  }
+  if (what === 'tape') {
+    if (!m.down) return { ok: false, why: 'nothing to tape' };
+    if (state.cash < 60) return { ok: false, why: 'no money for tape' };
+    post(state, `Duct tape and a prayer, ${def.name}`, -60); m.down = null; m.taped = true; m.condition = Math.max(0, m.condition - 0.05);
+    return { ok: true, note: 'Taped. It runs. It is louder. The next crash is on you.' };
+  }
+  return { ok: false };
+}
+// overnight: the tired machines break, the techs arrive, the bank counts
+export function overnightMachines(state) {
+  const notes = [];
+  for (const m of state.machines) {
+    const def = byId(m.id);
+    if (m.down && m.down.until != null && state.day >= m.down.until) { const wasService = m.down.kind === 'service'; m.down = null; notes.push(`${def.brand} ${def.name}: back up. ${wasService ? 'Serviced, oiled, and the tech wrote "call me" on the invoice.' : def.cheap ? 'The tech left a part on the floor. It is probably a spare.' : 'The tech left a sticker and an invoice for the mileage.'}`); continue; }
+    if (m.down || !m.placed) continue;
+    const p = (0.45 - m.condition) * 0.5 * (m.taped ? 2 : 1) + (m.oil <= 0 ? 0.08 : 0);
+    if (p > 0 && Math.random() < p) { m.down = { why: BREAKDOWNS[Math.floor(Math.random() * BREAKDOWNS.length)], until: null, kind: 'broke' }; m.running = false; m.runLeft = 0; m.job = null; m.checklist = {}; notes.push(`${def.brand} ${def.name}: DOWN. ${m.down.why}. Call the tech, or get the tape.`); achieve(state, 'down'); }
+  }
+  return notes.filter(Boolean);
+}
+export const BANK_DAYS = 20;
+export function bankCheck(state) { // four weeks in the red past the line and the bank calls it
+  const notes = [];
+  if (state.cash < 0) { state.redDays = (state.redDays || 0) + 1; } else state.redDays = 0;
+  if (state.redDays === 10) notes.push('A letter from the bank. It uses the word "concerned" twice.');
+  if (state.redDays === 15) notes.push('The bank called. The account manager is new. The old one "moved on". They would like a plan by Friday.');
+  if (state.redDays >= BANK_DAYS) { state.bankrupt = true; achieve(state, 'the_call'); }
+  return notes;
+}
+export const MONTH_KEY = 'shopsim.save.month';
+export function monthlySave(state) { if ((state.day - 1) % 20 === 0) { try { localStorage.setItem(MONTH_KEY, JSON.stringify(state)); } catch (e) { /* fine */ } } }
+export function loadMonth() { try { const raw = localStorage.getItem(MONTH_KEY); if (!raw) return null; const s = JSON.parse(raw); upgradeState(s); initJobs(s); initPeople(s); return s; } catch (e) { return null; } }
+
 // ---- loans
 export function takeLoan(state, kind) {
   const L = kind === 'startup' ? { kind, name: 'Start-up loan', principal: 100000, rate: 0.11, weeks: 260 } : kind === 'loc' ? { kind, name: 'Line of credit', principal: 50000, rate: 0.09, weeks: 104 } : null;
@@ -213,6 +274,7 @@ export function auditCheck(state) {
 
 // ---- achievements. most are for disasters.
 export const ACHIEVEMENTS = {
+  down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   gold_watch: ['The Gold Watch', 'Ten years. You could retire. You did not.'], retired: ['Sold the Shop', 'Somebody else\'s compressor now.'],
   first_cycle: ['First Cycle Start', 'Press the button.'], one_out: ['One Out the Door', 'Ship a mold. Or a pin. It counts.'], oops: ['OOPS', 'First scrapped block. There will be more.'],
   hired: ['Somebody Else\'s Problem', 'Hire a person.'], lights_out: ['Lights Out, Nobody Home', 'An unattended run that worked.'], lights_wrong: ['Lights Out, Something\'s Wrong', 'An unattended run that did not.'],
@@ -239,6 +301,10 @@ export function tick(state, dt) {
     if (m.running) {
       m.runLeft -= elapsed;
       m.hours += elapsed / 60;
+      // the way lube. fifty hours a fill. nobody checks it. then it is dry and the ways start to sing.
+      if (m.oil == null) m.oil = 1;
+      m.oil = Math.max(0, m.oil - elapsed / 60 / 50);
+      if (m.oil <= 0) { m.condition = Math.max(0, m.condition - elapsed * 0.0015); if (!m.dryWarned) { m.dryWarned = true; events.push({ type: 'dry', uid: m.uid }); } }
       if (m.runLeft <= 0) { m.running = false; m.runLeft = 0; m.checklist = {}; events.push({ type: 'cycleDone', uid: m.uid }); }
     }
   }
@@ -268,7 +334,8 @@ export function goHome(state) {
     extra.push(...loansWeekly(state));
   }
   night.day = state.day;
-  night.notes = upgradeDue(state).concat(extra, endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state), nightlyEvents(state));
+  night.notes = upgradeDue(state).concat(extra, overnightMachines(state), endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state), nightlyEvents(state), bankCheck(state));
+  if (state.bankrupt) night.bankrupt = true; else monthlySave(state);
   // the year turns every 52 weeks
   const yearBefore = Math.floor((night.dayDone - 1) / 260), yearAfter = Math.floor((state.day - 1) / 260);
   if (yearAfter > yearBefore) { night.year = yearSummary(state); if (canRetire(state)) { achieve(state, 'gold_watch'); night.year.retire = true; } }
@@ -286,7 +353,7 @@ export function buy(state, def, used, financed = false) {
     running: false, runLeft: 0, checklist: {}, placed: false, tools: def.tools || 0,
   };
   state.machines.push(m);
-  state.stats.bought++;
+  state.stats.bought++; m.oil = m.used ? 0.4 + Math.random() * 0.4 : 1; m.down = null;
   return { ok: true, machine: m };
 }
 

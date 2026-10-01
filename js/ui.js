@@ -1,6 +1,6 @@
 // HUD, the clipboard, the machine panel. Honest HTML. No 3D UI.
 import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
-import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire } from './sim.js';
+import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
 import { customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel } from './jobs.js';
@@ -234,7 +234,7 @@ export class UI {
     if (!s.machines.length) { el.innerHTML = '<p class="note">Nothing. An empty floor and a compressor. Buy a mill.</p>'; return; }
     el.innerHTML = `<table class="ledger"><tr><th>MACHINE</th><th>CONDITION</th><th>HOURS</th><th></th></tr>${s.machines.map((m) => {
       const d = byId(m.id);
-      return `<tr><td><b>${d.brand} ${d.name}</b><br><span class="note">${m.used ? 'used' : 'new'} · ${m.placed ? 'on the floor' : 'NOT PLACED'}${m.running ? ' · running' : ''}</span></td>
+      return `<tr><td><b>${d.brand} ${d.name}</b><br><span class="note">${m.used ? 'used' : 'new'} · ${m.placed ? 'on the floor' : 'NOT PLACED'}${m.running ? ' · running' : ''}${m.down ? ` · <b style="color:var(--red)">DOWN</b> (${m.down.why})` : ''}${m.taped ? ' · taped' : ''}${m.oil != null && m.oil <= 0 ? ' · DRY' : ''}</span></td>
         <td><div class="bar"><i style="width:${Math.round(m.condition * 100)}%"></i></div>${Math.round(m.condition * 100)}%</td>
         <td class="num">${m.hours.toFixed(1)}</td>
         <td class="num"><button class="btn sm ghost" data-move="${m.uid}">${m.placed ? 'MOVE' : 'PLACE'}</button> <button class="btn sm ghost" data-sell="${m.uid}">SELL</button></td></tr>`; }).join('')}</table>
@@ -295,14 +295,27 @@ export class UI {
         <p class="note">${jt}. ${Math.ceil(m.runLeft)} minutes to go.</p>`;
       return;
     }
+    if (m.down) {
+      const t = techFor(d);
+      body.innerHTML = `<p><b style="color:var(--red)">DOWN.</b> ${m.down.why}.</p>
+        ${m.down.until != null ? `<p class="note">${m.down.kind === 'service' ? 'Being serviced.' : `${m.down.who || 'The tech'} is coming.`} Back on day ${m.down.until}${m.down.until <= s.day ? ' (today, after lunch, they said)' : ''}.</p>`
+          : `<div class="maint"><button class="btn sm" data-maint="tech">CALL THE TECH · ${money(t.cost)}</button><button class="btn sm ghost" data-maint="tape">DUCT TAPE · $60</button>
+             <span class="note">${t.who[0].toUpperCase() + t.who.slice(1)}: ${t.days} day${t.days === 1 ? '' : 's'}, ${money(t.cost)}, fixed. Tape: back now, louder, and the next crash is yours.</span></div>`}`;
+      body.querySelectorAll('[data-maint]').forEach((b) => b.addEventListener('click', () => { const r = maintain(s, m, b.dataset.maint); if (!r.ok) { this.audio.nope(); this.toast(r.why || 'no'); return; } this.audio.cash(); if (b.dataset.maint === 'tape') achieve(s, 'tape'); this.toast(r.note, 4500); this.renderPanel(); }));
+      return;
+    }
     // what is there to do on this machine?
     if (!m.job) {
       const opts = runnableStages(s, d.kind);
-      body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}</span></div>
+      const oil = m.oil == null ? 1 : m.oil, sc = serviceCost(d);
+      body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}${m.taped ? ' · <b style="color:var(--red)">TAPED</b>' : ''}</span></div>
         <div class="bar"><i style="width:${Math.round(m.condition * 100)}%"></i></div>
+        ${d.kind === 'bench' ? '' : `<div class="maint"><span>Way oil ${Math.round(oil * 100)}%${oil <= 0 ? ' · <b style="color:var(--red)">DRY</b>' : oil < 0.15 ? ' · low' : ''}</span><button class="btn sm ghost" data-maint="oil">TOP UP · $40</button><button class="btn sm ghost" data-maint="service">SERVICE · ${money(sc)}</button>
+          <span class="note">Oil is fifty hours a fill and nobody checks it. A service costs a day and buys back some condition${m.taped ? ', and takes the tape off' : ''}.</span></div>`}
         <p class="note">${d.cnc && !hasCam(s) ? '<b style="color:var(--red)">No CAM. Nothing can be programmed. The machine is a very expensive table.</b>' : opts.length ? 'Work waiting for this machine:' : d.kind === 'bench' ? 'Nothing to fit. The bench is for bench stages: deburring, polishing, assembly.' : 'No job needs this machine right now.'}</p>
         <ul class="pickjob">${opts.map((o, k) => `<li><span><b>Job ${o.job.id}</b>${o.item && o.job.mold ? ' · ' + o.item.name : ''} · ${o.stage.label} · ${o.stage.min >= 120 ? (o.stage.min / 60).toFixed(1) + ' h' : o.stage.min + ' min'}<br><span class="note">${o.job.title}${o.job.qty > 1 ? ' × ' + o.job.qty : ''} · due day ${o.job.dueDay}</span></span><button data-pick="${k + 1}">LOAD IT</button></li>`).join('')}
         ${d.kind === 'bench' ? '' : `<li class="practice"><span>Practice cut on a scrap block · ${30} min</span><button data-pick="0">LOAD IT</button></li>`}</ul>`;
+      body.querySelectorAll('[data-maint]').forEach((b) => b.addEventListener('click', () => { const r = maintain(s, m, b.dataset.maint); if (!r.ok) { this.audio.nope(); this.toast(r.why || 'no'); return; } this.audio.cash(); this.toast(r.note, 4000); this.renderPanel(); }));
       body.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
         const id = +b.dataset.pick; this.audio.click();
         if (d.cnc && !hasCam(s)) { this.audio.nope(); this.toast('No CAM. No program. No cut.'); return; }

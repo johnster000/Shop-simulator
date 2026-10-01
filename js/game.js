@@ -6,7 +6,7 @@ import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
 import { crewVerdict } from './events.js';
-import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY } from './sim.js';
+import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
@@ -169,6 +169,13 @@ export function startShop(T, audio, state) {
     if (!state.firstCycle) { state.firstCycle = true; unlock('first_cycle'); }
     else ui.toast(skipped ? pick(['You skipped a step. The machine noticed.', 'Bold.', 'That is how it starts.']) : pick(['Chips.', 'Making chips.', 'Nothing wrong with that.']));
   }
+  // the red button. the crash is still coming; it just costs a cutter instead of a spindle.
+  function estop(m) {
+    const def = byId(m.id);
+    m.alarm = false; m.estopped = true; audio.estop(); unlock('estop');
+    ui.toast(pick([`E-STOP. You caught it. A cutter and a clean pair of pants.`, `E-STOP. The ${def.name.toLowerCase()} stopped. Your heart did not.`, `E-STOP. Everybody saw. Everybody will mention it.`]), 4000);
+    for (const q of state.people) { const v = crew.views.get(q.id); if (v && v.g.visible && Math.random() < 0.6) crew.say(q, pick(['Nice.', 'Close one.', 'I would have let it go.', 'Was that the program?']), 2.5); }
+  }
   // start a cycle on machine m with `skipped` setup steps undone, by person p (null: the owner)
   function runMachine(m, skipped, p) {
     const def = byId(m.id);
@@ -181,10 +188,16 @@ export function startShop(T, audio, state) {
     if (jobNow && def.kind === 'spot') jobNow.spotted = true;
     if (jobNow && def.kind === 'bench' && m.job.label === 'Fit and spot') { jobNow.risk = (jobNow.risk || 0) + 0.1; ui.toast('Fit and spot at the bench, with bluing and a straightedge. A press would be better. The flash will tell you.', 3600); }
     if (def.kind === 'vmc' && /electrode/i.test(m.job.label) && !state.facility.dust) { m.condition = Math.max(0, m.condition - 0.03); for (const q of state.people) q.morale = Math.max(0, q.morale - 0.02); ui.toast('Graphite on the VMC. Black dust in the ways, the coffee, and everyone\'s nose. A vacuum is $2,800.', 4200); }
-    if (Math.random() < risk) {
-      const sev = Math.random();
+    if (m.taped) { /* duct tape. it holds. it does not help. */ }
+    if (Math.random() < risk + (m.taped ? 0.1 : 0)) {
+      let sev = Math.random();
+      const delay = 1500 + Math.random() * 6000;
+      // the sound changes first. a few seconds where the red button would help, if you are standing there.
+      if (sev >= 0.6) setTimeout(() => { if (!m.running) return; m.alarm = true; audio.alarm(); for (const q of state.people) if (Math.random() < 0.5) { const v = crew.views.get(q.id); if (v && v.g.visible && Math.hypot(v.pos.x - m.x, v.pos.z - m.z) < 7) crew.say(q, pick(['THAT is not a good noise.', 'E-STOP! E-STOP!', 'Who set that up?', 'Nope.']), 2.5); } }, Math.max(200, delay - 2600));
       setTimeout(() => {
         if (!m.running) return;
+        if (m.estopped) { m.estopped = false; sev = 0.1; }
+        m.alarm = false;
         m.running = false; m.runLeft = 0; m.checklist = {};
         const job = m.job && m.job.jobId ? state.jobs.find((j) => j.id === m.job.jobId) : null;
         const jobItem = m.job ? m.job.itemIndex : 0, jobItemName = m.job && m.job.item && job && job.mold ? ' ' + m.job.item.toLowerCase() : '';
@@ -298,6 +311,7 @@ export function startShop(T, audio, state) {
     const lightsOut = runLightsOut();
     const n = goHome(state); save(state);
     if (lightsOut.length) n.notes = (n.notes || []).concat(lightsOut);
+    if (n.bankrupt) { theCall(); return; }
     $('nightShop').textContent = state.shopName.toUpperCase(); nightEl.querySelector('h2').textContent = 'HOME.';
     $('nightClock').textContent = n.leftAt;
     const line = n.fatigue >= 0.6 ? `You left at ${n.leftAt}. ${n.sleep.toFixed(1)} hours of sleep. Tomorrow is going to be a day.`
@@ -322,6 +336,15 @@ export function startShop(T, audio, state) {
     };
     run();
   }
+  // the bank calls it. the autosave from the start of the month is the way back.
+  function theCall() {
+    const el = $('broke'); $('brokeShop').textContent = state.shopName.toUpperCase();
+    $('brokeLine').textContent = `${money(state.cash)} in the account for ${state.redDays} working days. The account manager read from a card. ${state.people.length ? `The crew found out from the radio.` : 'The compressor did not notice.'} The machines go on a flatbed Tuesday.`;
+    el.classList.remove('hidden'); modal = true; night = true;
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* fine */ }
+  }
+  $('brokeLoad').addEventListener('click', () => { const m = loadMonth(); if (!m) { ui.toast('No autosave. The desk was empty.'); return; } m.bankrupt = false; m.redDays = 0; save(m); try { localStorage.setItem('shopsim.resume', '1'); } catch (e) { /* fine */ } location.reload(); });
+  $('brokeNew').addEventListener('click', () => { try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(MONTH_KEY); } catch (e) { /* fine */ } location.reload(); });
   $('wakeBtn').addEventListener('click', () => {
     if (state.moved) { state.moved = false; save(state); try { localStorage.setItem('shopsim.resume', '1'); } catch (e) { /* fine */ } location.reload(); return; }
     nightEl.classList.add('fade'); audio.paper();
@@ -376,12 +399,13 @@ export function startShop(T, audio, state) {
     if (lookAt.type === 'machine') {
       const m = state.machines.find((q) => q.uid === lookAt.uid), d = byId(m.id);
       const op = m.job && m.job.operator && m.job.operator !== 'owner' ? state.people.find((q) => q.id === m.job.operator) : null;
-      ui.tag(`${d.brand.toUpperCase()} ${d.name.toUpperCase()} · ${m.running ? 'RUNNING' : 'IDLE'} · ${Math.round(m.condition * 100)}%${op ? ' · ' + op.name.toUpperCase() : ''}`);
-      ui.hint(d.kind === 'bench' ? 'bench' : m.running ? 'running' : 'use');
+      ui.tag(`${d.brand.toUpperCase()} ${d.name.toUpperCase()} · ${m.down ? 'DOWN' : m.running ? 'RUNNING' : 'IDLE'} · ${Math.round(m.condition * 100)}%${op ? ' · ' + op.name.toUpperCase() : ''}${m.taped ? ' · TAPED' : ''}`);
+      ui.hint(m.alarm ? 'E-STOP!' : d.kind === 'bench' ? 'bench' : m.down ? 'down' : m.running ? 'running' : 'use');
+      $('hint').classList.toggle('alarm', !!m.alarm);
     } else if (lookAt.type === 'person') {
       const p = state.people.find((q) => q.id === lookAt.id);
       if (p) { ui.tag(`${p.name.toUpperCase()} · ${p.roleName.toUpperCase()} · ${crew.status(p)}`); ui.hint('talk'); }
-    } else { ui.tag(''); ui.hint(lookAt.text || lookAt.type); }
+    } else { ui.tag(''); ui.hint(lookAt.text || lookAt.type); $('hint').classList.remove('alarm'); }
   }
   function use() {
     if (items.held) {
@@ -392,7 +416,7 @@ export function startShop(T, audio, state) {
     if (lookAt && lookAt.type === 'item') { items.pickUp(lookAt.ref); return; }
     if (!lookAt) return;
     audio.click();
-    if (lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid); if (m.job && m.job.operator && m.job.operator !== 'owner' && !m.running) { ui.toast(`${state.people.find((q) => q.id === m.job.operator).name} is setting this one up.`); return; } if (player.locked) document.exitPointerLock(); ui.openPanel(m); return; }
+    if (lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid); if (m.alarm) { estop(m); return; } if (m.job && m.job.operator && m.job.operator !== 'owner' && !m.running) { ui.toast(`${state.people.find((q) => q.id === m.job.operator).name} is setting this one up.`); return; } if (player.locked) document.exitPointerLock(); ui.openPanel(m); return; }
     if (lookAt.type === 'person') { const p = state.people.find((q) => q.id === lookAt.id); if (p) { if (player.locked) document.exitPointerLock(); ui.openPerson(p); } return; }
     if (lookAt.type === 'crate') { ui.toast('Finished work. Ship it from the clipboard, JOBS tab.'); return; }
     if (lookAt.type === 'pc') { if (player.locked) document.exitPointerLock(); ui.openPC(); return; }
@@ -477,6 +501,7 @@ export function startShop(T, audio, state) {
       for (const ev of events) {
         if (ev.type === 'closing') closingTime();
         if (ev.type === 'hardstop') { ui.toast('Eleven o\'clock. You cannot keep your eyes open.', 2500); setTimeout(() => leaveForTheNight(), 1200); }
+        if (ev.type === 'dry') { const v = viewOf(ev.uid); const d = v && byId(v.m.id); if (d) ui.toast(`The ${d.name.toLowerCase()} is out of way oil. It is singing. Top it up from the panel, or listen to it die.`, 5000); audio.squeal(1); }
         if (ev.type === 'cycleDone') {
           audio.ding(); const v = viewOf(ev.uid); const m = v && v.m;
           const op = m && m.job && m.job.operator && m.job.operator !== 'owner' ? state.people.find((q) => q.id === m.job.operator) : null;
@@ -508,6 +533,7 @@ export function startShop(T, audio, state) {
     shop.update(paused ? 0 : dt, audio.compOn); shop.setDoor(!!state.facility.door); shop.setAir(state.facility.air); shop.setCrane(!!state.facility.crane);
     if (state.facility.crane) { const sp = state.machines.find((m) => m.running && byId(m.id).kind === 'spot'); if (sp) shop.craneTo(sp.x, sp.z); else if (state.crates) shop.craneTo(shop.cratePos.x, shop.cratePos.z - 2); }
     for (const v of views) v.update(paused || modal ? 0 : dt * (state.speed || 0));
+    for (const m of state.machines) { if (m.alarm && Math.random() < dt * 2.2) audio.alarm(0.9); if (m.running && m.oil != null && m.oil <= 0 && Math.random() < dt * 0.6) audio.squeal(0.6); }
     audio.update(dt, {
       listener: { x: camera.position.x, z: camera.position.z }, iso: iso.active,
       running: paused ? [] : state.machines.filter((m) => m.running && m.placed).map((m) => ({ x: m.x, z: m.z, kind: byId(m.id).kind })),
@@ -518,6 +544,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, items, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { state, camera, player, iso, views, crew, nav, items, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

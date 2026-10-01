@@ -117,10 +117,10 @@ body.touch #enter small{display:none}
 /* overlays */
 .overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#eee;text-align:center;background:rgba(0,0,0,.78);z-index:5;padding:20px}
 .overlay small{display:block;margin-top:14px;font-size:12px;color:#999;letter-spacing:.05em;line-height:1.9}
-#pause h2,#closing h2,#night h2{letter-spacing:.3em;font-weight:normal}
+#pause h2,#closing h2,#night h2,#broke h2{letter-spacing:.3em;font-weight:normal}
 #closing{background:rgba(0,0,0,.86)}
-#closing .btn,#night .btn{background:transparent;color:#eee;border-color:#eee;min-width:280px;margin:5px}
-#closing .btn:hover,#night .btn:hover{background:#eee;color:#111}
+#closing .btn,#night .btn,#broke .btn{background:transparent;color:#eee;border-color:#eee;min-width:280px;margin:5px}
+#closing .btn:hover,#night .btn:hover,#broke .btn:hover{background:#eee;color:#111}
 #closingLine{color:#aaa;font-size:14px;letter-spacing:.06em;margin:0 0 18px;max-width:520px;line-height:1.7}
 .overlayNote{color:#777;font-size:12px;max-width:520px;line-height:1.7;letter-spacing:.04em;margin-top:18px}
 #night{background:#000;z-index:8;transition:opacity 1.2s}
@@ -224,3 +224,10 @@ canvas.mg{display:block;width:100%;max-width:420px;height:auto;border:2px solid 
 #retireBody tr.total td{border-bottom:2px solid #333;font-weight:bold}
 #retireBody .verdict{margin:0;padding-left:18px}
 #retireBody .verdict li{margin:2px 0}
+#broke{background:#000;z-index:9}
+#brokeShop{letter-spacing:.2em;color:#666;font-size:12px}
+#brokeLine{color:#aaa;font-size:14px;max-width:520px;line-height:1.8}
+.maint{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0 10px}
+.maint .note{flex:1 1 100%}
+#hint.alarm{color:#ff3b3b;font-weight:bold;animation:blink .35s steps(2) infinite}
+@keyframes blink{to{opacity:.2}}

@@ -98,4 +98,7 @@ export class ShopAudio {
   ding() { this.tone(1760, 0.5, 0.07); setTimeout(() => this.tone(2200, 0.6, 0.05), 120); }
   thunk() { this.noise(0.18, 120, 0.18, 'lowpass'); }
   paper() { this.noise(0.12, 2500, 0.06, 'highpass'); }
+  alarm(k = 1) { this.tone(880, 0.18, 0.05 * k, 'square'); setTimeout(() => this.tone(660, 0.18, 0.05 * k, 'square'), 200); }
+  estop() { this.noise(0.08, 500, 0.2, 'lowpass'); this.tone(90, 0.6, 0.08, 'sawtooth'); }
+  squeal(k = 1) { this.tone(2400 + Math.random() * 600, 0.12, 0.02 * k, 'sawtooth'); }
 }

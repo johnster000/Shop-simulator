@@ -412,8 +412,9 @@ export class MachineView {
     if (p.lamps) {
       const done = Object.values(m.checklist || {}).filter(Boolean).length;
       p.lamps.green.material.emissiveIntensity = m.running ? 1.4 : 0;
-      p.lamps.amber.material.emissiveIntensity = !m.running && done > 0 ? 1.0 : 0;
-      p.lamps.red.material.emissiveIntensity = m.condition < 0.3 ? 1.2 : 0;
+      p.lamps.amber.material.emissiveIntensity = (!m.running && done > 0) || (m.oil != null && m.oil < 0.15) ? 1.0 : 0;
+      this.blink = (this.blink || 0) + dt;
+      p.lamps.red.material.emissiveIntensity = m.alarm ? (Math.sin(this.blink * 22) > 0 ? 2.2 : 0) : m.down ? (Math.sin(this.blink * 3) > 0 ? 1.4 : 0.2) : m.condition < 0.3 ? 1.2 : 0;
     }
   }
   collider() { const { hw, hd } = halfSizes(this.def, this.m.rot); return { x: this.m.x, z: this.m.z, hw, hd }; }
