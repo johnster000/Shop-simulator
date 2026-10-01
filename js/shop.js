@@ -1,3 +1,4 @@
+import { mergeStatic } from './merge.js';
 // The building. 2,500 square feet, 20 foot ceiling, one bay door with a tarp over it.
 import { SHOP, BUILDINGS } from './catalog.js';
 import * as TX from './textures.js';
@@ -139,7 +140,7 @@ export class Shop {
     for (const z of [-1.3, 1.3]) for (const x of [-0.4, 0.4]) this.box(0.08, 2.2, 0.08, rackMat, x, 1.1, z, rack);
     for (const y of [0.5, 1.2, 1.9]) for (const z of [-1.3, 1.3]) this.box(0.9, 0.08, 0.08, rackMat, 0, y, z, rack);
     for (const y of [0.5, 1.2, 1.9]) { this.box(0.08, 0.06, 2.7, rackMat, 0.4, y, 0, rack); this.box(0.08, 0.06, 2.7, rackMat, -0.4, y, 0, rack); }
-    s.add(rack); this.tag(rack, 'rack', 'steel rack. empty. for now.'); this.solid(-hx + 0.55, hz * 0.45, 0.5, 1.4);
+    s.add(rack); this.tag(rack, 'rack', 'steel rack. empty. for now.'); mergeStatic(this.T, rack); this.solid(-hx + 0.55, hz * 0.45, 0.5, 1.4);
     this.toolCrib(-hx + 0.3, hz * 0.45 - 2.3);
     // the radio. on the rack's top shelf. one station, argued over.
     const radio = new T.Group(); radio.position.set(-hx + 0.55, 1.98, hz * 0.45 + 1.0); this.radioPos = { x: -hx + 0.55, z: hz * 0.45 + 1.0 };
@@ -318,7 +319,7 @@ export class Shop {
     const h = new T.Mesh(new T.BoxGeometry(0.18, 0.05, 0.004), v.material); h.position.z = 0.052; g.add(h);
     const lbl = new T.Mesh(new T.PlaneGeometry(0.26, 0.05), new T.MeshBasicMaterial({ map: TX.label(T, ['FIRST AID'], { size: 30, bg: '#f4f4f0', fg: '#2e9e4a', border: '#f4f4f0' }) })); lbl.position.set(0, -0.1, 0.053); g.add(lbl);
     const latch = new T.Mesh(new T.BoxGeometry(0.04, 0.02, 0.01), new T.MeshStandardMaterial({ color: 0x888 })); latch.position.set(0, 0.0, 0.055); g.add(latch);
-    g.traverse((o) => { o.userData.interact = { type: 'firstaid', text: 'the first aid kit. band-aids, a triangular bandage from 1994, and a form.' }; }); this.interact.push(g);
+    g.traverse((o) => { o.userData.interact = { type: 'firstaid', text: 'the first aid kit. band-aids, a triangular bandage from 1994, and a form.' }; }); this.interact.push(g); mergeStatic(this.T, g);
     return g;
   }
   // the eye wash station. green, on the wall by the door, with the sign. until it is bought, the eye wash station is the sink.
@@ -334,7 +335,7 @@ export class Shop {
     const pipe = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 0.9, 8), new T.MeshStandardMaterial({ color: 0xb8bcc0, metalness: 0.7, roughness: 0.3 })); pipe.position.set(0, 0.5, 0.02); g.add(pipe);
     const paddle = new T.Mesh(new T.BoxGeometry(0.22, 0.03, 0.12), green); paddle.position.set(0.1, 0.9, -0.1); g.add(paddle);
     const sign = new T.Mesh(new T.PlaneGeometry(0.3, 0.3), new T.MeshBasicMaterial({ map: TX.label(T, ['EYE', 'WASH', '(not the sink)'], { size: 34, bg: '#2f9e4a', fg: '#ffffff', border: '#2f9e4a' }) })); sign.position.set(0, 1.65, -0.03); sign.rotation.y = Math.PI; g.add(sign);
-    g.traverse((o) => { o.userData.interact = { type: 'eyewash', text: 'the eye wash station. a real one. the sink is relieved.' }; }); this.interact.push(g);
+    g.traverse((o) => { o.userData.interact = { type: 'eyewash', text: 'the eye wash station. a real one. the sink is relieved.' }; }); this.interact.push(g); mergeStatic(this.T, g);
   }
 
   // the tool crib. grey shelving against the west wall: end mills in boxes, pins in boxes, dowels, screws,
@@ -364,7 +365,7 @@ export class Shop {
     const shackle = new T.Mesh(new T.TorusGeometry(0.014, 0.004, 6, 12, Math.PI), lock.material); shackle.position.set(0.215, 1.885, 0.0); shackle.rotation.y = Math.PI / 2; g.add(shackle);
     const dl = new T.Mesh(new T.PlaneGeometry(0.2, 0.06), new T.MeshBasicMaterial({ map: TX.label(T, ['THE GOOD ONES'], { size: 26, bg: '#f4f1e6', fg: '#c0392b', border: '#999' }) })); dl.position.set(0.201, 1.92, 0.0); dl.rotation.y = Math.PI / 2; g.add(dl);
     g.traverse((o) => { o.userData.interact = { type: 'crib', text: 'the tool crib. end mills, pins, dowels, screws. the good end mills are in the drawer with the lock.' }; }); this.interact.push(g);
-    this.solid(x, z, 0.25, 0.55);
+    mergeStatic(this.T, g); this.solid(x, z, 0.25, 0.55);
     this.cribPos = { x, z, pins: { x: x + 0.05, y: 0.815, z: z + 0.32 }, electrode: { x: x + 0.05, y: 1.325, z: z + 0.0 }, phone: { x: x + 0.05, y: 1.972, z: z + 0.1 } }; // on top of the drawer, where the outlet is
     return g;
   }
@@ -402,7 +403,7 @@ export class Shop {
     const sign = new T.Mesh(new T.PlaneGeometry(0.42, 0.3), new T.MeshBasicMaterial({ map: TX.label(T, ['DO NOT', 'TOUCH', '(this means you)'], { size: 40, bg: '#f4f1e6', fg: '#c0392b', border: '#f4f1e6' }) })); sign.position.set(0.43, 1.65, 0.0); sign.rotation.y = -Math.PI / 2; g.add(sign);
     for (const dy of [0.17, -0.17]) { const tape = new T.Mesh(new T.PlaneGeometry(0.08, 0.025), new T.MeshBasicMaterial({ color: 0xd8d2b0, transparent: true, opacity: 0.8 })); tape.position.set(0.425, 1.65 + dy, 0.0); tape.rotation.y = -Math.PI / 2; g.add(tape); }
     g.traverse((o) => { o.userData.interact = { type: 'stones', text: 'the polisher\'s corner. the stones, in order. the sign is not a suggestion.' }; }); this.interact.push(g);
-    this.solid(x, z, 0.4, 0.8); this.solid(x - 0.75, z + 0.2, 0.18, 0.18);
+    mergeStatic(this.T, g, [lamp]); this.solid(x, z, 0.4, 0.8); this.solid(x - 0.75, z + 0.2, 0.18, 0.18);
     this.polisherPos = { x: x - 0.85, z: z - 0.2, face: Math.PI / 2 };
     this.rooms.push({ x0: x - 1.1, x1: x + 0.5, z0: z - 1.0, z1: z + 1.0, name: 'polisher\'s corner' });
     return g;

@@ -1,3 +1,4 @@
+import { mergeStatic } from './merge.js';
 // Machines, as shapes. Stylised, but every part is attached to the part it should be attached to.
 // A knee mill is a base, a column on the base, a knee on the column's front, a saddle and table on
 // the knee, a ram on the column's top, and a head hanging off the front of the ram. If the head
@@ -545,6 +546,7 @@ export function buildMachine(T, def, ghost = false) {
     }
   }
   g.userData.parts = parts;
+  if (!ghost) mergeStatic(T, g, [...parts.spin.map((q) => q.mesh), ...(parts.lamps ? Object.values(parts.lamps) : []), parts.button]);
   return g;
 }
 

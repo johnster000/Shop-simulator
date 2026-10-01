@@ -1,3 +1,4 @@
+import { mergeStatic } from './merge.js';
 // The forklift. Yellow, loud, and yours. Press E to get on, WASD to drive, H for the horn, E to get off.
 // It does not lift anything in this build. It does hit things.
 import * as TX from './textures.js';
@@ -29,6 +30,7 @@ export function buildForklift(T) {
   const beacon = new T.Mesh(new T.CylinderGeometry(0.06, 0.06, 0.1, 10), new T.MeshStandardMaterial({ color: 0xffa020, emissive: 0xff8000, emissiveIntensity: 0 })); beacon.position.set(-0.35, 2.42, -0.9); g.add(beacon); g.userData.beacon = beacon;
   const plate = new T.Mesh(new T.PlaneGeometry(0.5, 0.2), new T.MeshBasicMaterial({ map: TX.label(T, ['CERTIFIED', 'OPERATORS', 'ONLY'], { size: 24, bg: '#e8b21a', border: '#333', fg: '#111' }) })); plate.position.set(0, 0.6, -1.41); plate.rotation.y = Math.PI; g.add(plate);
   g.traverse((o) => { o.userData.interact = { type: 'forklift', text: 'the forklift. certified operators only. you are the certifying body.' }; });
+  mergeStatic(T, g, [beacon]);
   return g;
 }
 
