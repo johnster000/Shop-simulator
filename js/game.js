@@ -608,7 +608,7 @@ export function startShop(T, audio, state) {
       if (p) { ui.tag(`${p.name.toUpperCase()} · ${p.roleName.toUpperCase()} · ${crew.status(p)}`); ui.hint('talk'); }
     } else if (lookAt.type === 'forklift') { ui.tag('THE FORKLIFT · CERTIFIED OPERATORS ONLY'); ui.hint('get on'); $('hint').classList.remove('alarm'); }
     else if (lookAt.type === 'phone' && phone.call) { ui.tag('THE PHONE · RINGING'); ui.hint('ANSWER IT'); $('hint').classList.add('alarm'); }
-    else if (lookAt.type === 'visitor') { ui.tag(`${visitor.p.name.toUpperCase()} · ${visitor.title.toUpperCase()}`); ui.hint(visitor.toured ? 'they are looking' : 'say hello'); $('hint').classList.remove('alarm'); }
+    else if (lookAt.type === 'visitor') { ui.tag(`${visitor.p.name.toUpperCase()} · ${visitor.title.toUpperCase()}`); ui.hint(visitor.kind === 'inspector' ? 'do not say anything' : visitor.toured ? 'they are looking' : 'say hello'); $('hint').classList.remove('alarm'); }
     else if (lookAt.type === 'driver') { ui.tag('THE DRIVER · BRAMALEA STEEL'); ui.hint('sign for the steel'); $('hint').classList.remove('alarm'); }
     else { ui.tag(''); ui.hint(lookAt.text || lookAt.type); $('hint').classList.remove('alarm'); }
   }
@@ -636,6 +636,7 @@ export function startShop(T, audio, state) {
     audio.click();
     if (lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid); if (m.alarm) { estop(m); return; } if (m.job && m.job.operator && m.job.operator !== 'owner' && !m.running) { ui.toast(`${state.people.find((q) => q.id === m.job.operator).name} is setting this one up.`); return; } if (player.locked) document.exitPointerLock(); ui.openPanel(m); return; }
     if (lookAt.type === 'person') { const p = state.people.find((q) => q.id === lookAt.id); if (p) { if (player.locked) document.exitPointerLock(); ui.openPerson(p); } return; }
+    if (lookAt.type === 'visitor' && visitor.kind === 'inspector') { ui.toast(pick(['You said it was like that when you got here. They wrote that down too.', 'You offered coffee. They declined, and wrote that down.', 'Routine, they said, writing.'])); return; }
     if (lookAt.type === 'visitor') { if (visitor.tour()) { audio.click(); ui.toast(pick(['You walked them round. You said "we can do that" four times.', 'The tour. You skipped the scrap bin.', 'You showed them the whiteboard. You should not have.']), 4000); } else ui.toast('They are looking. Let them look.'); return; }
     if (lookAt.type === 'driver' || lookAt.type === 'truck') {
       const r = delivery.sign();

@@ -277,6 +277,12 @@ Then open http://localhost:8080/.
   It beeps in reverse, scatters the crew, and dents machines, which also bumps them out of true
   where nobody can see.
 
+- The inspector. After a WSIB claim or a fire, the Ministry of Labour walks the floor in person
+  instead of writing: a clipboard, three machines and the whiteboard, and a finding for duct
+  tape, chips to the ankle, a down machine with no tag, the tarp door, an EDM with no suppression,
+  or a geological scrap bin. $600 an order and a letter; no orders goes on the wall, because
+  nobody will believe it.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

@@ -4,6 +4,7 @@
 import { buildPerson, randomLook, pose } from './person.js';
 import { byId } from './catalog.js';
 import { CUSTOMERS, customerOf, message, makeRfq, TEMPLATES } from './jobs.js';
+import { post } from './sim.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const FIRST = ['Dave', 'Sandra', 'Pat', 'Ravi', 'Christine', 'Marc', 'Lena', 'Gord', 'Priya', 'Tom'];
@@ -25,6 +26,9 @@ export class Visitor {
     const s = this.state; if (this.dayChecked === s.day) return; this.dayChecked = s.day;
     const shipped = s.jobs.filter((j) => j.status === 'shipped');
     const p = (shipped.length ? 0.05 : 0.02) + s.rep * 0.05 + (s.jobs.some((j) => j.status === 'work' && j.mold) ? 0.04 : 0);
+    const inspectorDue = (s.inspectorSoon || (s.achievements || []).includes('wsib')) && !s.inspected && Math.random() < 0.12;
+    this.kind = inspectorDue ? 'inspector' : 'customer';
+    if (inspectorDue && (s.day - 1) % 7 !== 5) { this.due = 90 + Math.random() * 120; this.customer = null; this.p.name = `${pick(['Carol', 'Dennis', 'Marguerite', 'Stan'])} (Ministry of Labour)`; this.title = 'the inspector'; return; }
     this.due = (s.day - 1) % 7 !== 5 && Math.random() < p ? 120 + Math.random() * 100 : null;
     if (this.due != null) {
       const custs = shipped.length && Math.random() < 0.7 ? [...new Set(shipped.map((j) => j.customer))].map(customerOf) : CUSTOMERS.filter((c) => !c.five && !c.cnc);
@@ -38,6 +42,7 @@ export class Visitor {
     const ms = s.machines.filter((m) => m.placed).sort(() => Math.random() - 0.5).slice(0, 3);
     this.stops = ms.map((m) => ({ ...this.crew.spotFor(m), m })).concat([{ x: this.shop.office.x1 + 1.0, z: this.shop.office.z0 + 1.6 }]);
     this.goTo(this.stops.shift());
+    if (this.kind === 'inspector') { this.findings = []; this.hooks.say(this.p, pick(['Ministry of Labour. Routine. It is never routine.', 'Hello. I have a clipboard and a reason.', 'Who is the owner? Do not all point at once.']), 4); this.hooks.toast(`${this.p.name} is on the floor with a clipboard. Tape, chips, the extinguisher, the sign: they look at all of it.`, 6000); return; }
     this.hooks.say(this.p, pick(['Hi! We were in the area.', 'Hello? Anybody? The door was open.', `${this.title[0].toUpperCase() + this.title.slice(1)}. Just looking.`, 'Do I need a vest? I brought a vest.']));
     this.hooks.toast(`${this.p.name} is on the floor. ${this.title[0].toUpperCase() + this.title.slice(1)}. Looking around. Say hello, or do not throw anything.`, 5000);
   }
@@ -45,6 +50,13 @@ export class Visitor {
   // what they think of what they see
   look() {
     const s = this.state, out = [];
+    if (this.kind === 'inspector') {
+      const m = this.target && this.target.m; const f = (k, text) => { if (this.findings.some((x) => x[0] === k)) return; this.findings.push([k, text]); out.push(text); };
+      if (m) { if (m.taped) f('tape', 'Duct tape. On a machine. Writing that down.'); if ((m.chips || 0) > 0.7) f('chips', 'Chips to the ankle. Slip hazard. Writing that down.'); if (m.fire) { f('fire', 'That is on fire.'); this.leaveNow('fire'); return; } if (m.down && !(m.notes || []).length) f('lockout', 'Down, and no tag on it. Lockout. Writing that down.'); }
+      else { if (!s.facility.door) f('door', 'A tarp for a door. In this climate. Noted.'); if (!s.facility.fire && s.machines.some((q) => q.placed && byId(q.id).kind === 'sinker')) f('suppression', 'An EDM and no suppression. Noted, in capitals.'); if (s.scrapCount >= 8) f('bin', 'The scrap bin is a geology lesson.'); }
+      if (!out.length) this.hooks.say(this.p, pick(['Hm.', 'Fine.', 'Keep going.', 'Where is your first aid kit? Never mind.']), 3); else this.hooks.say(this.p, out[out.length - 1], 4);
+      return;
+    }
     const note = (k, pts, text) => { if (this.seen.has(k)) return; this.seen.add(k); this.score += pts; out.push(text); };
     const m = this.target && this.target.m;
     if (m) {
@@ -96,7 +108,15 @@ export class Visitor {
   }
   // the verdict, by email, that night. the score decides the tone and whether an RFQ comes with it.
   finish() {
-    const s = this.state, c = this.customer; this.here = false; this.g.visible = false; this.g.position.y = -200; this.leaving = false; this.due = null;
+    const s = this.state; this.here = false; this.g.visible = false; this.g.position.y = -200; this.leaving = false; this.due = null;
+    if (this.kind === 'inspector') {
+      s.inspected = true; s.inspectorSoon = false; const n = this.findings.length, fine = n * 600;
+      if (n) { post(s, `Ministry of Labour: ${n} order${n === 1 ? '' : 's'} and a fine`, -fine); message(s, 'Ministry of Labour', 'Orders', `Inspection, day ${s.day}. Orders: ${this.findings.map((x) => x[1].replace(/ (Writing that down\.|Noted.*)$/, '')).join(' ')} Fine: $${fine.toLocaleString()}. Comply within 14 days or we come back with a bigger clipboard.`); }
+      else message(s, 'Ministry of Labour', 'No orders', 'Inspection complete. No orders. This has never happened. Frame it.');
+      this.hooks.toast(n ? `The inspector left with ${n} finding${n === 1 ? '' : 's'}. $${fine.toLocaleString()}. There will be a letter.` : 'The inspector left. No orders. Somebody should frame that.', 5000);
+      this.hooks.unlock(n ? 'orders' : 'no_orders'); return;
+    }
+    const c = this.customer;
     const sc = this.score;
     s.rep = Math.max(0, Math.min(1, s.rep + (this.hit ? -0.15 : sc >= 3 ? 0.06 : sc >= 1 ? 0.03 : sc <= -2 ? -0.06 : 0)));
     let body;
