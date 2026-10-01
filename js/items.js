@@ -8,6 +8,8 @@ const KINDS = {
   coffee: { label: 'coffee', mass: 0.4, hint: 'coffee. not yours.' },
   hammer: { label: 'dead-blow hammer', mass: 1.5, hint: 'dead-blow hammer. percussive maintenance.' },
   key: { label: 'chuck key', mass: 0.3, hint: 'the chuck key. somebody left it in.' },
+  extinguisher: { label: 'fire extinguisher', mass: 5, hint: 'fire extinguisher. pull, aim, squeeze. the tag is from 2009.' },
+  airhose: { label: 'air hose', mass: 1, hint: 'the air hose. for chips. only for chips.' },
 };
 
 export class Items {
@@ -24,6 +26,31 @@ export class Items {
     else if (kind === 'steel') { mesh = new T.Mesh(new T.BoxGeometry(0.3, 0.14, 0.2), new T.MeshStandardMaterial({ color: 0x8a8f94, metalness: 0.6, roughness: 0.35 })); const lbl = new T.Mesh(new T.PlaneGeometry(0.14, 0.06), new T.MeshBasicMaterial({ map: TX.label(T, ['P20'], { size: 48 }) })); lbl.position.set(0, 0.071, 0); lbl.rotation.x = -Math.PI / 2; mesh.add(lbl); }
     else if (kind === 'coffee') { mesh = new T.Group(); const cup = new T.Mesh(new T.CylinderGeometry(0.04, 0.035, 0.1, 14), new T.MeshStandardMaterial({ color: 0xf1eee5, roughness: 0.6 })); cup.position.y = 0.05; mesh.add(cup); const top = new T.Mesh(new T.CylinderGeometry(0.036, 0.036, 0.006, 14), new T.MeshStandardMaterial({ color: 0x3a2412 })); top.position.y = 0.098; mesh.add(top); const handle = new T.Mesh(new T.TorusGeometry(0.022, 0.006, 6, 12), cup.material); handle.position.set(0.045, 0.05, 0); mesh.add(handle); }
     else if (kind === 'hammer') { mesh = new T.Group(); const head = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.12, 12), new T.MeshStandardMaterial({ color: 0xc8541e, roughness: 0.7 })); head.rotation.z = Math.PI / 2; head.position.y = 0.03; mesh.add(head); const handle = new T.Mesh(new T.CylinderGeometry(0.012, 0.014, 0.3, 8), new T.MeshStandardMaterial({ color: 0x222 })); handle.position.set(0, 0.03, 0.17); handle.rotation.x = Math.PI / 2; mesh.add(handle); }
+    else if (kind === 'extinguisher') {
+      mesh = new T.Group();
+      const red = new T.MeshStandardMaterial({ color: 0xb8231f, roughness: 0.45, metalness: 0.3 }), blk = new T.MeshStandardMaterial({ color: 0x151515, roughness: 0.7 }), chrome = new T.MeshStandardMaterial({ color: 0xd0d4d8, metalness: 0.8, roughness: 0.25 });
+      const body = new T.Mesh(new T.CylinderGeometry(0.075, 0.075, 0.42, 18), red); body.position.y = 0.21; mesh.add(body);
+      const dome = new T.Mesh(new T.SphereGeometry(0.075, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), red); dome.position.y = 0.42; mesh.add(dome);
+      const foot = new T.Mesh(new T.CylinderGeometry(0.08, 0.08, 0.02, 18), blk); foot.position.y = 0.01; mesh.add(foot);
+      const neck = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 0.06, 10), chrome); neck.position.y = 0.52; mesh.add(neck);
+      const valve = new T.Mesh(new T.BoxGeometry(0.06, 0.04, 0.05), chrome); valve.position.y = 0.57; mesh.add(valve);
+      const lever = new T.Mesh(new T.BoxGeometry(0.1, 0.012, 0.03), chrome); lever.position.set(-0.03, 0.6, 0); lever.rotation.z = 0.25; mesh.add(lever);
+      const handle = new T.Mesh(new T.BoxGeometry(0.1, 0.012, 0.03), chrome); handle.position.set(-0.03, 0.57, 0); mesh.add(handle);
+      const pin = new T.Mesh(new T.TorusGeometry(0.02, 0.004, 6, 12), chrome); pin.position.set(0.04, 0.585, 0); mesh.add(pin);
+      const hose = new T.Mesh(new T.TorusGeometry(0.11, 0.012, 8, 20, Math.PI * 0.9), blk); hose.position.set(0.0, 0.42, 0.0); hose.rotation.y = Math.PI / 2; hose.rotation.z = -0.3; mesh.add(hose);
+      const horn = new T.Mesh(new T.CylinderGeometry(0.03, 0.012, 0.08, 12), blk); horn.position.set(0.0, 0.3, 0.1); horn.rotation.x = 0.4; mesh.add(horn);
+      const lbl = new T.Mesh(new T.PlaneGeometry(0.1, 0.16), new T.MeshBasicMaterial({ map: TX.label(T, ['FIRE', 'ABC', '2009'], { size: 26 }) })); lbl.position.set(0, 0.24, 0.076); mesh.add(lbl);
+      const tag = new T.Mesh(new T.PlaneGeometry(0.04, 0.06), new T.MeshBasicMaterial({ color: 0xe8d44a, side: T.DoubleSide })); tag.position.set(0.09, 0.5, 0); tag.rotation.y = Math.PI / 2; mesh.add(tag);
+    }
+    else if (kind === 'airhose') {
+      mesh = new T.Group();
+      const yel = new T.MeshStandardMaterial({ color: 0xd9b530, roughness: 0.6 }), chrome = new T.MeshStandardMaterial({ color: 0xc8ccd0, metalness: 0.8, roughness: 0.25 }), blk = new T.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
+      for (let i = 0; i < 5; i++) { const coil = new T.Mesh(new T.TorusGeometry(0.11, 0.012, 8, 24), yel); coil.position.y = 0.02 + i * 0.026; coil.rotation.x = Math.PI / 2 + 0.15; coil.rotation.z = i * 0.4; mesh.add(coil); }
+      const lead = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.26, 8), yel); lead.position.set(0.14, 0.1, 0.1); lead.rotation.z = 1.1; lead.rotation.x = 0.5; mesh.add(lead);
+      const gun = new T.Mesh(new T.BoxGeometry(0.03, 0.08, 0.03), blk); gun.position.set(0.24, 0.15, 0.17); mesh.add(gun);
+      const barrel = new T.Mesh(new T.CylinderGeometry(0.008, 0.008, 0.12, 8), chrome); barrel.position.set(0.24, 0.2, 0.24); barrel.rotation.x = Math.PI / 2; mesh.add(barrel);
+      const trig = new T.Mesh(new T.BoxGeometry(0.03, 0.012, 0.04), chrome); trig.position.set(0.24, 0.2, 0.15); mesh.add(trig);
+    }
     else { mesh = new T.Group(); const t = new T.Mesh(new T.BoxGeometry(0.08, 0.012, 0.012), new T.MeshStandardMaterial({ color: 0xcfd4d8, metalness: 0.8, roughness: 0.3 })); mesh.add(t); const sq = new T.Mesh(new T.BoxGeometry(0.014, 0.05, 0.014), t.material); sq.position.y = -0.025; mesh.add(sq); }
     mesh.position.set(x, opts.y || 0, z);
     const item = { kind, mesh, v: new this.T.Vector3(), w: new this.T.Vector3(), flying: false, rest: opts.y || 0, home: { x, z, y: opts.y || 0 }, thrownBy: null };
@@ -37,6 +64,8 @@ export class Items {
     this.held = item; item.flying = false; item.v.set(0, 0, 0);
     this.scene.remove(item.mesh); this.camera.add(item.mesh);
     item.mesh.position.set(0.36, -0.3, -0.8); item.mesh.rotation.set(0.2, -0.4, 0.1); item.mesh.scale.setScalar(item.kind === 'steel' || item.kind === 'scrap' ? 0.8 : 1);
+    if (item.kind === 'extinguisher') { item.mesh.position.set(0.34, -0.62, -0.7); item.mesh.rotation.set(-0.15, -0.9, 0.1); }
+    if (item.kind === 'airhose') { item.mesh.position.set(0.3, -0.45, -0.6); item.mesh.rotation.set(0.3, -1.4, 0); }
     this.audio.tick(0.08, 600);
     return true;
   }

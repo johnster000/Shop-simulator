@@ -138,6 +138,15 @@ Then open http://localhost:8080/.
   the hint says E-STOP!: press E in time and it costs a cutter instead of a spindle. Four weeks
   in the red and the bank calls it; the autosave from the start of the month is on the desk.
 
+- Fun on the floor. The fire extinguisher is on a bracket by the door, under a sign, with a tag
+  from 2009. Skip the flushing on the sinker and it can catch fire mid-cut, in the daytime, with
+  flames, smoke, an alarm and the crew going outside; grab the bottle and press E on the machine
+  (PUT IT OUT) before it burns out, goes DOWN, and costs the deductible. The suppression upgrade
+  does it for you. Squeeze it at somebody who is not on fire if you want to. The air hose hangs
+  beside the compressor: blow chips off a machine (into the ways; use a brush), or at a person
+  (there is a poster). Carry the coffee to somebody instead of throwing it and morale goes up,
+  and so does suspicion.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

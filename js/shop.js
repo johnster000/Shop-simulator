@@ -123,6 +123,15 @@ export class Shop {
     plate.position.set(0, 0.55, 0.31); comp.add(plate);
     s.add(comp); this.compressor = comp; this.compressorPos = { x: hx - 1.0, z: hz - 1.3 }; this.tag(comp, 'compressor', 'compressor. it came with the shop. it has not stopped.');
     this.solid(hx - 1.0, hz - 1.3, 0.75, 0.45);
+    // the air hose hangs on a hook on the wall above the compressor. it reels itself back when dropped.
+    const hook = this.box(0.04, 0.04, 0.12, grey, hx - 0.05, 1.5, hz - 2.4); this.tag(hook, 'hook', 'the air hose hook.');
+    this.hosePos = { x: hx - 0.2, z: hz - 2.4, y: 1.22 };
+    // the fire extinguisher: on a bracket by the door, with a sign, at the height the inspector asked for
+    const exX = dx - dw / 2 - 0.7;
+    const bracket = this.box(0.14, 0.05, 0.04, grey, exX, 0.98, hz - 0.1);
+    const sign = new T.Mesh(new T.PlaneGeometry(0.24, 0.3), new T.MeshBasicMaterial({ map: TX.label(T, ['FIRE', 'EXT.', '▼'], { size: 40, fg: '#fff', bg: '#b8231f' }) })); sign.position.set(exX, 1.7, hz - 0.03); sign.rotation.y = Math.PI; s.add(sign);
+    this.tag(bracket, 'bracket', 'the extinguisher bracket.'); this.tag(sign, 'bracket', 'the sign. the bracket should have the extinguisher in it.');
+    this.extPos = { x: exX, z: hz - 0.22, y: 0.72 };
 
     // steel rack, west wall near the door end. empty.
     const rackMat = new T.MeshStandardMaterial({ color: 0xc8541e, roughness: 0.6 });

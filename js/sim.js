@@ -49,7 +49,7 @@ function upgradeState(s) {
   if (!s.achievements) s.achievements = [];
   if (!s.stats.shipped) s.stats.shipped = 0;
   if (!s.yr) s.yr = { hired: 0, left: 0, onTime: 0, late: 0, crashes: 0, wsib: 0 };
-  for (const m of s.machines) { if (m.oil == null) m.oil = 1; if (m.down === undefined) m.down = null; m.alarm = false; m.estopped = false; }
+  for (const m of s.machines) { if (m.oil == null) m.oil = 1; if (m.down === undefined) m.down = null; m.alarm = false; m.estopped = false; m.fire = false; }
   if (s.redDays == null) s.redDays = 0;
 }
 // the running tally for the year-end summary. reset when the year turns.
@@ -274,6 +274,7 @@ export function auditCheck(state) {
 
 // ---- achievements. most are for disasters.
 export const ACHIEVEMENTS = {
+  pin_aim_squeeze: ['Pull, Aim, Squeeze', 'Put out a fire on the shop floor. The tag was from 2009.'], chips_only: ['For Chips Only', 'The air hose. On a person. There is a poster about this.'], my_round: ['My Round', 'Brought somebody a coffee. Unthrown.'],
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   gold_watch: ['The Gold Watch', 'Ten years. You could retire. You did not.'], retired: ['Sold the Shop', 'Somebody else\'s compressor now.'],
   first_cycle: ['First Cycle Start', 'Press the button.'], one_out: ['One Out the Door', 'Ship a mold. Or a pin. It counts.'], oops: ['OOPS', 'First scrapped block. There will be more.'],

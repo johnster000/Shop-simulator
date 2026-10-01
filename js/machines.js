@@ -408,6 +408,23 @@ export class MachineView {
   sync() { const m = this.m; this.group.position.set(m.x, 0, m.z); this.group.rotation.y = (m.rot * Math.PI) / 180; this.group.visible = !!m.placed; }
   update(dt) {
     const p = this.group.userData.parts, m = this.m;
+    if (m.fire) {
+      if (!this.flames) {
+        const T = this.T, g = new T.Group(), d = this.def; g.position.set(0, d.h * 0.55, 0); this.flames = g; this.group.add(g);
+        this.flameParts = [];
+        for (let i = 0; i < 7; i++) {
+          const col = i % 3 === 0 ? 0xffd34a : i % 3 === 1 ? 0xff7a1a : 0xff3b0f;
+          const f = new T.Mesh(new T.ConeGeometry(0.1 + Math.random() * 0.1, 0.5 + Math.random() * 0.5, 7), new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85, blending: T.AdditiveBlending, depthWrite: false }));
+          f.position.set((Math.random() - 0.5) * d.w * 0.6, Math.random() * 0.3, (Math.random() - 0.5) * d.d * 0.6); g.add(f); this.flameParts.push({ f, ph: Math.random() * 6, base: f.position.y });
+        }
+        const smoke = new T.Mesh(new T.SphereGeometry(0.35, 10, 8), new T.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.35, depthWrite: false })); smoke.position.y = 1.1; g.add(smoke); this.smoke = smoke;
+        const light = new T.PointLight(0xff7a1a, 18, 7, 1.6); light.position.y = 0.4; g.add(light); this.fireLight = light;
+        g.traverse((o) => { o.raycast = () => {}; });
+      }
+      this.flames.visible = true; this.ft = (this.ft || 0) + dt;
+      for (const q of this.flameParts) { q.f.scale.y = 0.7 + 0.5 * Math.abs(Math.sin(this.ft * 9 + q.ph)); q.f.position.y = q.base + 0.08 * Math.sin(this.ft * 5 + q.ph); q.f.rotation.y += dt * 2; }
+      this.fireLight.intensity = 14 + 8 * Math.random(); this.smoke.scale.setScalar(1 + 0.3 * Math.sin(this.ft * 2)); this.smoke.position.y = 1.1 + 0.2 * Math.sin(this.ft * 1.3);
+    } else if (this.flames) this.flames.visible = false;
     if (m.running) { this.spinAngle += dt * 24; for (const s of p.spin) s.mesh.rotation[s.axis] = this.spinAngle; }
     if (p.lamps) {
       const done = Object.values(m.checklist || {}).filter(Boolean).length;

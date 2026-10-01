@@ -70,6 +70,9 @@ export function startShop(T, audio, state) {
   items.make('coffee', shop.pcPos.x + 0.6, shop.pcPos.z + 0.1, { y: 0.77 });
   items.make('hammer', shop.pcPos.x - 0.6, shop.pcPos.z + 0.2, { y: 0.77 });
   items.make('key', shop.hx - 1.6, shop.hz - 1.9, { y: 0.0 });
+  const extItem = items.make('extinguisher', shop.extPos.x, shop.extPos.z, { y: shop.extPos.y });
+  const hoseItem = items.make('airhose', shop.hosePos.x, shop.hosePos.z, { y: shop.hosePos.y });
+  let coffeeItem = items.items.find((it) => it.kind === 'coffee');
   let steelItem = null;
   function syncSteel() {
     const want = state.jobs.some((j) => j.status === 'work' || j.status === 'material' && state.day >= j.materialDay);
@@ -169,6 +172,58 @@ export function startShop(T, audio, state) {
     if (!state.firstCycle) { state.firstCycle = true; unlock('first_cycle'); }
     else ui.toast(skipped ? pick(['You skipped a step. The machine noticed.', 'Bold.', 'That is how it starts.']) : pick(['Chips.', 'Making chips.', 'Nothing wrong with that.']));
   }
+  // ---- fire on the floor. the sinker is a candle with a Z axis.
+  function fireStart(m) {
+    if (m.fire || !m.placed) return;
+    const def = byId(m.id);
+    m.fire = true; m.fireT = 0; audio.alarm(1.2);
+    ui.toast(`FIRE. The ${def.name.toLowerCase()}. The oil in the tank. ${state.facility.fire ? 'The bottle should go off.' : 'The extinguisher is by the door. It was by the door.'}`, 6000);
+    for (const q of state.people) { const v = crew.views.get(q.id); if (v && v.g.visible) { crew.say(q, pick(['FIRE!', 'The sinker! Again!', 'Where is the extinguisher?', 'Not it.', 'I am going outside.']), 3); if (Math.random() < 0.5) crew.takeFive(q); } }
+  }
+  function putOut(m, how = 'you') {
+    const def = byId(m.id); m.fire = false;
+    audio.noise(1.2, 700, 0.18, 'highpass'); audio.noise(0.8, 200, 0.1, 'lowpass');
+    if (how === 'you') { unlock('pin_aim_squeeze'); if (items.held && items.held.kind === 'extinguisher') items.held.empty = true; ui.toast(pick([`Out. Powder on everything. The ${def.name.toLowerCase()} will need a wipe and a tech.`, 'Out. Your hands are shaking. Somebody clapped, once.', 'Out. The tag said 2009. It worked anyway.']), 5000); }
+    else if (how === 'bottle') ui.toast(`The suppression bottle went off over the ${def.name.toLowerCase()}. $3,500, well spent. Powder on everything.`, 5000);
+    for (const q of state.people) if (Math.random() < 0.4) crew.say(q, pick(['Nice.', 'That was close.', 'Can we get a real EDM?', 'I am still going outside.']), 2.5);
+    m.condition = Math.max(0, m.condition - 0.06); m.running = false; m.runLeft = 0; m.checklist = {};
+    if (m.job && m.job.jobId) { const job = state.jobs.find((j) => j.id === m.job.jobId); if (job) scrapJob(state, job, m.job.itemIndex); shop.setScrap(state.scrapCount); } m.job = null;
+  }
+  function fireTick(dt) {
+    for (const m of state.machines) {
+      if (!m.fire) continue;
+      m.fireT = (m.fireT || 0) + dt;
+      if (Math.random() < dt * 1.8) audio.noise(0.25, 300 + Math.random() * 500, 0.05, 'bandpass', 0.6);
+      if (state.facility.fire && m.fireT > 5) { putOut(m, 'bottle'); continue; }
+      m.condition = Math.max(0, m.condition - dt * 0.012);
+      if (m.fireT > 40) { // it burned. the tech will have opinions.
+        m.fire = false; m.running = false; m.runLeft = 0; m.job = null; m.checklist = {}; const def = byId(m.id);
+        m.down = { why: 'fire damage. the cabinet is black and the wiring is a sculpture', until: null, kind: 'broke' }; m.condition = Math.max(0, m.condition - 0.25);
+        post(state, 'Fire: cleanup and the insurance deductible', -2500); unlock('candle');
+        ui.toast(`The ${def.name.toLowerCase()} burned itself out. Black to the ceiling. $2,500 deductible, the machine is DOWN, and the inspector will hear about it.`, 7000);
+        state.inspectorSoon = true;
+      }
+    }
+  }
+  // the air hose. for chips. only for chips.
+  function blast(mAt, pAt) {
+    audio.noise(0.4, 2000, 0.16, 'highpass');
+    if (pAt) {
+      pAt.morale = Math.max(0, pAt.morale - 0.06); unlock('chips_only');
+      crew.say(pAt, pick(['HEY.', 'That is NOT for that.', 'There is a POSTER.', 'My EYE.', 'Real mature.']), 3);
+      if (Math.random() < 0.08) { post(state, `Clinic: ${pAt.name}, eye wash`, -800); pAt.morale = Math.max(0, pAt.morale - 0.2); tally(state, 'wsib'); ui.toast(`${pAt.name}: something in the eye. The eye wash station is a sink. $800 at the clinic and a form.`, 5000); }
+      else ui.toast(`PSSSHT. ${pAt.name} jumped. Everyone laughed. ${pAt.name} did not.`, 3200);
+      return;
+    }
+    if (mAt) { const d = byId(mAt.id); ui.toast(pick([`Chips off the ${d.name.toLowerCase()}. Into the ways. Use a brush.`, `PSSSHT. The ${d.name.toLowerCase()} is cleaner. Everything near it is not.`]), 3000); for (const q of state.people) if (Math.random() < 0.3) crew.say(q, pick(['Use a BRUSH.', 'Not into the ways!', 'That is how the ways go.']), 2.5); mAt.condition = Math.max(0, mAt.condition - 0.003); return; }
+    ui.toast(pick(['PSSSHT.', 'PSSSHT. Into the air. Satisfying.', 'PSSSHT. The compressor kicked on.']), 1800);
+  }
+  function giveCoffee(p) {
+    const it = items.held; items.held = null; camera.remove(it.mesh); items.remove(it); if (coffeeItem === it) coffeeItem = null;
+    p.morale = Math.min(1, p.morale + 0.08); unlock('my_round'); audio.tick(0.08, 700);
+    crew.say(p, pick(['Oh. Thanks.', 'Is this a trick?', 'Two sugars. This is one.', 'Huh. Okay.', 'What did you do?']), 3);
+    ui.toast(`${p.name} took the coffee. Morale went up. Suspicion also went up.`, 3200);
+  }
   // the red button. the crash is still coming; it just costs a cutter instead of a spindle.
   function estop(m) {
     const def = byId(m.id);
@@ -188,7 +243,11 @@ export function startShop(T, audio, state) {
     if (jobNow && def.kind === 'spot') jobNow.spotted = true;
     if (jobNow && def.kind === 'bench' && m.job.label === 'Fit and spot') { jobNow.risk = (jobNow.risk || 0) + 0.1; ui.toast('Fit and spot at the bench, with bluing and a straightedge. A press would be better. The flash will tell you.', 3600); }
     if (def.kind === 'vmc' && /electrode/i.test(m.job.label) && !state.facility.dust) { m.condition = Math.max(0, m.condition - 0.03); for (const q of state.people) q.morale = Math.max(0, q.morale - 0.02); ui.toast('Graphite on the VMC. Black dust in the ways, the coffee, and everyone\'s nose. A vacuum is $2,800.', 4200); }
-    if (m.taped) { /* duct tape. it holds. it does not help. */ }
+    if (def.kind === 'sinker' || def.kind === 'wire') {
+      const flushSkipped = m.checklist && m.checklist.clamp !== true && def.kind === 'sinker';
+      const pFire = flushSkipped ? 0.3 : def.kind === 'sinker' ? 0.015 : 0.004;
+      if (Math.random() < pFire) setTimeout(() => { if (m.running) fireStart(m); }, 4000 + Math.random() * 20000);
+    }
     if (Math.random() < risk + (m.taped ? 0.1 : 0)) {
       let sev = Math.random();
       const delay = 1500 + Math.random() * 6000;
@@ -307,6 +366,11 @@ export function startShop(T, audio, state) {
     if (iso.active) { iso.exit(); endPlace(); }
     ui.closeClip(); ui.closePanel(); modal = true;
     const leftMin = state.t;
+    for (const m of state.machines) if (m.fire) { m.fire = false; m.down = { why: 'fire damage. you left while it was burning', until: null, kind: 'broke' }; m.condition = Math.max(0, m.condition - 0.3); m.running = false; m.job = null; post(state, 'Fire: you locked up while it burned', -2500); }
+    if (extItem.empty) { extItem.empty = false; post(state, 'Extinguisher refill', -90); }
+    if (!coffeeItem) coffeeItem = items.make('coffee', shop.pcPos.x + 0.6, shop.pcPos.z + 0.1, { y: 0.77 });
+    if (items.held) items.drop();
+    hoseItem.mesh.position.set(shop.hosePos.x, shop.hosePos.y, shop.hosePos.z); hoseItem.mesh.rotation.set(0, 0, 0); hoseItem.flying = false;
     crew.night();
     const lightsOut = runLightsOut();
     const n = goHome(state); save(state);
@@ -369,6 +433,11 @@ export function startShop(T, audio, state) {
       const i = h.object.userData.interact; if (!i || i.type === 'floor') continue;
       lookAt = i; break;
     }
+    // a small thing hanging on a wall or a bracket beats the wall behind it
+    if (lookAt && lookAt.type !== 'machine' && lookAt.type !== 'person' && lookAt.type !== 'item' && !items.held) {
+      const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+      for (const it of items.items) { if (it.flying) continue; const dx = it.mesh.position.x - camera.position.x, dz = it.mesh.position.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 1.6 && (dx * fx + dz * fz) / (d || 1) > 0.86) { lookAt = { type: 'item', kind: it.kind, ref: it, text: ITEM_KINDS[it.kind].hint }; break; } }
+    }
     if (!lookAt) {
       // forgiving: a machine right in front of you counts, even if the dot is a little off
       const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
@@ -392,10 +461,16 @@ export function startShop(T, audio, state) {
         if (d < Math.min(bestD, 2.4) && (dx * fx + dz * fz) / (d || 1) > 0.8) { bestD = d; lookAt = { type: 'person', id: v.p.id }; }
       }
     }
-    if (!lookAt) { ui.tag(''); ui.hint(items.held ? `holding ${ITEM_KINDS[items.held.kind].label} · click to throw · G to put it down` : ''); return; }
+    if (!lookAt) { ui.tag(''); ui.hint(items.held ? `holding ${ITEM_KINDS[items.held.kind].label}${items.held.empty ? ' (empty)' : ''} · ${items.held.kind === 'airhose' ? 'click: PSSSHT' : 'click to throw'} · G to put it down` : ''); return; }
     if (lookAt.type === 'item') { ui.tag(''); ui.hint(items.held ? 'click to throw' : `pick up the ${ITEM_KINDS[lookAt.kind].label}`); return; }
     if (items.held && items.held.kind === 'hammer' && lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid), d = byId(m.id); ui.tag(`${d.brand.toUpperCase()} ${d.name.toUpperCase()}`); ui.hint('WHACK IT'); return; }
-    if (items.held) { ui.hint('click to throw'); ui.tag(lookAt.type === 'person' ? (state.people.find((q) => q.id === lookAt.id) || {}).name : ''); return; }
+    if (items.held) {
+      const hk = items.held.kind, pName = lookAt.type === 'person' ? (state.people.find((q) => q.id === lookAt.id) || {}).name : '';
+      const mAt = lookAt.type === 'machine' ? state.machines.find((q) => q.uid === lookAt.uid) : null;
+      ui.tag(pName || (mAt ? `${byId(mAt.id).brand.toUpperCase()} ${byId(mAt.id).name.toUpperCase()}${mAt.fire ? ' · ON FIRE' : ''}` : ''));
+      ui.hint(hk === 'extinguisher' && mAt && mAt.fire ? 'PUT IT OUT' : hk === 'extinguisher' && (mAt || pName) ? 'click to squeeze (it is not on fire)' : hk === 'airhose' ? (pName ? 'click to blast (do not)' : mAt ? 'click to blow the chips off' : 'click: PSSSHT') : hk === 'coffee' && pName ? 'click to hand it over' : 'click to throw');
+      $('hint').classList.toggle('alarm', !!(hk === 'extinguisher' && mAt && mAt.fire)); return;
+    }
     if (lookAt.type === 'machine') {
       const m = state.machines.find((q) => q.uid === lookAt.uid), d = byId(m.id);
       const op = m.job && m.job.operator && m.job.operator !== 'owner' ? state.people.find((q) => q.id === m.job.operator) : null;
@@ -409,7 +484,11 @@ export function startShop(T, audio, state) {
   }
   function use() {
     if (items.held) {
-      if (items.held.kind === 'hammer' && lookAt && lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid); whack(m); return; }
+      const hk = items.held.kind, mAt = lookAt && lookAt.type === 'machine' ? state.machines.find((q) => q.uid === lookAt.uid) : null, pAt = lookAt && lookAt.type === 'person' ? state.people.find((q) => q.id === lookAt.id) : null;
+      if (hk === 'hammer' && mAt) { whack(mAt); return; }
+      if (hk === 'extinguisher') { if (mAt && mAt.fire) { putOut(mAt); return; } if (mAt || pAt) { audio.noise(0.5, 900, 0.12, 'highpass'); ui.toast(pAt ? `${pAt.name}, in a cloud of powder. "WHAT." Morale, and the floor, are worse.` : `A cloud of powder over the ${byId(mAt.id).name.toLowerCase()}. It was not on fire. It is dusty now.`, 3500); if (pAt) { pAt.morale = Math.max(0, pAt.morale - 0.15); crew.say(pAt, pick(['WHAT.', 'I was NOT on fire.', 'My coffee.']), 3); } else { mAt.condition = Math.max(0, mAt.condition - 0.01); } return; } }
+      if (hk === 'airhose') { blast(mAt, pAt); return; }
+      if (hk === 'coffee' && pAt) { giveCoffee(pAt); return; }
       const it = items.throw(1); if (it) { it.throwDist = 0; it.from = { x: camera.position.x, z: camera.position.z }; }
       return;
     }
@@ -483,7 +562,7 @@ export function startShop(T, audio, state) {
       return;
     }
     if (e.code === 'KeyE' && !modal && !iso.active) use();
-    if (e.code === 'KeyG' && !modal && !iso.active && items.held) { items.drop(); audio.tick(0.08, 500); }
+    if (e.code === 'KeyG' && !modal && !iso.active && items.held) { const wasHose = items.held.kind === 'airhose'; items.drop(); audio.tick(0.08, 500); if (wasHose) { hoseItem.mesh.position.set(shop.hosePos.x, shop.hosePos.y, shop.hosePos.z); hoseItem.mesh.rotation.set(0, 0, 0); audio.noise(0.6, 1200, 0.05, 'bandpass', 2); ui.toast('The hose reeled itself back. Loudly.', 2000); } }
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { if (!modal) ui.setSpeed({ Digit1: 1, Digit2: 2, Digit3: 3 }[e.code]); }
     if (e.code === 'KeyP' || e.code === 'Space') { if (!modal) ui.setSpeed(state.speed ? 0 : 1); }
     if (e.code === 'KeyN' && !modal && !night) { $('endDay').click(); }
@@ -526,6 +605,7 @@ export function startShop(T, audio, state) {
     if (iso.active) iso.update(); else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
     if (!paused && !modal) {
+    fireTick(dt);
       items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })));
       for (const it of items.items) if (it.flying && it.from) it.throwDist = Math.hypot(it.mesh.position.x - it.from.x, it.mesh.position.z - it.from.z);
       itemsAtRest(); syncSteel();
