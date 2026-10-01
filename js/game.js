@@ -10,7 +10,7 @@ import { crewVerdict } from './events.js';
 import { Delivery } from './truck.js';
 import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
-import { practice } from './people.js';
+import { practice, nightShift, setupRoll, skillFor } from './people.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost, saturdayWorth, isSaturday } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message, openCrate } from './jobs.js';
 import { Nav } from './nav.js';
@@ -388,6 +388,23 @@ export function startShop(T, audio, state) {
         else notes.push(`${def.brand} ${def.name} finished overnight.`);
         m.job = null; m.checklist = {}; unlock('lights_out');
       } else { m.runLeft -= nightMin; m.hours += hours; notes.push(`${def.brand} ${def.name} ran all night. ${Math.round(m.runLeft)} minutes to go.`); }
+    }
+    // the night shift: each one takes an idle CNC with work waiting and runs it until morning. you never see them.
+    for (const p of nightShift(state)) {
+      const m = state.machines.find((q) => q.placed && !q.running && !q.down && byId(q.id).cnc && !q.job && runnableStages(state, byId(q.id).kind).length);
+      if (!m) { notes.push(`${p.name} came in at six, found nothing loaded on a CNC, swept, and left a note: "??"`); p.morale = Math.max(0, p.morale - 0.02); continue; }
+      const def = byId(m.id), o = runnableStages(state, def.kind)[0];
+      m.job = { jobId: o.job.id, itemIndex: o.itemIndex, item: o.item ? o.item.name : null, index: o.index, label: o.stage.label, min: o.stage.min || 60, kind: o.stage.kind, operator: p.id };
+      let skipped = 0; for (let k = 0; k < 3; k++) if (!setupRoll(p, def.kind)) skipped++;
+      practice(p, def.kind); p.workedToday = true;
+      const total = m.job.min * (def.speed || 1) * (1.3 - Math.min(5, skillFor(p, def.kind)) * 0.06), hours = Math.min(total, nightMin - 60) / 60;
+      const pBad = skipped * 0.06 + (state.facility.toolbreak ? 0.004 : 0.016) * (1.3 - m.condition * 0.5);
+      let bad = false; for (let h = 0; h < hours; h++) if (Math.random() < pBad) { bad = true; break; }
+      m.hours += hours; m.chips = Math.min(1, (m.chips || 0) + hours * 0.1 * (state.facility.chips ? 0.5 : 1)); m.oil = Math.max(0, (m.oil == null ? 1 : m.oil) - hours / 50);
+      const job = state.jobs.find((j) => j.id === o.job.id);
+      if (bad) { m.condition = Math.max(0, m.condition - 0.03); m.job = null; m.checklist = {}; post(state, `Broken cutter, night shift (${p.name})`, -180); p.crashes++; noteOn(m, pick(['NOT ME|- NIGHT', 'CUTTER|BROKE|SORRY', 'ASK|THE|NIGHT GUY'])); notes.push(`${p.name} broke a cutter on the ${def.name.toLowerCase()} around ${['midnight', 'one', 'two', 'three'][Math.floor(Math.random() * 4)]} and left a note. The stage will have to be run again.`); }
+      else if (total <= nightMin - 60) { m.job.operator = p.id; const finished = stageDone(state, job, o.itemIndex, o.index); if (finished) shop.setCrates(state.crates); m.job = null; m.checklist = {}; notes.push(`${p.name} ran ${o.stage.label.toLowerCase()}${o.item && job.mold ? ' on the ' + o.item.name.toLowerCase() : ''} for job ${job.id} overnight. Done.${finished ? ` Job ${job.id} is ready to ship.` : ''} ${pick(['The radio was on the French station this morning.', 'There is a coffee cup on the control that is not yours.', 'The chips were swept. Into a pile. Beside the broom.', 'He left the lights on. Every one.'])}`); unlock('night_shift'); }
+      else { m.running = true; m.runTotal = total; m.runLeft = total - hours * 60; m.checklist = { clamp: true, probe: true, program: true }; notes.push(`${p.name} loaded ${o.stage.label.toLowerCase()} on the ${def.name.toLowerCase()} and it is still cutting. ${Math.round(m.runLeft)} minutes to go when you walked in.`); unlock('night_shift'); }
     }
     return notes;
   }

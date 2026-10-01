@@ -292,6 +292,7 @@ export const ACHIEVEMENTS = {
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   glad_once: ['Glad Of It, Exactly Once', 'A fire, with insurance. The adjuster said "huh".'], uninsured: ['Should Have', 'A fire, without insurance. The Monday you turned it down.'],
   swept: ['Billable, Apparently', 'Swept the floor yourself. Ten times. The crew watched.'], chips_deep: ['Ankle Deep', 'A machine with chips to the top of its boots. Somebody should sweep.'],
+  night_shift: ['Second Shift', 'Somebody you have never met ran a machine all night and it was fine.'],
   estimator: ['Somebody Else Quotes', 'Hired an estimator. The phone rings more. So do the opinions.'],
   the_saturday: ['The Saturday', 'Came in on a Saturday before a ship date. Most of them came too.'], saturday_ship: ['Shipped It Saturday', 'Out the door on a Saturday. Monday will be quiet.'],
   wet_sign: ['Caution: Wet', 'Put the sign out before anybody slipped. Rare.'], slipped: ['WHOA', 'Somebody slipped on the coffee. There was a sign for that. It was in the closet.'],

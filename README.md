@@ -250,6 +250,11 @@ Then open http://localhost:8080/.
   brother-in-law). Customers remember: on-time ships and first-time-right molds make them bite
   easier; late ones make them harder, and the quote card says so.
 
+- The night shift. With a CNC on the floor and a couple of people, a night-shift machinist turns
+  up in the candidate pool. You never see them: they come in at six, take an idle CNC with work
+  waiting, set it up (badly, sometimes), and run it until morning. The night note says what got
+  done, what broke, and what was left on the control. Nobody has seen them arrive or leave.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

@@ -7,6 +7,7 @@ const FIRST = ['Dave', 'Rick', 'Kevin', 'Mike', 'Steve', 'Dan', 'Paul', 'Jim', '
 export const ROLES = {
   apprentice: { name: 'Apprentice', wage: [18, 25], skills: [0, 2], blurbs: ['Keen. Knows nothing. That is the deal.', 'Did a year at college. Can read a print, mostly.', 'Nephew of a customer. Be nice.', 'Wants to be a moldmaker. Does not yet know what that means.'] },
   machinist: { name: 'CNC machinist', wage: [25, 35], skills: [2, 4], blurbs: ['Ran mills at a production shop. Fast. Not patient.', 'Knows the Bridgeford like a brother. Hates the lathe.', 'Came from aerospace. Expects a CMM. Will be disappointed.', 'Good hands, strong opinions about coolant.'] },
+  nightshift: { name: 'Night-shift machinist', wage: [28, 38], skills: [2, 4], blurbs: ['Works nights. Prefers it. You will never see him, and he likes that about you.', 'Ran a second shift at a stamping plant. Sleeps in the afternoon. Do not call in the afternoon.', 'Quiet, careful, and gone by seven. The chips are the only proof.', 'Likes machines more than people, and says the night shift is where the machines are.'] },
   estimator: { name: 'Estimator / PM', wage: [30, 40], skills: [0, 2], blurbs: ['Quoted at a big shop for nine years. Knows every buyer by first name and grudge.', 'Came from purchasing. Switched sides. Knows where the bodies are.', 'Spreadsheets. Phone voice. Has never run a mill and says so.', 'Brings in work. Also brings in a lot of opinions about the coffee.'] },
   moldmaker: { name: 'Moldmaker', wage: [35, 48], skills: [3, 5], blurbs: ['Twenty-two years. Can fit a slide by feel. Will tell you about it.', 'Journeyman. Quiet. Spots a parting line like a surgeon.', 'Left the big shop across town. Did not say why.', 'Builds molds, fixes molds, has never once been on time.'] },
 };
@@ -38,7 +39,10 @@ export function initPeople(state) {
 }
 
 export function makeCandidate(state) {
-  const roleId = pick(state.rep >= 0.55 && state.people.length >= 2 && !state.people.some((p) => p.role === 'estimator') ? ['apprentice', 'machinist', 'machinist', 'moldmaker', 'estimator'] : ['apprentice', 'apprentice', 'machinist', 'machinist', 'moldmaker']);
+  const pool = ['apprentice', 'apprentice', 'machinist', 'machinist', 'moldmaker'];
+  if (state.rep >= 0.55 && state.people.length >= 2 && !state.people.some((p) => p.role === 'estimator')) pool.push('estimator');
+  if (state.machines.some((m) => m.placed && m.id !== 'cmm' && ['vmc', 'sinker', 'wire'].includes((m.id === 'hardmill' || m.id === 'fiveaxis') ? 'vmc' : m.id)) && state.people.length >= 2) pool.push('nightshift');
+  const roleId = pick(pool);
   const role = ROLES[roleId];
   const claimed = {}, actual = {};
   for (const k of SKILLS) {
@@ -91,7 +95,7 @@ export function growSkills(state, p) {
   return notes;
 }
 // CNC wants a machinist or a moldmaker; an apprentice on a VMC is how you learn what a VMC costs
-export function canRun(p, kind) { if (p.role === 'estimator') return false; if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'press') return p.role === 'moldmaker' || (p.role === 'machinist' && skillFor(p, 'general') >= 3); if (kind === 'heat') return true; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
+export function canRun(p, kind) { if (p.role === 'estimator' || p.role === 'nightshift') return false; if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'press') return p.role === 'moldmaker' || (p.role === 'machinist' && skillFor(p, 'general') >= 3); if (kind === 'heat') return true; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
 // one setup step: pass or skip
 export function setupRoll(p, kind) { const sk = skillFor(p, kind); return Math.random() < 0.42 + sk * 0.115 + (p.morale - 0.5) * 0.12; }
 export function moraleWord(m) { return m >= 0.85 ? 'happy' : m >= 0.6 ? 'fine' : m >= 0.4 ? 'grumbling' : m >= 0.2 ? 'disgruntled' : 'done'; }
@@ -133,6 +137,7 @@ export function endOfDay(state) {
     if (!p.grievance && Math.random() < 0.08) { const g = pick(GRIEVANCES); p.grievance = { id: g[0], label: g[1], text: g[2], fix: g[3] }; p.morale = Math.max(0, p.morale - 0.08); notes.push(`${p.name} has something to say about ${g[1]}.`); }
     if (!p.quitting && (p.morale <= 0.05 || (p.morale < 0.2 && Math.random() < 0.25))) {
       if (p.startDay > state.day) { state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left'); notes.push(`${p.name} is not coming after all. A text message. Two words.`); }
+      else if (p.role === 'nightshift') { state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left'); notes.push(`${p.name} quit. A note on the VMC, in marker. Nobody saw him go. Nobody had ever seen him arrive.`); }
       else { p.quitting = true; notes.push(`${p.name} is quitting. ${p.grievance ? `It is about ${p.grievance.label}. ` : ''}There will be a speech, on the floor, around half past nine.`); }
     }
   }
@@ -154,3 +159,5 @@ export function speech(p) {
 }
 
 export function hasEstimator(state) { return state.people.some((p) => p.role === 'estimator' && p.startDay != null && p.startDay <= state.day && !p.quitting); }
+
+export function nightShift(state) { return state.people.filter((p) => p.role === 'nightshift' && p.startDay != null && p.startDay <= state.day && !p.quitting); }
