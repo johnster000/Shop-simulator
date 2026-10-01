@@ -3,7 +3,7 @@ import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
 import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor, insuranceWeekly } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
-import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel, canCheapSteel, cheapSteel, canInspect, inspect, canShipEarly, shipEarly, CHEAP_STEELS } from './jobs.js';
+import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel, canCheapSteel, cheapSteel, canInspect, inspect, canShipEarly, shipEarly, CHEAP_STEELS, VENDORS, vendorFor } from './jobs.js';
 import { hire, fire, raise, fixGrievance, tough, moraleWord, SKILLS } from './people.js';
 import { hasCad as hasCadFn } from './sim.js';
 import { hasEstimator } from './people.js';
@@ -230,8 +230,12 @@ export class UI {
       <h4 class="sect">MACHINES</h4><ul class="cat">${MACHINES.map(machineCard).join('')}</ul>
       <p class="note">Used machines come with a history. New machines come with a warranty and a payment. Financing is 10% down, 60 months at 8%. Neither comes with a crane.</p>
       <h4 class="sect">THE BUILDING</h4><ul class="cat">${UPGRADES.map(upCard).join('')}</ul>
+      <h4 class="sect">VENDORS</h4>
+      <div class="note">Steel, bases, heat treat, press time. Each one has a price, a lead time, and a reliability. The cheap one is a story once a year.</div>
+      <ul class="cat">${['heat', 'base', 'press'].map((k) => `<li><div class="name">${{ heat: 'Heat treat', base: 'Mold bases', press: 'Press time (tryouts)' }[k]}</div>${VENDORS[k].map((v) => `<div class="blurb" style="margin-top:6px"><b>${v.name}</b> · ${v.blurb}</div><div class="buy"><button data-vendor="${k}:${v.id}" ${vendorFor(s, k).id === v.id ? 'disabled' : ''}>${vendorFor(s, k).id === v.id ? 'USING THEM' : `USE ${v.name.toUpperCase()}`}</button></div>`).join('')}</li>`).join('')}</ul>
       <h4 class="sect">SOFTWARE</h4><ul class="cat">${SOFTWARE.map(swCard).join('')}</ul>
       <p class="note">A CNC without CAM is a very expensive table. *The Community Edition is free the way a found wallet is free.</p>`;
+    el.querySelectorAll('[data-vendor]').forEach((b) => b.addEventListener('click', () => { const [k, id] = b.dataset.vendor.split(':'); s.vendors = s.vendors || {}; s.vendors[k] = id; const v = vendorFor(s, k); this.audio.paper(); this.toast(`${v.name} from now on. ${k === 'heat' && id === 'thermex' ? 'A certificate with every load.' : k === 'base' && id === 'probase' ? 'The driver will learn your name.' : k === 'press' && id === 'precision' ? 'A report you can read.' : 'Back to the cheap one. Everybody goes back to the cheap one.'}`, 3600); if (id === 'thermex') { const a = achieve(s, 'certificate'); if (a) this.hooks.achievement(a); } this.renderShop(); }));
     el.querySelectorAll('[data-show]').forEach((b) => b.addEventListener('click', () => { if (s.cash < 2400) { this.audio.nope(); this.toast('$2,400. You have less. The show will still be there next year.'); return; } post(s, 'Trade show: booth, hotel, hot dog', -2400); s.tradeShow = true; this.audio.paper(); this.toast('Booked. Go home tonight and you are gone two days. Tell the crew. Or do not.', 4500); this.renderShop(); }));
     el.querySelectorAll('.buy button[data-id]').forEach((b) => b.addEventListener('click', () => {
       const def = byId(b.dataset.id), used = b.dataset.used === '1';

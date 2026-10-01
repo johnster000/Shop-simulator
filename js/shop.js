@@ -311,7 +311,7 @@ export class Shop {
     const dl = new T.Mesh(new T.PlaneGeometry(0.2, 0.06), new T.MeshBasicMaterial({ map: TX.label(T, ['THE GOOD ONES'], { size: 26, bg: '#f4f1e6', fg: '#c0392b', border: '#999' }) })); dl.position.set(0.201, 1.92, 0.0); dl.rotation.y = Math.PI / 2; g.add(dl);
     g.traverse((o) => { o.userData.interact = { type: 'crib', text: 'the tool crib. end mills, pins, dowels, screws. the good end mills are in the drawer with the lock.' }; }); this.interact.push(g);
     this.solid(x, z, 0.25, 0.55);
-    this.cribPos = { x, z, pins: { x: x + 0.05, y: 0.815, z: z + 0.32 }, electrode: { x: x + 0.05, y: 1.325, z: z + 0.0 } };
+    this.cribPos = { x, z, pins: { x: x + 0.05, y: 0.815, z: z + 0.32 }, electrode: { x: x + 0.05, y: 1.325, z: z + 0.0 }, phone: { x: x + 0.05, y: 1.972, z: z + 0.1 } }; // on top of the drawer, where the outlet is
     return g;
   }
 

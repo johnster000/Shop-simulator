@@ -326,6 +326,15 @@ Then open http://localhost:8080/.
   Employee of the Month (run a machine yourself five days running), and Retired the Bridgeford,
   which is on the wall and cannot be earned. Selling the Bridgeford does not retire it.
 
+- Vendors with a price, a lead time and a reliability (§6.3). On the SHOP tab, pick your heat
+  treater (Quench & Sons: cheap, two days, cracks a block once a year; Thermex: double, three
+  days, a certificate), your mold base supplier (DMV: take a number; Pro-Base: three days and a
+  tracking number that works) and your molder for tryouts (Northgate: when they have a slot;
+  Precision Molders: a day, a real process engineer, and a report that makes the fixes faster).
+  Also: the fluorescents buzz now, one tube flickers, the crane honks when it moves to a new job,
+  and the apprentice's phone is charging off the crib outlet. It buzzes in your hand. The
+  apprentice would like it back. Throw it and it was on the family plan.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

@@ -9,6 +9,21 @@ import { hasEstimator } from './people.js';
 export const SHOP_RATE = 55;      // $/hr, Stage 0 work (design bible §4.1)
 export const CNC_RATE = 95;       // $/hr, work that needs a CNC
 export const HEAT_COST = 140;     // Quench & Sons, per job, plus two days and a small chance of a crack
+export const VENDORS = {
+  heat: [
+    { id: 'quench', name: 'Quench & Sons', cost: 1.0, days: 2, crack: 0.04, late: 0.1, blurb: 'Cheap. Two days. Cracks a block about once a year, in the same crate, with an invoice.' },
+    { id: 'thermex', name: 'Thermex Heat Treating', cost: 2.2, days: 3, crack: 0.003, late: 0.03, blurb: 'Twice the price, three days, a certificate with every load. Nobody has seen a crack. Nobody has seen the owner either.' },
+  ],
+  base: [
+    { id: 'dmv', name: 'DMV', cost: 1.0, days: 5, late: 0.3, blurb: 'Take a number. Five days, sometimes seven, always a reason, never the same reason.' },
+    { id: 'probase', name: 'Pro-Base', cost: 1.3, days: 3, late: 0.05, blurb: 'Three days, thirty percent more, and a tracking number that works. The driver knows your name.' },
+  ],
+  press: [
+    { id: 'northgate', name: 'Northgate Plastics', cost: 1.0, days: 2, late: 0.25, blurb: 'Press time when they have a slot. They do not always have a slot. The report is a text message.' },
+    { id: 'precision', name: 'Precision Molders', cost: 1.6, days: 1, late: 0.0, report: true, blurb: 'A day, a real process engineer, and a tryout report you can read. The fixes go faster when you know what to fix. Sixty percent more.' },
+  ],
+};
+export function vendorFor(state, kind) { const v = (state.vendors || {})[kind]; return VENDORS[kind].find((x) => x.id === v) || VENDORS[kind][0]; }
 export const BIG_ONE = 40000;    // the big one. a PO with a comma in a place you have not seen a comma.
 export const MOLD_RATE = 110;     // $/hr, a new tool build
 export const BASE_DAYS = 5;       // DMV: take a number
@@ -350,7 +365,7 @@ export function resolveTryout(state, job, byId) {
   // every defect adds a revision stage; then another tryout
   const fixes = found.map((d) => {
     const kind = d[2] === 'finish' ? 'vmc' : d[2] === 'design' ? 'design' : 'bench';
-    return st(kind, `${d[0]}: ${d[3].toLowerCase()}`, d[4]);
+    return st(kind, `${d[0]}: ${d[3].toLowerCase()}`, job.goodReport ? d[4] * 0.7 : d[4]); // a real report says exactly what to fix
   });
   job.jobStages.push(...fixes, st('tryout', `Tryout T${job.tryouts + 1}`, 0));
   job.risk = Math.max(0, (job.risk || 0) - 0.08);
@@ -369,10 +384,10 @@ export function cmmReport(state, byId) {
   return out;
 }
 function vendorOut(state, job, q, itemName) {
-  if (q.kind === 'heat') { post(state, `Quench & Sons: heat treat, job ${job.id}${itemName ? ', ' + itemName.toLowerCase() : ''}`, -HEAT_COST); q.out = { backDay: state.day + 2, cost: HEAT_COST, heat: true }; return `Job ${job.id}${itemName ? ' ' + itemName.toLowerCase() : ''} went to Quench & Sons. Back in two days, probably in one piece.`; }
-  if (q.kind === 'base') { const cost = job.spec.base; post(state, `DMV mold base, job ${job.id}`, -cost); q.out = { backDay: state.day + BASE_DAYS, cost }; return `Mold base for job ${job.id} ordered from DMV. Take a number. ${BASE_DAYS} days.`; }
+  if (q.kind === 'heat') { const v = vendorFor(state, 'heat'), cost = Math.round(HEAT_COST * v.cost), late = Math.random() < v.late; post(state, `${v.name}: heat treat, job ${job.id}${itemName ? ', ' + itemName.toLowerCase() : ''}`, -cost); q.out = { backDay: state.day + v.days + (late ? 2 : 0), cost, heat: true, vendor: v.id, crack: v.crack }; return `Job ${job.id}${itemName ? ' ' + itemName.toLowerCase() : ''} went to ${v.name}. ${v.days} days${late ? ', they said. Then they said ' + (v.days + 2) + '.' : '.'}${v.id === 'thermex' ? ' A certificate is coming with it.' : ''}`; }
+  if (q.kind === 'base') { const v = vendorFor(state, 'base'), cost = Math.round(job.spec.base * v.cost), late = Math.random() < v.late; post(state, `${v.name} mold base, job ${job.id}`, -cost); q.out = { backDay: state.day + v.days + (late ? 2 : 0), cost, vendor: v.id }; return `Mold base for job ${job.id} ordered from ${v.name}. ${v.id === 'dmv' ? 'Take a number. ' : ''}${v.days + (late ? 2 : 0)} days${late ? ' (they had a reason)' : ''}.`; }
   if (q.kind === 'manifold') { const cost = job.spec.manifold; post(state, `Mould-Majors hot runner, job ${job.id}`, -cost); q.out = { backDay: state.day + 12, cost }; return `Hot runner for job ${job.id} ordered. Twelve days, they say. They always say twelve.`; }
-  if (q.kind === 'tryout') { const cost = 200 * (4 + (job.spec.cav || 1)); post(state, `Press time, Northgate Plastics, job ${job.id}`, -cost); q.out = { backDay: state.day + TRYOUT_DAYS, cost, tryout: true }; return `Job ${job.id} is on a truck to the molder for tryout. $${cost.toLocaleString()} of press time. Two days.`; }
+  if (q.kind === 'tryout') { const v = vendorFor(state, 'press'), cost = Math.round(200 * (4 + (job.spec.cav || 1)) * v.cost), late = Math.random() < v.late; post(state, `Press time, ${v.name}, job ${job.id}`, -cost); q.out = { backDay: state.day + v.days + (late ? 1 : 0), cost, tryout: true, vendor: v.id, report: !!v.report }; return `Job ${job.id} is on a truck to ${v.name} for tryout. $${cost.toLocaleString()} of press time${late ? ', when they have a slot, which is not today' : ''}.`; }
   return null;
 }
 
@@ -429,10 +444,10 @@ export function endOfDay(state, byId) {
       // things coming back
       const all = job.items.flatMap((it, ii) => it.stages.map((q) => ({ q, item: it, ii }))).concat(job.jobStages.map((q) => ({ q, item: null, ii: -1 })));
       for (const { q, item, ii } of all) if (q.out && !q.done && state.day >= q.out.backDay) {
-        if (q.out.heat && Math.random() < 0.04) { q.out = null; scrapJob(state, job, Math.max(0, ii)); notes.push(`Job ${job.id}${item ? ' ' + item.name.toLowerCase() : ''} came back from heat treat in two pieces, in the same crate, with an invoice. Start over.`); continue; }
-        const was = q.out; q.out = null; q.done = true;
-        if (was.tryout) notes.push(...afterTryout(state, job, byId));
-        else notes.push(`Job ${job.id}: ${q.label.toLowerCase()}${item ? ' (' + item.name.toLowerCase() + ')' : ''} back from ${was.heat ? 'Quench & Sons' : q.kind === 'base' ? 'DMV' : q.kind === 'manifold' ? 'Mould-Majors' : q.kind === 'design' ? 'the designer' : 'Bramalea'}.`);
+        if (q.out.heat && Math.random() < (q.out.crack != null ? q.out.crack : 0.04)) { q.out = null; scrapJob(state, job, Math.max(0, ii)); notes.push(`Job ${job.id}${item ? ' ' + item.name.toLowerCase() : ''} came back from heat treat in two pieces, in the same crate, with an invoice. Start over.`); continue; }
+        const was = q.out; q.out = null; q.done = true; const vname = was.vendor ? (VENDORS.heat.concat(VENDORS.base, VENDORS.press).find((v) => v.id === was.vendor) || {}).name : null;
+        if (was.tryout) { job.goodReport = !!was.report; notes.push(...afterTryout(state, job, byId)); }
+        else notes.push(`Job ${job.id}: ${q.label.toLowerCase()}${item ? ' (' + item.name.toLowerCase() + ')' : ''} back from ${vname || (was.heat ? 'Quench & Sons' : q.kind === 'base' ? 'DMV' : q.kind === 'manifold' ? 'Mould-Majors' : q.kind === 'design' ? 'the designer' : 'Bramalea')}.${was.vendor === 'thermex' ? ' With a certificate.' : ''}`);
         if (allDone(job)) { job.status = 'ready'; state.crates++; notes.push(`Job ${job.id} is done. Ship it.`); }
       }
     }

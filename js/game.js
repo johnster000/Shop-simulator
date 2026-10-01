@@ -89,7 +89,9 @@ export function startShop(T, audio, state) {
   items.make('coffee', shop.pcPos.x + 0.6, shop.pcPos.z + 0.1, { y: 0.77 });
   const hammerItem = items.make('hammer', shop.pcPos.x - 0.6, shop.pcPos.z + 0.2, { y: 0.77 });
   const keyItem = items.make('key', shop.hx - 1.6, shop.hz - 1.9, { y: 0.0 });
+  let craneKey = null; // the crane honks when it moves to a new job
   let jarItem = items.make('jar', shop.jarPos.x, shop.jarPos.z, { y: shop.jarPos.y }), cakeItem = null;
+  let phoneItem = items.make('phone', shop.cribPos.phone.x, shop.cribPos.phone.z, { y: shop.cribPos.phone.y }), phoneBuzzT = 0;
   let pinsItem = items.make('pins', shop.cribPos.pins.x, shop.cribPos.pins.z, { y: shop.cribPos.pins.y }), electrodeItem = items.make('electrode', shop.cribPos.electrode.x, shop.cribPos.electrode.z, { y: shop.cribPos.electrode.y });
   // tools that walk: the hammer and the chuck key leave overnight (events.js) and turn up in somebody's box
   function syncWalked() {
@@ -178,6 +180,14 @@ export function startShop(T, audio, state) {
         ui.toast(`The coffee fund. On the floor. $${had} in change${had ? ' and a button' : ', which is to say a button'}. Glass everywhere. The jar was a pickle jar and it is now a story.`, 5000);
         for (const q of state.people) if (Math.random() < 0.8) crew.say(q, pick(['That was the FUND.', 'There goes my toonie.', 'I am not sweeping that.', 'Was that the jar? That was the jar.', 'Rick never paid in anyway.']), 3.5);
         for (const q of state.people) q.morale = Math.max(0, q.morale - 0.04);
+      } else if (kind === 'phone') {
+        items.remove(it); phoneItem = null; unlock('cracked_screen'); audio.noise(0.12, 2600, 0.2, 'highpass');
+        const scr = new T.Mesh(new T.BoxGeometry(0.075, 0.008, 0.15), new T.MeshStandardMaterial({ color: 0x111114 })); scr.position.set(x, 0.005, z); scr.rotation.y = Math.random() * 3; scene.add(scr); setTimeout(() => scene.remove(scr), 90000);
+        for (let i = 0; i < 6; i++) { const g = new T.Mesh(new T.PlaneGeometry(0.01 + Math.random() * 0.02, 0.01 + Math.random() * 0.02), new T.MeshBasicMaterial({ color: 0xbfd8ff, transparent: true, opacity: 0.7 })); g.rotation.x = -Math.PI / 2; g.position.set(x + (Math.random() - 0.5) * 0.4, 0.004, z + (Math.random() - 0.5) * 0.4); scene.add(g); setTimeout(() => scene.remove(g), 90000); }
+        const app = state.people.find((p) => p.role === 'apprentice') || state.people[0];
+        ui.toast(`The phone. Face down, which is the bad way. ${app ? app.name + ' saw.' : 'Nobody saw. Somebody will.'} It was on the family plan. The family has been informed.`, 5000);
+        if (app) { app.morale = Math.max(0, app.morale - 0.15); crew.say(app, pick(['That was MINE.', 'My MOM is on there.', 'I had a streak.', 'That is coming out of something.']), 4); }
+        for (const q of state.people) if (q !== app && Math.random() < 0.5) crew.say(q, pick(['Oof.', 'Family plan.', 'Should have been working anyway.', 'Mine is in my pocket. Staying there.']), 3);
       } else if (kind === 'pins') {
         items.remove(it); pinsItem = null; unlock('pins_everywhere'); post(state, 'Ejector pins, the ones that rolled under things', -45);
         for (let i = 0; i < 40; i++) { const pin = new T.Mesh(new T.CylinderGeometry(0.004, 0.004, 0.14, 5), new T.MeshStandardMaterial({ color: 0xd8dce0, metalness: 0.85, roughness: 0.25 })); pin.position.set(x + (Math.random() - 0.5) * 2.2, 0.006, z + (Math.random() - 0.5) * 2.2); pin.rotation.set(Math.PI / 2, 0, Math.random() * Math.PI); scene.add(pin); setTimeout(() => scene.remove(pin), 90000); }
@@ -580,6 +590,7 @@ export function startShop(T, audio, state) {
     setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
     camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
     syncWalked(); syncCake(); if (!jarItem) { jarItem = items.make('jar', shop.jarPos.x, shop.jarPos.z, { y: shop.jarPos.y }); } jarShake();
+    if (!phoneItem) phoneItem = items.make('phone', shop.cribPos.phone.x, shop.cribPos.phone.z, { y: shop.cribPos.phone.y });
     if (!pinsItem) pinsItem = items.make('pins', shop.cribPos.pins.x, shop.cribPos.pins.z, { y: shop.cribPos.pins.y }); if (!electrodeItem) electrodeItem = items.make('electrode', shop.cribPos.electrode.x, shop.cribPos.electrode.z, { y: shop.cribPos.electrode.y });
     if ((state.day - 1) % 7 === 0) { state.doodle = null; const sour = state.people.filter((p) => p.morale < 0.45 && p.startDay != null && p.startDay <= state.day); if (sour.length && Math.random() < 0.5) { state.doodle = pick(['THE BOSS', 'YOU', '"management"', state.shopName.split(' ')[0].toUpperCase()]); unlock('the_foreman'); setTimeout(() => ui.toast('Somebody drew you on the whiteboard. The eyebrows are accurate. Nobody saw anything.', 4000), 3000); } }
     shop.setWhiteboard(whiteboardLines(), state.doodle || null);
@@ -882,6 +893,7 @@ export function startShop(T, audio, state) {
     } else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
     if (!paused && !modal) {
+    if (phoneItem && items.held === phoneItem) { phoneBuzzT += dt; if (phoneBuzzT > 2.5) { phoneBuzzT = 0; audio.noise(0.09, 180, 0.08, 'lowpass'); setTimeout(() => audio.noise(0.09, 180, 0.08, 'lowpass'), 160); const app = state.people.find((p) => p.role === 'apprentice'); if (app && Math.random() < 0.5) crew.say(app, pick(['That is mine.', 'Can I have that back.', 'Do not read those.', 'It is my mom.']), 2.5); } }
     fireTick(dt); spillTick(); if (state.machines.some((m) => m.found)) { unlock('bumped'); } if (now - travT > 700) { travT = now; syncTravellers(); if (state.machines.some((m) => (m.chips || 0) >= 1)) unlock('chips_deep'); }
     if (!paused && !modal && !night) { delivery.update(dt, (line) => { ui.toast(line, 5000); syncSteel(); }, () => { const v = [...crew.views.values()].find((q) => q.g.visible && (q.mode === 'idle' || q.mode === 'sweep')); return v ? v.p : null; }); visitor.update(dt); phone.update(dt, { x: camera.position.x, z: camera.position.z }); }
       items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })).concat(visitor.here ? [{ x: visitor.pos.x, z: visitor.pos.z, id: -1 }] : []));
@@ -889,7 +901,7 @@ export function startShop(T, audio, state) {
       itemsAtRest(); syncSteel();
     }
     shop.update(paused ? 0 : dt, audio.compOn); shop.setDoor(!!state.facility.door); shop.setAir(state.facility.air); shop.setCrane(!!state.facility.crane);
-    if (state.facility.crane) { const sp = state.machines.find((m) => m.running && byId(m.id).kind === 'spot'); if (sp) shop.craneTo(sp.x, sp.z); else if (state.crates) shop.craneTo(shop.cratePos.x, shop.cratePos.z - 2); }
+    if (state.facility.crane) { const sp = state.machines.find((m) => m.running && byId(m.id).kind === 'spot'); const key = sp ? 'spot' + sp.uid : state.crates ? 'crates' : null; if (key && key !== craneKey) { craneKey = key; audio.horn(); } if (sp) shop.craneTo(sp.x, sp.z); else if (state.crates) shop.craneTo(shop.cratePos.x, shop.cratePos.z - 2); }
     for (const v of views) v.update(paused || modal ? 0 : dt * (state.speed || 0));
     for (const m of state.machines) { if (m.alarm && Math.random() < dt * 2.2) audio.alarm(0.9); if (m.running && m.oil != null && m.oil <= 0 && Math.random() < dt * 0.6) audio.squeal(0.6); }
     audio.update(dt, {
@@ -902,6 +914,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { ui, get pins() { return pinsItem; }, get electrode() { return electrodeItem; }, get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped, p) => runMachine(m, skipped, p || null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { ui, get phoneItem() { return phoneItem; }, get pins() { return pinsItem; }, get electrode() { return electrodeItem; }, get jar() { return jarItem; }, get cake() { return cakeItem; }, syncWalked, syncCake, state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped, p) => runMachine(m, skipped, p || null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

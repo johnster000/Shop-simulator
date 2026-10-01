@@ -40,7 +40,7 @@ export function newState(shopName) {
     software: { cad: null, cam: null, pirated: false, auditDay: null, camDownUntil: 0 },
     loans: [],
     achievements: [],
-    jar: 0, jarGiven: 0, walked: [], cake: null, // the coffee fund, the tools that walk, the cake on ship day
+    jar: 0, jarGiven: 0, walked: [], cake: null, vendors: { heat: 'quench', base: 'dmv', press: 'northgate' }, // the coffee fund, the tools that walk, the cake on ship day
   };
 }
 function upgradeState(s) {
@@ -52,6 +52,7 @@ function upgradeState(s) {
   if (!s.yr) s.yr = { hired: 0, left: 0, onTime: 0, late: 0, crashes: 0, wsib: 0 };
   for (const m of s.machines) { if (m.oil == null) m.oil = 1; if (m.down === undefined) m.down = null; m.alarm = false; m.estopped = false; m.fire = false; }
   if (s.redDays == null) s.redDays = 0;
+  if (!s.vendors) s.vendors = { heat: 'quench', base: 'dmv', press: 'northgate' };
   if (s.jar == null) s.jar = 0; if (s.jarGiven == null) s.jarGiven = 0; if (!s.walked) s.walked = [];
 }
 // the running tally for the year-end summary. reset when the year turns.
@@ -297,6 +298,7 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  cracked_screen: ['Family Plan', 'Threw the apprentice\'s phone. It was on the family plan. The family has been informed.'], certificate: ['With a Certificate', 'Paid double for heat treat that comes with a piece of paper. Worth it, once.'],
   tenth: ['A Tenth Is a Tenth', 'A CMM report with no red on it. Frame that one too.'], big_one: ['The Big One', 'A PO for a mold over the big number. Read it twice. Then the terms.'], one_million: ['One Million', 'A tool you built passed a million cycles at the customer. They sent a photo of the counter.'],
   employee_month: ['Employee of the Month', 'Ran a machine yourself every day for a week. The crew noticed. The inbox noticed more.'], retired_bridgeford: ['Retired the Bridgeford', 'Not possible. The achievement exists. It cannot be earned.', { never: true }],
   pins_everywhere: ['Pins Everywhere', 'Threw a box of ejector pins. The apprentice is still finding them.'], graphite: ['Black Dust', 'Threw an electrode. Graphite goes everywhere. Everywhere.'],

@@ -43,6 +43,11 @@ export class ShopAudio {
     this.dieselF = ctx.createBiquadFilter(); this.dieselF.type = 'lowpass'; this.dieselF.frequency.value = 180;
     this.dieselG = ctx.createGain(); this.dieselG.gain.value = 0;
     this.diesel.connect(this.dieselF); this.dieselF.connect(this.dieselG); this.dieselG.connect(this.master); this.diesel.start(); this.dieselLfo.start();
+    // the fluorescents. a 120 Hz buzz you stop hearing until it stops. one tube flickers; it is always the same tube.
+    this.buzz = ctx.createOscillator(); this.buzz.type = 'triangle'; this.buzz.frequency.value = 120;
+    this.buzzF = ctx.createBiquadFilter(); this.buzzF.type = 'lowpass'; this.buzzF.frequency.value = 400;
+    this.buzzG = ctx.createGain(); this.buzzG.gain.value = 0;
+    this.buzz.connect(this.buzzF); this.buzzF.connect(this.buzzG); this.buzzG.connect(this.master); this.buzz.start();
     // the radio: everything goes through a small, bad speaker
     this.radioF = ctx.createBiquadFilter(); this.radioF.type = 'bandpass'; this.radioF.frequency.value = 1100; this.radioF.Q.value = 0.6;
     this.radioG = ctx.createGain(); this.radioG.gain.value = 0;
@@ -107,6 +112,7 @@ export class ShopAudio {
     const radioNear = scene.radio ? falloff(scene.radio, 4.0) : 0; this.radioG.gain.setTargetAtTime(0.9 * radioNear, now, 0.3); this.radioTick(radioNear);
     if (this.dieselG) this.dieselG.gain.setTargetAtTime(scene.truck ? 0.02 + 0.12 * falloff(scene.truck, 6) : 0, now, 0.5);
     this.compG.gain.setTargetAtTime(this.compOn ? 0.02 + 0.09 * compNear : 0, now, 0.4);
+    this.buzzG.gain.setTargetAtTime(scene.lightsOn === false ? 0 : 0.0035 + (Math.random() < dt * 0.3 ? 0.004 : 0), now, 0.2);
     // the nearest running machine sets the level and the kind of noise
     let near = 0, kind = null;
     for (const p of scene.running || []) { const k = falloff(p, 2.2); if (k > near) { near = k; kind = p.kind; } }
@@ -149,6 +155,7 @@ export class ShopAudio {
   cycleStart() { this.tick(0.12, 900); this.tone(220, 0.3, 0.05, 'triangle'); }
   ding() { this.tone(1760, 0.5, 0.07); setTimeout(() => this.tone(2200, 0.6, 0.05), 120); }
   thunk() { this.noise(0.18, 120, 0.18, 'lowpass'); }
+  horn() { this.hornCount = (this.hornCount || 0) + 1; this.tone(392, 0.28, 0.12, 'square'); setTimeout(() => this.tone(392, 0.28, 0.12, 'square'), 380); }
   paper() { this.noise(0.12, 2500, 0.06, 'highpass'); }
   whistle(k = 1) { if (!this.enabled || k < 0.03) return; const base = 700 + Math.random() * 300, pat = [0, 4, 7][Math.floor(Math.random() * 3)]; const notes = [0, 4, 7, 4, 9, 7].slice(0, 3 + Math.floor(Math.random() * 3)); notes.forEach((n, i) => setTimeout(() => this.tone(base * Math.pow(2, (n + pat) / 12), 0.22, 0.035 * k, 'sine'), i * 230)); }
   ring(k = 1) { if (!this.enabled || k < 0.02) return; for (let i = 0; i < 2; i++) setTimeout(() => { this.tone(440, 0.22, 0.05 * k, 'sine'); this.tone(480, 0.22, 0.05 * k, 'sine'); }, i * 300); }
