@@ -313,6 +313,7 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  the_display: ['The Display Says Bank', 'Answered the bank. Said fine. They could see the balance.'],
   band_aid: ['It\'ll Run', 'Had the local guy fix it with a used part. It runs. It does not run true.'], samples: ['On the Bench', 'Sample parts from a tryout, on the bench, where everyone can see what went wrong.'],
   net_thirty: ['Net Thirty', 'The steel supplier gave you terms. The invoice still comes. Later.'],
   lifted: ['Certified', 'Lifted a crate with the forklift. Everyone watched. Nobody helped.'], dock: ['Staged', 'Put a crate down at the door with the forks. The truck still came late.'],

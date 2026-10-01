@@ -167,7 +167,7 @@ export class Crew {
         this.hooks.say(p, pick(['Cake.', 'Corner piece.', 'Is it the good bakery? It is not the good bakery.', 'Who is Barb?', 'Just a sliver.']), 3);
       }
       if (v.mode === 'idle' && here && !lunch && !p.quitting && p.role !== 'estimator') {
-        if (Math.random() < dt * 0.012) this.hooks.say(p, line(p, {}));
+        if (Math.random() < dt * 0.012) this.hooks.say(p, line(p, { ownerCrash: s.ownerCrash && s.day - s.ownerCrash.day < 15 ? s.ownerCrash : null }));
         v.idleMin = (v.idleMin || 0) + shopDt;
         if (p.morale < 0.35 && v.idleMin > 8 && this.shop.vendingPos && Math.random() < dt * 0.3) { v.idleMin = 0; this.goTo(v, { x: this.shop.vendingPos.x + (Math.random() - 0.5) * 0.6, z: this.shop.vendingPos.z + Math.random() * 0.4 }, 'toVend'); this.hooks.say(p, pick(['Break. Technically.', 'B4 is stuck. I am going to look at it anyway.', 'I will be at the machine. The other machine.', 'Five minutes.']), 3); }
         else if (p.role === 'moldmaker' && this.shop.polisherPos && v.idleMin > 12 && Math.random() < dt * 0.12) { v.idleMin = 0; this.goTo(v, { x: this.shop.polisherPos.x, z: this.shop.polisherPos.z }, 'toBreak'); v.wait = 15 + Math.random() * 15; v.faceAt = this.shop.polisherPos.face; v.bench = true; this.hooks.say(p, pick(['Stones.', 'I will be in my corner.', 'Nobody touch anything.', 'Finishing is a state of mind. Mine.']), 3); }

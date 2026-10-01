@@ -18,6 +18,7 @@ export class Phone {
     this.calls = [];
     const n = (s.day - 1) % 7 === 5 ? 0 : Math.random() < 0.55 ? 1 : Math.random() < 0.25 ? 2 : 0;
     for (let i = 0; i < n; i++) this.calls.push({ at: 15 + Math.random() * 460, kind: Math.random() < 0.55 ? 'rush' : Math.random() < 0.5 ? 'complaint' : 'sales' });
+    if ((s.redDays || 0) >= 2 && Math.random() < 0.6) this.calls.push({ at: 60 + Math.random() * 300, kind: 'bank' }); // the bank's number on the display. it is always the bank's number.
   }
   update(dt, listener) {
     const s = this.state; this.plan();
@@ -32,7 +33,7 @@ export class Phone {
     const shipped = s.jobs.filter((j) => j.status === 'shipped');
     const cust = kind === 'rush' && Math.random() < 0.5 ? customerOf('northgate') : shipped.length ? customerOf(pick(shipped).customer) : pick(CUSTOMERS.filter((c) => !c.cnc && !c.five));
     this.call = { kind, cust, left: 40 };
-    this.hooks.toast(pick(['The phone. In the office.', 'The office phone is ringing. It does that.', 'Phone. Somebody wants something.']), 2500);
+    this.hooks.toast(kind === 'bank' ? pick(['The phone. The display says the bank. The display is never wrong.', 'The office phone. It is the bank. You can tell by the ring.']) : pick(['The phone. In the office.', 'The office phone is ringing. It does that.', 'Phone. Somebody wants something.']), 2500);
   }
   answer() {
     const c = this.call; if (!c) return null; this.call = null; if (this.shop.phoneLed) this.shop.phoneLed.material.emissiveIntensity = 0;
@@ -45,6 +46,7 @@ export class Phone {
       message(s, c.cust.name, `RUSH: ${t.title}`, `${pick(RUSH_LINES)} Print attached. Rush rate is fine. Tomorrow.`);
       return `${c.cust.name}: "${pick(RUSH_LINES)}" A rush RFQ is in the inbox. Rush rate. Two days.`;
     }
+    if (c.kind === 'bank') { this.hooks.unlock('the_display'); s.t = Math.min(s.t + 6, 960); return pick(['The bank. They asked how things are going. You said fine. They said they can see the balance. Six minutes, and a reminder about the four weeks.', 'The bank. A new person. They introduced themselves. They asked if the receivables were real. You said very. They wrote that down.', 'The bank. They would like a plan. You described a plan. It was the same plan. They said thank you in a way that was not thank you.']); }
     if (c.kind === 'complaint') {
       const line = pick(COMPLAINTS); const talked = Math.random() < 0.6;
       if (talked) { s.rep = Math.min(1, s.rep + 0.01); return `${c.cust.name}: "${line}" You talked them down. They are sending it back anyway, for a look.`; }
@@ -57,6 +59,7 @@ export class Phone {
     const s = this.state; this.hooks.unlock('voicemail');
     if (c.kind === 'rush') { message(s, c.cust.name, 'Called. No answer.', `${pick(RUSH_LINES)} Called twice. Lakeshore picked up. Never mind.`); this.hooks.toast(`Missed it. ${c.cust.name} needed something by tomorrow. Lakeshore picked up on the first ring.`, 4500); }
     else if (c.kind === 'complaint') { message(s, c.cust.name, 'Tried to call', `${pick(COMPLAINTS)} Call us back. Or do not, and we will send it back with a note.`); s.rep = Math.max(0, s.rep - 0.02); this.hooks.toast(`Missed a call from ${c.cust.name}. There is a voicemail. It is not a compliment.`, 4000); }
+    else if (c.kind === 'bank') { s.redDays = (s.redDays || 0) + 1; this.hooks.toast('Missed the bank. The voicemail is polite. The missed call counts as a week, in their book. In their book it is always a week.', 4500); }
     else this.hooks.toast('Missed a call. The voicemail is about your extended machine warranty. Nothing of value was lost.', 4000);
   }
   night() { this.call = null; this.calls = []; if (this.shop.phoneLed) this.shop.phoneLed.material.emissiveIntensity = 0; }

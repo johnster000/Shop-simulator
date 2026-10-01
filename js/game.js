@@ -444,7 +444,7 @@ export function startShop(T, audio, state) {
         m.job = null;
         audio.thunk(); audio.nope();
         if (p) { p.crashes++; p.morale = Math.max(0, p.morale - 0.06); if (Math.random() < 0.6) noteOn(m, pick([`NOT MY|FAULT|- ${p.name.split(' ')[0].toUpperCase()}`, 'PULLS|LEFT', 'DO NOT|TOUCH', 'CRASHED|HERE|AGAIN'])); }
-        const blame = p ? ` ${p.name} says it was like that.` : '';
+        const blame = p ? ` ${p.name} says it was like that.` : ''; if (!p && sev >= 0.6) { state.ownerCrash = { day: state.day, name: def.name, n: ((state.ownerCrash || {}).n || 0) + 1 }; for (const q of state.people) if (Math.random() < 0.7) setTimeout(() => crew.say(q, pick(['Was that the boss?', 'The boss crashed it. Write that down.', 'Same bang as the rest of us.', 'Twenty years, eh?', 'I am saying nothing. I am saying NOTHING.']), 4), 1800 + Math.random() * 1500); }
         if (sev < 0.6) { const c = def.cnc ? 180 : 45; post(state, 'Broken cutter', -c); m.condition = Math.max(0, m.condition - 0.01); ui.toast(`BANG. Broken cutter on the ${def.name.toLowerCase()}. ${money(c)}. The part is fine. Load it again.${blame}`, 4000); }
         else if (sev < 0.9) {
           m.condition = Math.max(0, m.condition - 0.04);
@@ -466,7 +466,7 @@ export function startShop(T, audio, state) {
     const g = state.people.find((p) => p.grievance); if (g) lines.push(`- talk to ${g.name}`);
     if (!state.machines.length) lines.push('- buy a mill');
     if (state.cash < 5000) lines.push('- MONEY');
-    if ((state.dumbCount || 0) >= 3) lines.push('- STOP "SEEING WHAT HAPPENS"'); if (state.jar < -10) lines.push('- COFFEE FUND. PAY.'); if ((state.walked || []).length) lines.push(`- WHO HAS THE ${state.walked[0].kind === 'hammer' ? 'HAMMER' : state.walked[0].kind === 'key' ? 'CHUCK KEY' : 'CALIPERS'}`);
+    if (state.ownerCrash && state.day - state.ownerCrash.day < 15) lines.push(`- boss crashed the ${state.ownerCrash.name.toLowerCase().split(' ').slice(-2).join(' ')} ${'|'.repeat(Math.min(5, state.ownerCrash.n))}`); if ((state.dumbCount || 0) >= 3) lines.push('- STOP "SEEING WHAT HAPPENS"'); if (state.jar < -10) lines.push('- COFFEE FUND. PAY.'); if ((state.walked || []).length) lines.push(`- WHO HAS THE ${state.walked[0].kind === 'hammer' ? 'HAMMER' : state.walked[0].kind === 'key' ? 'CHUCK KEY' : 'CALIPERS'}`);
     lines.push(pick(['- coffee', '- radio: NO', '- sweep', '- call Rick back (no)', '- order end mills']));
     return lines.slice(0, 6);
   }

@@ -376,6 +376,11 @@ Then open http://localhost:8080/.
   A down machine now has three answers: the factory tech, the local guy with a van and a used
   part (it'll run; it will not run true until a real service), or duct tape.
 
+- The bang is the same (§8.4), and the bank's number (§12.1). Crash a machine yourself and the
+  crew say so, keep saying so for two weeks, and tally it on the whiteboard. Run the account in
+  the red for two days and the office phone starts showing the bank's number: answer it and
+  lose six minutes and some dignity; miss it and it counts as a week, in their book.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
