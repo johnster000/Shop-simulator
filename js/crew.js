@@ -184,7 +184,7 @@ export class Crew {
             const steps = d.kind === 'bench' ? 0 : d.kind === 'drill' || d.kind === 'saw' ? 2 : 3;
             let skipped = 0; for (let k = 0; k < steps; k++) if (!setupRoll(p, d.kind)) skipped++;
             if (skipped && Math.random() < 0.5) this.hooks.say(p, pick(['Close enough.', 'It will hold.', 'Eh.', 'That is how we did it at the old place.']));
-            this.hooks.runMachine(m, skipped, p); p.workedToday = true; practice(p, byId(m.id).kind);
+            this.hooks.runMachine(m, skipped, p); p.workedToday = true; const mentor = p.role === 'apprentice' && [...this.views.values()].some((o) => o !== v && o.p.role === 'moldmaker' && (o.mode === 'work' || o.mode === 'setup') && Math.hypot(o.pos.x - v.pos.x, o.pos.z - v.pos.z) < 5); practice(p, byId(m.id).kind, mentor ? 2 : 1); if (mentor && Math.random() < 0.15) this.hooks.say(p, pick(['Like that?', 'Show me again.', 'Oh. THAT is what that is for.']), 3);
             v.mode = m.running ? 'work' : 'idle'; if (!m.running) v.machine = null;
           }
         }

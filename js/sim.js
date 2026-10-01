@@ -314,6 +314,7 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  journeyman: ['Eight Thousand Hours', 'An apprentice became a moldmaker in your shop. There was cake. They bought it.'], matched: ['Matched It', 'Across town called your moldmaker. You paid three dollars more and the others did math.'], wished_luck: ['Wished Them Luck', 'Across town called your moldmaker. You let them go. Or tried to.'],
   small_change: ['Just a Small Change', 'Three revisions on one mold. Each one small. Each one with a print.'],
   their_terms: ['0/0/100', 'Took their terms. No deposit, nothing at T1, all of it on approval, net whatever. The steel still wants paying today.'],
   the_display: ['The Display Says Bank', 'Answered the bank. Said fine. They could see the balance.'],

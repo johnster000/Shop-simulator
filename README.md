@@ -410,6 +410,12 @@ Then open http://localhost:8080/.
   needs the pads and the crane to set it, and it runs the small work too, expensively. Until it
   arrives, XL roughing goes out to Bramalea at their rate.
 
+- Learning, and the call from across town (§8.2, §16). An apprentice next to a working moldmaker
+  learns twice as fast; alone, they learn by crashing. A machinist with the bench skill and four
+  years in becomes a moldmaker, with cake they bought themselves. And a rival that has beaten you
+  on quotes starts calling your best moldmaker: the offer lands in the inbox with two buttons and
+  two days. Match it and the others do math; wish them luck and there is probably a speech.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

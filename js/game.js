@@ -11,7 +11,7 @@ import { Delivery } from './truck.js';
 import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
 import { Forklift } from './forklift.js';
-import { practice, nightShift, setupRoll, skillFor } from './people.js';
+import { practice, nightShift, setupRoll, skillFor, raise } from './people.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost, saturdayWorth, isSaturday } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message, openCrate, DEFECTS } from './jobs.js';
 import { Nav } from './nav.js';
@@ -58,6 +58,13 @@ export function startShop(T, audio, state) {
     goHome() { leaveForTheNight(); },
     shipped(j) { shop.setCrates(state.crates); if (forklift.carry && !shop.crates.includes(forklift.carry)) { forklift.g.remove(forklift.carry); forklift.carry = null; } unlock('one_out'); if (state.framed && state.framed.day === state.day && !state.framedShown) { state.framedShown = state.framed.day; shop.setFramed(state.framed); unlock('framed'); setTimeout(() => ui.toast(`The estimate sheet for the ${state.framed.title.toLowerCase()} is in a frame on the office wall now. Quoted ${money(state.framed.quote)}. Cost ${money(state.framed.actual)}. It stays up.`, 6000), 2500); } if (j && j.program) { const line = programShipped(state, j, Math.max(0, state.day - j.dueDay)); if (line) { setTimeout(() => ui.toast(line, 6000), 1500); if (state.program && state.program.finished && state.program.late === 0) unlock('the_program'); } } if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); state.cake = { day: state.day, job: j.id }; syncCake(); unlock('cake'); setTimeout(() => ui.toast(pick(['A mold shipped. There is cake on the table. The grocery store had one left. It is not for us, strictly, but it is cake.', 'Ship day. Cake. The crew have already found it.']), 4500), 800); for (const q of state.people) if (Math.random() < 0.6) crew.say(q, pick(['Cake.', 'Corner piece is mine.', 'Who is Barb?', 'Is there a plate? There is no plate.', 'I will have a small one. Three small ones.']), 3.5); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
     crateSync() { shop.setCrates(state.crates); },
+    msgAction(m, act) {
+      if (m.kind === 'poach') {
+        const p = state.people.find((q) => q.id === m.who); if (!p) return;
+        if (act === 'match') { raise(state, p, 3); p.poach = null; unlock('matched'); ui.toast(`You matched it. ${p.name} stays, at three dollars more, and tells the others. The others are doing math.`, 4500); crew.say(p, pick(['Okay. Okay.', 'That is what I wanted to hear.', 'Lakeshore can keep the chair.']), 3.5); for (const q of state.people) if (q !== p && Math.random() < 0.5) crew.say(q, pick(['How much?', 'Three? THREE?', 'I should call Lakeshore.']), 3); }
+        else { p.poach = null; unlock('wished_luck'); if (Math.random() < 0.6) { p.quitting = true; ui.toast(`You wished ${p.name} luck. ${p.name} took it. There will be a speech tomorrow, around half past nine.`, 4500); } else { p.morale = Math.max(0, p.morale - 0.1); ui.toast(`You wished ${p.name} luck. ${p.name} thought about it and stayed. Quietly. It will come up.`, 4500); } }
+      }
+    },
     dumb(m, what) { doSomethingDumb(m, what); },
     crew() { return crew; },
     crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.returned && p.startDay != null)) unlock('boomerang'); if (state.people.some((p) => (p.quirkId === 'cncOnly' || p.quirkId === 'manualOnly') && p.startDay != null)) unlock('principles'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
@@ -444,7 +451,7 @@ export function startShop(T, audio, state) {
         const jobItem = m.job ? m.job.itemIndex : 0, jobItemName = m.job && m.job.item && job && job.mold ? ' ' + m.job.item.toLowerCase() : '';
         m.job = null;
         audio.thunk(); audio.nope();
-        if (p) { p.crashes++; p.morale = Math.max(0, p.morale - 0.06); if (Math.random() < 0.6) noteOn(m, pick([`NOT MY|FAULT|- ${p.name.split(' ')[0].toUpperCase()}`, 'PULLS|LEFT', 'DO NOT|TOUCH', 'CRASHED|HERE|AGAIN'])); }
+        if (p) { p.crashes++; p.morale = Math.max(0, p.morale - 0.06); if (p.role === 'apprentice') { practice(p, def.kind, 2); if (Math.random() < 0.5) setTimeout(() => crew.say(p, pick(['I will not do that again.', 'So that is what that sound is.', 'Learned something. Expensive something.']), 3.5), 2500); } if (Math.random() < 0.6) noteOn(m, pick([`NOT MY|FAULT|- ${p.name.split(' ')[0].toUpperCase()}`, 'PULLS|LEFT', 'DO NOT|TOUCH', 'CRASHED|HERE|AGAIN'])); }
         const blame = p ? ` ${p.name} says it was like that.` : ''; if (!p && sev >= 0.6) { state.ownerCrash = { day: state.day, name: def.name, n: ((state.ownerCrash || {}).n || 0) + 1 }; for (const q of state.people) if (Math.random() < 0.7) setTimeout(() => crew.say(q, pick(['Was that the boss?', 'The boss crashed it. Write that down.', 'Same bang as the rest of us.', 'Twenty years, eh?', 'I am saying nothing. I am saying NOTHING.']), 4), 1800 + Math.random() * 1500); }
         if (sev < 0.6) { const c = def.cnc ? 180 : 45; post(state, 'Broken cutter', -c); m.condition = Math.max(0, m.condition - 0.01); ui.toast(`BANG. Broken cutter on the ${def.name.toLowerCase()}. ${money(c)}. The part is fine. Load it again.${blame}`, 4000); }
         else if (sev < 0.9) {

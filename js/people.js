@@ -89,7 +89,7 @@ export function fire(state, p) {
 export function skillKey(kind) { return { mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench', saw: 'general', drill: 'general', vmc: 'mill', sinker: 'mill', wire: 'mill', spot: 'bench', cmm: 'general', graphite: 'mill', laser: 'bench', press: 'bench', heat: 'general', gundrill: 'mill', bigvmc: 'mill' }[kind] || 'general'; }
 export function skillFor(p, kind) { return p.actual[skillKey(kind)] || 0; }
 // a cycle run is practice. fifteen of them on one kind of machine and the hands know something the resume did not.
-export function practice(p, kind) { const k = skillKey(kind); p.practice = p.practice || {}; p.practice[k] = (p.practice[k] || 0) + 1; }
+export function practice(p, kind, n = 1) { const k = skillKey(kind); p.practice = p.practice || {}; p.practice[k] = (p.practice[k] || 0) + n; }
 const SKILL_WORD = { mill: 'the mill', lathe: 'the lathe', grind: 'the grinder', bench: 'the bench', general: 'the rest of it' };
 export function growSkills(state, p) {
   const notes = []; if (!p.practice) return notes;
@@ -97,6 +97,11 @@ export function growSkills(state, p) {
     if ((p.practice[k] || 0) >= 15 && (p.actual[k] || 0) < 5) {
       p.practice[k] = 0; p.actual[k] = (p.actual[k] || 0) + 1; p.claimed[k] = Math.max(p.claimed[k] || 0, p.actual[k]);
       notes.push(`${p.name} is getting good on ${SKILL_WORD[k]}. ${p.actual[k] >= 4 ? `${p.name} knows it, and so does the shop across town.` : `${p.name} does not know it yet.`}`);
+      if (p.role === 'machinist' && !p.journeyman && (p.actual.bench || 0) >= 4 && (p.actual.general || 0) >= 3 && p.daysWorked >= 900) { // four years, give or take, and a bench skill: a journeyman
+        p.role = 'moldmaker'; p.roleName = ROLES.moldmaker.name; p.journeyman = true; p.wage += 6; p.morale = Math.min(1, p.morale + 0.2);
+        notes.push(`${p.name} is a moldmaker now. Four years, give or take, eight thousand hours, and a slide fitted by feel. There was cake. ${p.name} bought it.`);
+        state.achievements && !state.achievements.includes('journeyman') && state.achievements.push('journeyman');
+      }
       if (p.role === 'apprentice' && p.actual[k] >= 3 && (k === 'mill' || k === 'lathe' || k === 'grind')) {
         p.role = 'machinist'; p.roleName = ROLES.machinist.name; p.wage += 4; p.morale = Math.min(1, p.morale + 0.15);
         notes.push(`${p.name} asked for the machinist's rate. You gave it. The resume now says machinist, and this time it is true.`);

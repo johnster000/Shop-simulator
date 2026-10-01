@@ -88,7 +88,7 @@ export class UI {
     };
     el.innerHTML = `${open.length ? open.map(rfqHtml).join('') : '<p class="note">No requests for quote. The phone will ring. Reputation makes it ring more.</p>'}
       <h4 style="letter-spacing:.2em;font-size:12px;margin:18px 0 4px">MESSAGES</h4>
-      ${s.inbox.slice(0, 20).map((m) => `<div class="msg ${m.read ? '' : 'unread'}"><div class="from">${m.from} · day ${m.day}</div><div class="subj">${m.subj || m.subject}</div><div class="body">${m.body}</div></div>`).join('') || '<p class="note">Nothing.</p>'}`;
+      ${s.inbox.slice(0, 20).map((m) => `<div class="msg ${m.read ? '' : 'unread'}"><div class="from">${m.from} · day ${m.day}</div><div class="subj">${m.subj || m.subject}</div><div class="body">${m.body}</div>${m.actions && m.actions.length ? `<div class="pacts">${m.actions.map((a) => `<button data-msg="${m.id}" data-act="${a.id}">${a.label}</button>`).join('')}</div>` : ''}</div>`).join('') || '<p class="note">Nothing.</p>'}`;
     for (const r of open) { r.read = true; }
     for (const m of s.inbox) m.read = true;
     el.querySelectorAll('input.lead').forEach((inp) => { const r = s.rfqs.find((q) => q.id === +inp.id.slice(1)); inp.addEventListener('input', () => { r.quotedLead = +inp.value; $('ld' + r.id).textContent = `${r.quotedLead} days${r.quotedLead < r.lead ? ' (faster than asked)' : r.quotedLead > r.lead ? ' (slower than asked)' : ''}`; const q = $('q' + r.id); if (q) q.dispatchEvent(new Event('input')); }); });
@@ -98,6 +98,7 @@ export class UI {
       const upd = () => { r.price = +inp.value; $('p' + r.id).textContent = money(r.price); const w = winChance(s, r); const mem = memoryOf(s, r.customer); const memTxt = mem.late >= 2 ? ' They remember the late ones.' : mem.onTime + mem.firstRight >= 3 ? ' They like you.' : ''; const est = hasEstimator(s) ? ` ${s.people.find((p) => p.role === 'estimator').name.split(' ')[0]} says ${money(Math.round(r.expected * (1.02 + ((r.id * 7) % 5) * 0.015) / 50) * 50)}.` : ''; $('w' + r.id).textContent = (w > 0.7 ? 'they will probably bite' : w > 0.4 ? 'could go either way' : w > 0.15 ? 'a stretch' : 'they will laugh') + memTxt + est; };
       inp.addEventListener('input', upd); upd();
     });
+    el.querySelectorAll('[data-msg]').forEach((b) => b.addEventListener('click', () => { const m = s.inbox.find((q) => q.id === +b.dataset.msg); if (!m) return; m.actions = null; this.audio.click(); this.hooks.msgAction && this.hooks.msgAction(m, b.dataset.act); this.renderInbox(); }));
     el.querySelectorAll('[data-send]').forEach((b) => b.addEventListener('click', () => { const r = s.rfqs.find((q) => q.id === +b.dataset.send); sendQuote(s, r, r.price); this.audio.paper(); this.toast('Quote sent. You will hear tomorrow.'); this.renderInbox(); }));
     el.querySelectorAll('[data-decline]').forEach((b) => b.addEventListener('click', () => { const r = s.rfqs.find((q) => q.id === +b.dataset.decline); declineRfq(s, r); this.audio.click(); this.renderInbox(); }));
   }
