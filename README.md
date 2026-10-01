@@ -30,9 +30,9 @@ Then open http://localhost:8080/.
 
 - WASD / arrows to walk, Shift to run, mouse to look, click or E to use, Esc to pause.
 - `V` switches between walking the floor and the overhead (isometric) view. `Tab` opens the clipboard.
-- In the overhead view: click a machine to pick it up and move it, `R` to rotate while placing, Esc to put it back on the truck.
+- In the overhead view: click a machine to pick it up and move it. While placing: drag the ghost or click where it goes, arrow keys nudge it, `R` rotates, Enter or CONFIRM lands it, Esc or CANCEL puts it back.
 - `1` `2` `3` set the clock speed, `P` or Space pauses it.
-- On a touchscreen: left side of the screen is a joystick, drag on the right to look, tap to use. The ISO, CLIP and ROT buttons do what the keys do.
+- On a touchscreen: left side of the screen is a joystick, drag on the right to look, tap to use. The ISO and CLIP buttons do what the keys do.
 
 ## Testing shortcuts
 
@@ -71,6 +71,8 @@ js/game.js        render loop, interaction, keys, pause, autosave
 js/audio.js       every sound, synthesized. the compressor is most of them.
 js/textures.js    canvas textures: concrete, block, tarp, nameplates, the sign
 js/vendor/        three.js r160 (MIT)
+models.html       developer page: every machine on a turntable (?id=knee_mill, ?all)
+tools/            artifact page builder
 ```
 
 ## Publishing to a claude.ai artifact

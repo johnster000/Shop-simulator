@@ -16,7 +16,6 @@ export class UI {
     $('panelClose').addEventListener('click', () => this.closePanel());
     $('clipBtn').addEventListener('click', () => this.toggleClip());
     $('isoBtn').addEventListener('click', () => hooks.toggleIso());
-    $('rotBtn').addEventListener('click', () => hooks.rotate());
     $('pauseBtn').addEventListener('click', () => hooks.pause());
   }
 

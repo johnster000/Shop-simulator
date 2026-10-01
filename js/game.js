@@ -40,7 +40,6 @@ export function startShop(T, audio, state) {
     toggleIso() { toggleIso(); },
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
-    rotate() { if (placing) { iso.rotate(); audio.click(); } },
   });
   $('hud').classList.remove('hidden');
 
@@ -53,24 +52,39 @@ export function startShop(T, audio, state) {
   // ---- views
   function toggleIso() {
     if (modal) return;
-    if (iso.active) { iso.exit(); placing = null; $('placeHelp').classList.add('hidden'); $('rotBtn').classList.add('hidden'); player.enabled = true; player.requestLock(); }
+    if (iso.active) { iso.exit(); endPlace(); player.enabled = true; player.requestLock(); }
     else { if (player.locked) document.exitPointerLock(); player.enabled = false; iso.enter(); }
     audio.click();
   }
+  const placeBar = $('placeBar'), placeMsg = $('placeMsg'), placeOk = $('placeOk');
   function beginPlace(m) {
     if (!iso.active) { if (player.locked) document.exitPointerLock(); player.enabled = false; iso.enter(); }
-    placing = m; iso.begin(m, views); $('placeHelp').classList.remove('hidden'); $('rotBtn').classList.remove('hidden');
-    ui.toast(m.placed ? 'Pick a new spot.' : 'It is on the truck. Pick a spot.');
+    placing = m; iso.begin(m, views); placeBar.classList.remove('hidden');
+    ui.toast(m.placed ? 'Pick a new spot.' : 'It is on the truck. Where does it go?');
   }
-  iso.onPlace = (m, x, z, rot) => {
-    m.x = x; m.z = z; m.rot = rot; m.placed = true; syncViews(); iso.cancel(); placing = null; $('placeHelp').classList.add('hidden'); $('rotBtn').classList.add('hidden');
+  function endPlace() { placing = null; placeBar.classList.add('hidden'); }
+  iso.onChange = () => {
+    const d = byId(placing.id);
+    placeMsg.textContent = iso.valid ? `${d.brand} ${d.name} here?` : iso.why;
+    placeMsg.classList.toggle('bad', !iso.valid); placeOk.disabled = !iso.valid;
+  };
+  iso.onConfirm = (m, x, z, rot) => {
+    m.x = x; m.z = z; m.rot = rot; m.placed = true; syncViews(); endPlace();
     audio.thunk();
     ui.toast(pick(['Placed. It is not level. It is never level.', 'Placed. The riggers want cash.', 'Placed. Somebody will trip on that cord.', 'Placed. It looks right there. For now.']));
     save(state);
     const unplaced = state.machines.find((q) => !q.placed);
     if (unplaced) setTimeout(() => beginPlace(unplaced), 400);
   };
+  function cancelPlace() {
+    if (!placing) return;
+    const wasPlaced = placing.placed; iso.cancel(); endPlace();
+    ui.toast(wasPlaced ? 'Left where it was.' : 'Left on the truck. Place it from the clipboard.');
+  }
   iso.onPick = (uid) => { const m = state.machines.find((q) => q.uid === uid); if (m && !m.running) beginPlace(m); else if (m) ui.toast('It is running. Let it finish.'); };
+  $('placeRot').addEventListener('click', () => { iso.rotate(); audio.click(); });
+  $('placeOk').addEventListener('click', () => { if (!iso.confirm()) audio.nope(); });
+  $('placeNo').addEventListener('click', () => { cancelPlace(); audio.click(); });
 
   // ---- the machine
   function cycleStart(m, keys) {
@@ -169,7 +183,7 @@ export function startShop(T, audio, state) {
     if (e.code === 'Escape') {
       if (ui.panelOpen) { ui.closePanel(); return; }
       if (ui.clipOpen) { ui.closeClip(); return; }
-      if (placing) { iso.cancel(); placing = null; $('placeHelp').classList.add('hidden'); $('rotBtn').classList.add('hidden'); ui.toast('Left on the truck. Place it from the clipboard.'); return; }
+      if (placing) { cancelPlace(); return; }
       if (iso.active) { toggleIso(); return; }
       if (paused) resume(); else if (!player.locked) pause();
       return;
@@ -177,7 +191,13 @@ export function startShop(T, audio, state) {
     if (paused) return;
     if (e.code === 'Tab') { e.preventDefault(); if (ui.panelOpen) return; if (ui.clipOpen) ui.closeClip(); else { if (player.locked) document.exitPointerLock(); ui.openClip(); } }
     if (e.code === 'KeyV' && !modal) toggleIso();
-    if (e.code === 'KeyR' && placing) { iso.rotate(); audio.click(); }
+    if (placing) {
+      if (e.code === 'KeyR') { iso.rotate(); audio.click(); }
+      if (e.code === 'Enter') { if (!iso.confirm()) audio.nope(); }
+      if (e.code === 'ArrowLeft') iso.nudge(-0.5, 0); if (e.code === 'ArrowRight') iso.nudge(0.5, 0);
+      if (e.code === 'ArrowUp') iso.nudge(0, -0.5); if (e.code === 'ArrowDown') iso.nudge(0, 0.5);
+      return;
+    }
     if (e.code === 'KeyE' && !modal && !iso.active) use();
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { ui.setSpeed({ Digit1: 1, Digit2: 3, Digit3: 10 }[e.code]); }
     if (e.code === 'KeyP' || e.code === 'Space') { if (!modal) ui.setSpeed(state.speed ? 0 : 1); }
@@ -199,10 +219,13 @@ export function startShop(T, audio, state) {
       }
     }
     if (iso.active) iso.update(); else player.update(dt, [...shop.colliders, ...views.filter((v) => v.m.placed).map((v) => v.collider())], { hx: shop.hx, hz: shop.hz });
-    const anyRunning = state.machines.some((m) => m.running);
     shop.update(paused ? 0 : dt, audio.compOn);
     for (const v of views) v.update(paused || modal ? 0 : dt * (state.speed || 0));
-    audio.update(dt, anyRunning && !paused);
+    audio.update(dt, {
+      listener: { x: camera.position.x, z: camera.position.z }, iso: iso.active,
+      running: paused ? [] : state.machines.filter((m) => m.running && m.placed).map((m) => ({ x: m.x, z: m.z })),
+      compressor: shop.compressorPos,
+    });
     look(); ui.update();
     if (ui.panelOpen && ui.panelM && ui.panelM.running) ui.renderPanel();
     renderer.render(scene, iso.active ? iso.camera : camera);

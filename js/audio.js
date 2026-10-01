@@ -18,7 +18,7 @@ export class ShopAudio {
     // fluorescent buzz. half the tubes are out; the rest hum about it.
     this.buzz = ctx.createOscillator(); this.buzz.type = 'square'; this.buzz.frequency.value = 120;
     this.buzzF = ctx.createBiquadFilter(); this.buzzF.type = 'lowpass'; this.buzzF.frequency.value = 700;
-    this.buzzG = ctx.createGain(); this.buzzG.gain.value = 0.006;
+    this.buzzG = ctx.createGain(); this.buzzG.gain.value = 0.004;
     this.buzz.connect(this.buzzF); this.buzzF.connect(this.buzzG); this.buzzG.connect(this.master); this.buzz.start();
 
     // the compressor. it cycles. it will cycle until the end of time.
@@ -41,16 +41,25 @@ export class ShopAudio {
 
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
 
-  update(dt, spinning) {
+  // scene: { listener: {x,z}, running: [{x,z}], compressor: {x,z}, iso: bool }
+  // Sound falls off with distance. A shop is never quiet, but a machine across the floor is a
+  // murmur and the one you are standing at is the one you hear.
+  update(dt, scene) {
     if (!this.enabled) return;
     const ctx = this.ctx, now = ctx.currentTime;
+    const L = scene.listener;
+    const falloff = (p, r) => { if (!p || scene.iso) return 0.35; const d = Math.hypot(p.x - L.x, p.z - L.z); return 1 / (1 + (d / r) * (d / r)); };
     // compressor duty cycle: ~9 s on, ~24 s off
     this.compT += dt;
-    if (!this.compOn && this.compT > 24) { this.compOn = true; this.compT = 0; this.compG.gain.setTargetAtTime(0.09, now, 0.4); }
-    if (this.compOn && this.compT > 9) { this.compOn = false; this.compT = 0; this.compG.gain.setTargetAtTime(0, now, 0.6); this.click(0.5, 180); }
-    // spindle
-    const target = spinning ? 0.05 : 0;
-    this.spinG.gain.setTargetAtTime(target, now, 0.3);
+    if (!this.compOn && this.compT > 24) { this.compOn = true; this.compT = 0; }
+    if (this.compOn && this.compT > 9) { this.compOn = false; this.compT = 0; this.tick(0.12, 400); }
+    const compNear = falloff(scene.compressor, 3.5);
+    this.compG.gain.setTargetAtTime(this.compOn ? 0.02 + 0.09 * compNear : 0, now, 0.4);
+    // spindles: the nearest running machine sets the level
+    let near = 0;
+    for (const p of scene.running || []) near = Math.max(near, falloff(p, 2.2));
+    const spinning = (scene.running || []).length > 0;
+    this.spinG.gain.setTargetAtTime(spinning ? 0.006 + 0.05 * near : 0, now, 0.25);
     const f = spinning ? 180 : 60;
     this.spin.frequency.setTargetAtTime(f, now, 1.2); this.spin2.frequency.setTargetAtTime(f * 2.01, now, 1.2);
   }
@@ -74,13 +83,15 @@ export class ShopAudio {
     o.start(); o.stop(ctx.currentTime + dur);
   }
 
-  step() { this.noise(0.09, 300 + Math.random() * 200, 0.05, 'lowpass'); }
-  click(gain = 0.3, freq = 1200) { this.noise(0.03, freq, gain, 'highpass'); }
+  step() { this.noise(0.09, 300 + Math.random() * 200, 0.04, 'lowpass'); }
+  // a soft tick for buttons and switches. short, band-limited, quiet.
+  tick(gain = 0.05, freq = 1800) { this.noise(0.025, freq, gain, 'bandpass', 2.5); }
+  click(gain = 0.05, freq = 1800) { this.tick(gain, freq); }
   tarp() { this.noise(0.5, 400, 0.04, 'bandpass', 0.5); }
-  cash() { this.tone(880, 0.1, 0.08, 'square'); setTimeout(() => this.tone(1320, 0.18, 0.08, 'square'), 90); }
-  nope() { this.tone(160, 0.25, 0.1, 'square'); }
-  cycleStart() { this.click(0.5, 900); this.tone(220, 0.3, 0.06, 'triangle'); }
+  cash() { this.tone(880, 0.1, 0.045, 'square'); setTimeout(() => this.tone(1320, 0.18, 0.045, 'square'), 90); }
+  nope() { this.tone(160, 0.25, 0.06, 'square'); }
+  cycleStart() { this.tick(0.12, 900); this.tone(220, 0.3, 0.05, 'triangle'); }
   ding() { this.tone(1760, 0.5, 0.07); setTimeout(() => this.tone(2200, 0.6, 0.05), 120); }
-  thunk() { this.noise(0.18, 120, 0.25, 'lowpass'); }
+  thunk() { this.noise(0.18, 120, 0.18, 'lowpass'); }
   paper() { this.noise(0.12, 2500, 0.06, 'highpass'); }
 }

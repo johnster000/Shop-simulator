@@ -49,11 +49,14 @@
   <div id="hint"></div>
   <div id="toast"></div>
   <div id="tag"></div>
-  <div id="placeHelp" class="hidden">click to place &middot; R to rotate &middot; Esc to cancel</div>
+  <div id="placeBar" class="hidden">
+    <div id="placeMsg"></div>
+    <div class="placeBtns"><button id="placeRot">ROTATE</button><button id="placeNo">CANCEL</button><button id="placeOk">CONFIRM</button></div>
+    <div id="placeHelp">drag it, or click where it goes &middot; arrows nudge &middot; R rotates &middot; Enter confirms &middot; Esc cancels</div>
+  </div>
   <div id="touchBtns">
     <button id="isoBtn" aria-label="overhead view">ISO</button>
     <button id="clipBtn" aria-label="clipboard">CLIP</button>
-    <button id="rotBtn" aria-label="rotate" class="hidden">ROT</button>
     <button id="pauseBtn" aria-label="pause">II</button>
   </div>
 </div>

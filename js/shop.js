@@ -110,7 +110,7 @@ export class Shop {
     for (const sx of [-0.5, 0.5]) { const leg = this.box(0.08, 0.3, 0.3, grey, sx, 0.15, 0, comp); }
     const plate = new T.Mesh(new T.PlaneGeometry(0.4, 0.2), new T.MeshBasicMaterial({ map: TX.label(T, ['CAMEL', 'HAUSFELD'], { size: 30 }) }));
     plate.position.set(0, 0.55, 0.31); comp.add(plate);
-    s.add(comp); this.compressor = comp; this.tag(comp, 'compressor', 'compressor. it came with the shop. it has not stopped.');
+    s.add(comp); this.compressor = comp; this.compressorPos = { x: hx - 1.0, z: hz - 1.3 }; this.tag(comp, 'compressor', 'compressor. it came with the shop. it has not stopped.');
     this.solid(hx - 1.0, hz - 1.3, 0.75, 0.45);
 
     // steel rack, west wall near the door end. empty.

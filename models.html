@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shop Simulator — model check</title>
+<style>html,body{margin:0;height:100%;background:#1a1d22;font-family:"Courier New",monospace;color:#ddd}canvas{display:block}#label{position:fixed;left:16px;top:12px;font-size:14px;letter-spacing:.1em}#help{position:fixed;left:16px;bottom:12px;font-size:12px;color:#888}</style>
+</head>
+<body>
+<div id="label"></div>
+<div id="help">a / d or click: next machine · s: spin · ?all lays them all out · ?id=knee_mill picks one · ?angle=45 sets the turntable</div>
+<script type="module">
+// Developer page: every machine on a turntable, so a model can be checked before it goes in the shop.
+import * as T from './js/vendor/three.module.js';
+import { MACHINES } from './js/catalog.js';
+import { buildMachine } from './js/machines.js';
+const params = new URLSearchParams(location.search);
+const all = params.has('all');
+let idx = Math.max(0, MACHINES.findIndex((m) => m.id === params.get('id')));
+const renderer = new T.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight); document.body.appendChild(renderer.domElement);
+const scene = new T.Scene(); scene.background = new T.Color(0x1a1d22);
+const camera = new T.PerspectiveCamera(40, innerWidth / innerHeight, 0.05, 100);
+scene.add(new T.HemisphereLight(0xdfe6f0, 0x3a3630, 0.8)); const p = new T.PointLight(0xffffff, 60, 0, 1.5); p.position.set(3, 4, 4); scene.add(p); const p2 = new T.PointLight(0xffffff, 30, 0, 1.5); p2.position.set(-3, 3, -2); scene.add(p2);
+const floor = new T.Mesh(new T.PlaneGeometry(40, 40), new T.MeshStandardMaterial({ color: 0x55585e })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+scene.add(new T.GridHelper(40, 80, 0x777, 0x444));
+const groups = [];
+if (all) {
+  MACHINES.forEach((d, i) => { const g = buildMachine(T, d); g.position.x = (i - (MACHINES.length - 1) / 2) * 3; scene.add(g); groups.push(g); });
+  camera.position.set(0, 5, 11); camera.lookAt(0, 0.8, 0);
+  document.getElementById('label').textContent = MACHINES.map((d) => d.name).join('  ·  ');
+} else {
+  let g = null, spin = false, angle = (parseFloat(params.get('angle')) || 35) * Math.PI / 180;
+  const show = () => { if (g) scene.remove(g); const d = MACHINES[idx]; g = buildMachine(T, d); scene.add(g); groups[0] = g; document.getElementById('label').textContent = `${d.brand} ${d.name} (${d.id}) · ${d.w} × ${d.d} m`; };
+  show();
+  camera.position.set(Math.sin(angle) * 4.2, 2.4, Math.cos(angle) * 4.2); camera.lookAt(0, 1.0, 0);
+  addEventListener('keydown', (e) => { if (e.key === 'd') { idx = (idx + 1) % MACHINES.length; show(); } if (e.key === 'a') { idx = (idx + MACHINES.length - 1) % MACHINES.length; show(); } if (e.key === 's') spin = !spin; });
+  addEventListener('click', () => { idx = (idx + 1) % MACHINES.length; show(); });
+  let t = 0; (function frame() { requestAnimationFrame(frame); if (spin) { t += 0.01; camera.position.set(Math.sin(angle + t) * 4.2, 2.4, Math.cos(angle + t) * 4.2); camera.lookAt(0, 1.0, 0); } renderer.render(scene, camera); })();
+}
+if (all) (function frame() { requestAnimationFrame(frame); renderer.render(scene, camera); })();
+</script>
+</body>
+</html>

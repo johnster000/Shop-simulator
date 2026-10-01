@@ -50,11 +50,21 @@ body.iso #crosshair{display:none}
 #toast.show{opacity:1}
 #tag{position:absolute;left:50%;top:calc(50% - 56px);transform:translateX(-50%);font-size:12px;letter-spacing:.1em;background:rgba(0,0,0,.6);padding:6px 10px;border:1px solid rgba(255,255,255,.3);opacity:0;transition:opacity .15s;white-space:nowrap}
 #tag.show{opacity:1}
-#placeHelp{position:absolute;left:50%;top:18px;transform:translateX(-50%);font-size:13px;letter-spacing:.12em;background:rgba(0,0,0,.6);padding:8px 14px;border:1px solid rgba(255,255,255,.3)}
+#placeBar{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:auto;background:rgba(0,0,0,.65);padding:12px 16px;border:1px solid rgba(255,255,255,.3);max-width:94vw}
+#placeMsg{font-size:14px;letter-spacing:.1em;min-height:1.2em}
+#placeMsg.bad{color:#ff6b6b}
+.placeBtns{display:flex;gap:8px}
+.placeBtns button{min-width:100px;height:40px;background:rgba(255,255,255,.1);color:#eee;border:1px solid rgba(255,255,255,.5);font-size:13px;letter-spacing:.12em}
+.placeBtns button:hover{background:rgba(255,255,255,.22)}
+#placeOk{background:var(--green);color:#000;border-color:var(--green);font-weight:bold}
+#placeOk:hover{background:#5ee070}
+#placeOk[disabled]{background:#444;color:#999;border-color:#555;cursor:not-allowed}
+#placeHelp{font-size:11px;color:#aaa;letter-spacing:.06em;text-align:center}
+body.touch #placeHelp{display:none}
+body.touch #placeBar{bottom:110px}
 #touchBtns{position:absolute;right:16px;top:52px;display:flex;flex-direction:column;gap:8px;pointer-events:auto}
 #touchBtns button{display:none;width:52px;height:40px;font-size:12px;font-weight:bold;letter-spacing:.08em;color:#eee;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.5);padding:0}
 body.touch #touchBtns button{display:block}
-body.touch #touchBtns button.hidden{display:none!important}
 
 /* touch joystick */
 #touch{position:fixed;left:24px;bottom:60px;width:120px;height:120px;border-radius:50%;border:2px solid rgba(255,255,255,.35);display:none;z-index:4;pointer-events:none}
