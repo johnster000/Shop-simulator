@@ -3,7 +3,7 @@
 import { buildPerson, pose, holdProp, dropProp, buildBroom } from './person.js';
 import { byId } from './catalog.js';
 import { runnableStages, IN_HOUSE_MIN } from './jobs.js';
-import { canRun, setupRoll, speedFactor, line, skillFor, practice } from './people.js';
+import { canRun, setupRoll, speedFactor, line, skillFor, practice, speech } from './people.js';
 import { CLOSE_MIN, HARD_STOP_MIN } from './sim.js';
 
 const SETUP_MIN = 6;          // shop minutes to set a machine up
@@ -123,6 +123,18 @@ export class Crew {
       } else if (!here && v.mode !== 'leave' && v.mode !== 'gone') {
         this.dropMachine(v); this.goTo(v, this.outside, 'leave'); if (s.t >= CLOSE_MIN) this.hooks.say(p, pick(['That is five.', 'See you tomorrow.', 'Lock up, boss.']));
       }
+      // ---- the speech. around half past nine, in the middle of the floor. then out the door.
+      if (p.quitting && here && s.t >= 150 && !['toSpeech', 'speech', 'leave', 'gone', 'offsite'].includes(v.mode)) {
+        this.dropMachine(v); this.setBroom(v, false); this.goTo(v, { x: 0.5, z: 1.0 }, 'toSpeech'); v.speech = speech(p); v.speechIdx = 0;
+      }
+      if (v.mode === 'speech') {
+        if (performance.now() >= (v.nextLine || 0)) {
+          if (v.speechIdx < v.speech.length) { this.hooks.say(p, v.speech[v.speechIdx++], 4.5); v.nextLine = performance.now() + 4200; if (v.speechIdx === 1) this.gatherRound(0.5, 1.0); }
+          else { this.goTo(v, this.outside, 'leave'); this.hooks.quit && this.hooks.quit(p); }
+        }
+      }
+      // ---- whistling. happy people do it. everyone else hears it.
+      if (p.morale > 0.85 && here && (v.mode === 'idle' || v.mode === 'sweep' || v.walk > 0.3) && Math.random() < dt * 0.06) this.hooks.whistle && this.hooks.whistle(p, v.pos);
       // ---- lunch
       const lunch = s.t >= LUNCH_AT && s.t < LUNCH_AT + LUNCH_LEN;
       if (lunch && here && v.mode !== 'toBreak' && v.mode !== 'break' && !(v.machine && v.machine.running)) { this.dropMachine(v); this.goTo(v, this.breakSpot, 'toBreak'); v.wait = LUNCH_LEN; }
@@ -137,11 +149,11 @@ export class Crew {
         if (dist <= step + 0.01) v.path.shift();
         if (!v.path.length) this.arrived(v);
       }
-      else if (['arrive', 'leave', 'toMachine', 'toBreak', 'toSweep', 'toVend'].includes(v.mode)) this.arrived(v); // nowhere left to walk: we are there
+      else if (['arrive', 'leave', 'toMachine', 'toBreak', 'toSweep', 'toVend', 'toSpeech'].includes(v.mode)) this.arrived(v); // nowhere left to walk: we are there
       v.walk += ((walking ? 1 : 0) - v.walk) * Math.min(1, dt * 8);
 
       // ---- doing things
-      if (v.mode === 'idle' && here && !lunch) {
+      if (v.mode === 'idle' && here && !lunch && !p.quitting) {
         if (Math.random() < dt * 0.012) this.hooks.say(p, line(p, {}));
         v.idleMin = (v.idleMin || 0) + shopDt;
         if (p.morale < 0.35 && v.idleMin > 8 && this.shop.vendingPos && Math.random() < dt * 0.3) { v.idleMin = 0; this.goTo(v, { x: this.shop.vendingPos.x + (Math.random() - 0.5) * 0.6, z: this.shop.vendingPos.z + Math.random() * 0.4 }, 'toVend'); this.hooks.say(p, pick(['Break. Technically.', 'B4 is stuck. I am going to look at it anyway.', 'I will be at the machine. The other machine.', 'Five minutes.']), 3); }
@@ -186,6 +198,7 @@ export class Crew {
     else if (v.mode === 'toMachine') { if (v.machine && v.machine.job && !v.machine.running) { v.mode = 'setup'; v.setupLeft = SETUP_MIN * (1.4 - skillFor(v.p, byId(v.machine.id).kind) * 0.12); } else { v.machine = null; v.mode = 'idle'; } }
     else if (v.mode === 'toBreak') { v.mode = 'break'; }
     else if (v.mode === 'toVend') { v.mode = 'vend'; v.wait = 30 + Math.random() * 30; v.yaw = Math.atan2(this.shop.vendingPos.x - v.pos.x, (this.shop.vendingPos.z - 1.0) - v.pos.z); this.hooks.vendSulk && this.hooks.vendSulk(v.p); }
+    else if (v.mode === 'toSpeech') { v.mode = 'speech'; v.nextLine = performance.now() + 500; }
     else if (v.mode === 'toSweep') { v.mode = 'sweep'; v.wait = 12 + Math.random() * 10; this.setBroom(v, true); }
     else if (v.mode === 'toGather') { v.mode = 'gawk'; v.wait = 6; this.hooks.say(v.p, pick(['Oof.', 'That is going to need a tech.', 'I heard it from the office.', 'Was that in the program?', 'Not it.', 'Did anyone photograph that? For the wall.'])); }
     else v.mode = 'idle';
@@ -198,6 +211,8 @@ export class Crew {
     if (v.mode === 'work' || v.mode === 'setup') { const d = byId(v.machine.id); return `${v.mode === 'setup' ? 'setting up' : 'running'} the ${d.name.toLowerCase()}${v.machine.job && v.machine.job.jobId ? `, job ${v.machine.job.jobId}` : ''}`; }
     if (v.mode === 'break' || v.mode === 'toBreak') return 'on a break';
     if (v.mode === 'sweep' || v.mode === 'toSweep') return 'sweeping';
+    if (v.mode === 'speech' || v.mode === 'toSpeech') return 'making a speech';
+    if (p.quitting) return 'quitting today';
     if (v.mode === 'vend' || v.mode === 'toVend') return 'at the vending machine. technically on break';
     if (v.mode === 'gawk' || v.mode === 'toGather') return 'having a look';
     if (v.mode === 'toMachine') return 'walking over to the ' + byId(v.machine.id).name.toLowerCase();

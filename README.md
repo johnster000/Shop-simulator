@@ -199,6 +199,14 @@ Then open http://localhost:8080/.
   crash odds and teaches them faster, and they will tell you to go. At five o'clock a third
   button keeps the whole crew late at time and a half, with a look and a morale cost.
 
+- The speech. Somebody whose morale hits the floor does not vanish overnight any more: the night
+  note says there will be a speech, and at half past nine they walk to the middle of the floor,
+  the others gather to watch and not help, three lines go up over their head (what it is about,
+  and that the radio stays on their station), and they walk out the door. A third of the time
+  they take a customer's number with them and that customer goes quiet for a month. Happy crew
+  whistle. The crew leave sticky notes on machines after crashes, dry oil and duct tape
+  (NOT MY FAULT, OIL ME, TAPE IS LOAD BEARING); a service takes them down.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

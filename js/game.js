@@ -12,7 +12,7 @@ import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
 import { practice } from './people.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY } from './sim.js';
-import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob } from './jobs.js';
+import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
 import { Items, ITEM_KINDS } from './items.js';
@@ -66,6 +66,16 @@ export function startShop(T, audio, state) {
     machineViews: () => views,
     runMachine: (m, skipped, p) => runMachine(m, skipped, p),
     say: (p, text) => { crew.say(p, text); },
+    whistle: (p, pos) => { const d = Math.hypot(camera.position.x - pos.x, camera.position.z - pos.z); audio.whistle(iso.active ? 0.4 : 1 / (1 + (d / 4) * (d / 4))); },
+    quit: (p) => {
+      state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left'); unlock('the_speech');
+      for (const q of state.people) q.morale = Math.max(0, q.morale - 0.05);
+      let extra = '';
+      const shipped = state.jobs.filter((j) => j.status === 'shipped');
+      if (shipped.length && Math.random() < 0.35) { const c = customerOf(pick(shipped).customer); state.sour = state.sour || {}; state.sour[c.id] = state.day + 20; extra = ` ${p.name} took ${c.name}'s number. They will not be calling for a while.`; message(state, c.name, 'Re: your former employee', `${p.name} called us. We are giving them a shot on the next one. Nothing personal.`); }
+      ui.toast(`${p.name} quit. On the floor, with a speech. Everyone heard it.${extra}`, 6000);
+      setTimeout(() => crew.sync(), 6000);
+    },
     vendSulk: (p) => { state.vendSulks = (state.vendSulks || 0) + 1; if (state.vendSulks >= 3) unlock('vending_sulk'); },
   });
   visitor = new Visitor(T, scene, shop, nav, state, crew, { say: (p, t, secs) => crew.say(p, t, secs), toast: (t, ms) => ui.toast(t, ms), unlock });
@@ -252,6 +262,8 @@ export function startShop(T, audio, state) {
     crew.say(p, pick(['Oh. Thanks.', 'Is this a trick?', 'Two sugars. This is one.', 'Huh. Okay.', 'What did you do?']), 3);
     ui.toast(`${p.name} took the coffee. Morale went up. Suspicion also went up.`, 3200);
   }
+  // sticky notes on machines. the crew writes them. nobody takes them down.
+  function noteOn(m, text) { m.notes = (m.notes || []).filter((t) => t !== text); m.notes.push(text); if (m.notes.length > 4) m.notes.shift(); }
   // the red button. the crash is still coming; it just costs a cutter instead of a spindle.
   function estop(m) {
     const def = byId(m.id);
@@ -295,7 +307,7 @@ export function startShop(T, audio, state) {
         const jobItem = m.job ? m.job.itemIndex : 0, jobItemName = m.job && m.job.item && job && job.mold ? ' ' + m.job.item.toLowerCase() : '';
         m.job = null;
         audio.thunk(); audio.nope();
-        if (p) { p.crashes++; p.morale = Math.max(0, p.morale - 0.06); }
+        if (p) { p.crashes++; p.morale = Math.max(0, p.morale - 0.06); if (Math.random() < 0.6) noteOn(m, pick([`NOT MY|FAULT|- ${p.name.split(' ')[0].toUpperCase()}`, 'PULLS|LEFT', 'DO NOT|TOUCH', 'CRASHED|HERE|AGAIN'])); }
         const blame = p ? ` ${p.name} says it was like that.` : '';
         if (sev < 0.6) { const c = def.cnc ? 180 : 45; post(state, 'Broken cutter', -c); m.condition = Math.max(0, m.condition - 0.01); ui.toast(`BANG. Broken cutter on the ${def.name.toLowerCase()}. ${money(c)}. The part is fine. Load it again.${blame}`, 4000); }
         else if (sev < 0.9) {
@@ -661,7 +673,7 @@ export function startShop(T, audio, state) {
       for (const ev of events) {
         if (ev.type === 'closing') closingTime();
         if (ev.type === 'hardstop') { ui.toast('Eleven o\'clock. You cannot keep your eyes open.', 2500); setTimeout(() => leaveForTheNight(), 1200); }
-        if (ev.type === 'dry') { const v = viewOf(ev.uid); const d = v && byId(v.m.id); if (d) ui.toast(`The ${d.name.toLowerCase()} is out of way oil. It is singing. Top it up from the panel, or listen to it die.`, 5000); audio.squeal(1); }
+        if (ev.type === 'dry') { const v = viewOf(ev.uid); const d = v && byId(v.m.id); if (v) noteOn(v.m, 'OIL|ME'); if (d) ui.toast(`The ${d.name.toLowerCase()} is out of way oil. It is singing. Top it up from the panel, or listen to it die.`, 5000); audio.squeal(1); }
         if (ev.type === 'cycleDone') {
           audio.ding(); const v = viewOf(ev.uid); const m = v && v.m;
           const op = m && m.job && m.job.operator && m.job.operator !== 'owner' ? state.people.find((q) => q.id === m.job.operator) : null;

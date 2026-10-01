@@ -123,16 +123,16 @@ export function endOfDay(state) {
   const notes = [];
   for (const p of state.people.slice()) {
     if (p.startDay > state.day) continue;
+    if (p.quitting) continue; // their last day. nothing changes their mind now.
     p.daysWorked++;
     if (p.workedToday) p.morale = Math.min(1, p.morale + 0.015); else { p.daysIdle++; p.morale = Math.max(0, p.morale - 0.03); }
     notes.push(...growSkills(state, p));
     p.workedToday = false; p.saidToday = false;
     if (!p.revealed && p.daysWorked >= 3) { p.revealed = true; const lied = SKILLS.some((k) => p.actual[k] < p.claimed[k]); if (lied) notes.push(`${p.name}'s resume was optimistic. You can see it now.`); }
     if (!p.grievance && Math.random() < 0.08) { const g = pick(GRIEVANCES); p.grievance = { id: g[0], label: g[1], text: g[2], fix: g[3] }; p.morale = Math.max(0, p.morale - 0.08); notes.push(`${p.name} has something to say about ${g[1]}.`); }
-    if (p.morale <= 0.05 || (p.morale < 0.2 && Math.random() < 0.25)) {
-      state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left');
-      notes.push(`${p.name} quit. There was a speech. The radio is still on their station.`);
-      for (const q of state.people) q.morale = Math.max(0, q.morale - 0.04);
+    if (!p.quitting && (p.morale <= 0.05 || (p.morale < 0.2 && Math.random() < 0.25))) {
+      if (p.startDay > state.day) { state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left'); notes.push(`${p.name} is not coming after all. A text message. Two words.`); }
+      else { p.quitting = true; notes.push(`${p.name} is quitting. ${p.grievance ? `It is about ${p.grievance.label}. ` : ''}There will be a speech, on the floor, around half past nine.`); }
     }
   }
   if ((state.day - 1) % 7 === 4) { // Friday
@@ -141,4 +141,13 @@ export function endOfDay(state) {
   }
   if ((state.day - 1) % 7 === 0) { refreshCandidates(state); notes.push('New resumes on the desk.'); }
   return notes;
+}
+
+// the speech. three lines, on the floor, with everyone watching and nobody helping.
+export function speech(p) {
+  const g = p.grievance;
+  const about = g ? ({ raise: 'the money', coffee: 'the coffee', chair: 'that stool', radio: 'the radio', cold: 'the door', blame: 'the crash. Which was not my fault.', idle: 'standing around all day', tools: 'the Shards' })[g.id] || g.label : pick(['everything', 'this place', 'you, mostly']);
+  return [pick(['Everybody. Can I have a second.', 'I have something to say.', 'Shut the saw off. I have something to say.']),
+    pick([`It is about ${about}.`, `You know what this is about. ${about[0].toUpperCase() + about.slice(1)}.`, `${p.daysWorked > 260 ? 'A year' : p.daysWorked > 60 ? 'Months' : 'Weeks'} of ${about}.`]),
+    pick(['I quit. Keys are on the bench.', 'I am done. Lakeshore called.', 'I am going to go work at the airport.', 'I quit. The radio stays on my station.', 'That is it. I am taking my mug.'])];
 }

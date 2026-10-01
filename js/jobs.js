@@ -383,7 +383,8 @@ export function endOfDay(state, byId) {
   for (let i = 0; i < n; i++) {
     const hasLaser = state.machines.some((m) => m.placed && byId(m.id).stations.includes('weld'));
     const hasFive = state.machines.some((m) => m.placed && byId(m.id).five);
-    const custs = CUSTOMERS.filter((c) => (!c.cnc || hasCnc) && (!c.five || hasFive)), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc).filter((t) => !t.mold || (hasCnc && state.rep >= 0.5)).filter((t) => !t.weld || hasLaser).filter((t) => !t.five || hasFive);
+    const sour = state.sour || {};
+    const custs = CUSTOMERS.filter((c) => (!c.cnc || hasCnc) && (!c.five || hasFive) && !(sour[c.id] > state.day)), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc).filter((t) => !t.mold || (hasCnc && state.rep >= 0.5)).filter((t) => !t.weld || hasLaser).filter((t) => !t.five || hasFive);
     const c = pick(custs), t = c.five ? pick(temps.filter((q) => q.five)) : c.cnc ? pick(temps.filter((q) => q.cnc && !q.five)) : pick(temps.filter((q) => !q.mold && !q.five));
     const r = makeRfq(state, t, c); state.rfqs.push(r); notes.push(`RFQ from ${c.name}: ${t.title}.`);
   }

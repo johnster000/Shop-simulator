@@ -501,6 +501,12 @@ export function buildMachine(T, def, ghost = false) {
 // axis-aligned half sizes for a machine at rotation rot (degrees, multiples of 90)
 export function halfSizes(def, rot) { const r = ((rot % 180) + 180) % 180; return r === 0 ? { hw: def.w / 2, hd: def.d / 2 } : { hw: def.d / 2, hd: def.w / 2 }; }
 
+// a sticky note. yellow, crooked, in marker. the shop's second whiteboard.
+export function stickyNote(T, text) {
+  const m = new T.Mesh(new T.PlaneGeometry(0.13, 0.13), new T.MeshBasicMaterial({ map: TX.label(T, text.split('|'), { size: 26, bg: '#f2e76b', border: '#f2e76b', fg: '#222', w: 128, h: 128 }), side: T.DoubleSide }));
+  m.rotation.z = (Math.random() - 0.5) * 0.3; m.raycast = () => {};
+  return m;
+}
 export class MachineView {
   constructor(T, scene, m) {
     this.T = T; this.scene = scene; this.m = m; this.def = byId(m.id);
@@ -511,9 +517,15 @@ export class MachineView {
     scene.add(this.group);
     this.spinAngle = 0;
   }
+  setNotes(list) {
+    const T = this.T; if (this.noteG) this.group.remove(this.noteG);
+    this.noteG = new T.Group(); this.group.add(this.noteG); this.noteKey = list.join('~');
+    const d = this.def; list.slice(0, 4).forEach((t, i) => { const n = stickyNote(T, t); n.position.set(-d.w / 2 + 0.3 + i * 0.17, Math.min(d.h - 0.3, 1.15 + (i % 2) * 0.12), d.d / 2 + 0.015); this.noteG.add(n); });
+  }
   sync() { const m = this.m; this.group.position.set(m.x, 0, m.z); this.group.rotation.y = (m.rot * Math.PI) / 180; this.group.visible = !!m.placed; }
   update(dt) {
     const p = this.group.userData.parts, m = this.m;
+    if ((m.notes || []).join('~') !== (this.noteKey || '')) this.setNotes(m.notes || []);
     if (m.fire) {
       if (!this.flames) {
         const T = this.T, g = new T.Group(), d = this.def; g.position.set(0, d.h * 0.55, 0); this.flames = g; this.group.add(g);

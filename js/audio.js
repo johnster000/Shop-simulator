@@ -150,6 +150,7 @@ export class ShopAudio {
   ding() { this.tone(1760, 0.5, 0.07); setTimeout(() => this.tone(2200, 0.6, 0.05), 120); }
   thunk() { this.noise(0.18, 120, 0.18, 'lowpass'); }
   paper() { this.noise(0.12, 2500, 0.06, 'highpass'); }
+  whistle(k = 1) { if (!this.enabled || k < 0.03) return; const base = 700 + Math.random() * 300, pat = [0, 4, 7][Math.floor(Math.random() * 3)]; const notes = [0, 4, 7, 4, 9, 7].slice(0, 3 + Math.floor(Math.random() * 3)); notes.forEach((n, i) => setTimeout(() => this.tone(base * Math.pow(2, (n + pat) / 12), 0.22, 0.035 * k, 'sine'), i * 230)); }
   ring(k = 1) { if (!this.enabled || k < 0.02) return; for (let i = 0; i < 2; i++) setTimeout(() => { this.tone(440, 0.22, 0.05 * k, 'sine'); this.tone(480, 0.22, 0.05 * k, 'sine'); }, i * 300); }
   alarm(k = 1) { this.tone(880, 0.18, 0.05 * k, 'square'); setTimeout(() => this.tone(660, 0.18, 0.05 * k, 'square'), 200); }
   estop() { this.noise(0.08, 500, 0.2, 'lowpass'); this.tone(90, 0.6, 0.08, 'sawtooth'); }
