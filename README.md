@@ -60,7 +60,15 @@ Then open http://localhost:8080/.
   to the shop down the road at twice the rate. Scrap a stage and you buy the steel again. Late
   ships cost money and reputation; on-time ones bring more RFQs.
 
-Not yet: people, CNC, real molds. Next.
+- People. Resumes land on the desk every Monday: apprentices, machinists, moldmakers, each with a
+  blurb, a quirk, claimed skills (the resume is not under oath) and a wage. Hire one and they walk in
+  through the tarp the next morning, find work that needs doing, walk over, set the machine up (their
+  skill decides how many steps they botch), run it, take lunch at noon, and leave at five. Click them
+  to hear what they think. They have grievances (the coffee, the stool, the radio, a raise) you can fix,
+  pay for, or tough out. Morale shows in how they stand. Payroll is Fridays. Low enough morale and they
+  quit with a speech. Point them at a machine yourself from their panel, or from the overhead view.
+
+Not yet: CNC, real molds. Next.
 
 ## Layout
 
@@ -78,11 +86,15 @@ js/player.js      first-person controls, collision, touch
 js/ui.js          HUD, clipboard (shop, machines, bank), machine panel
 js/minigames.js   the setup minigames: clamp, indicate, speed
 js/jobs.js        contracts: customers, RFQ templates, quoting, jobs and stages, shipping, terms
+js/people.js      the crew as numbers: roles, resumes, wages, morale, grievances, payroll
+js/person.js      a person as shapes: capsule limbs, a face, hair, caps, beards, vests; the poses
+js/crew.js        the crew on the floor: arriving, finding work, walking, setting up, lunch, leaving
+js/nav.js         a half-metre grid and A*, so nobody walks through the lathe
 js/game.js        render loop, interaction, keys, pause, autosave
 js/audio.js       every sound, synthesized. the compressor is most of them.
 js/textures.js    canvas textures: concrete, block, tarp, nameplates, the sign
 js/vendor/        three.js r160 (MIT)
-models.html       developer page: every machine on a turntable (?id=knee_mill, ?all)
+models.html       developer page: every machine on a turntable (?id=knee_mill, ?all), people (?person&seed=7)
 tools/            artifact page builder
 ```
 

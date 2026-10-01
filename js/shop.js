@@ -96,10 +96,11 @@ export class Shop {
 
     // breaker panel, east wall
     const grey = new T.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.5, roughness: 0.4 });
-    const panel = this.box(0.5, 0.9, 0.16, grey, hx - 0.09, 1.5, -hz * 0.3);
+    const panel = this.box(0.16, 0.9, 0.5, grey, hx - 0.09, 1.5, -hz * 0.3); // flat against the east wall
+    const panelDoor = this.box(0.02, 0.8, 0.44, new T.MeshStandardMaterial({ color: 0xb8bec4, metalness: 0.5, roughness: 0.35 }), hx - 0.18, 1.5, -hz * 0.3);
     const panelLabel = new T.Mesh(new T.PlaneGeometry(0.3, 0.12), new T.MeshBasicMaterial({ map: TX.label(T, ['200A', '2 MACHINES'], { size: 28 }) }));
-    panelLabel.position.set(hx - 0.18, 1.85, -hz * 0.3); panelLabel.rotation.y = -Math.PI / 2; s.add(panelLabel);
-    this.tag(panel, 'panel', 'breaker panel. enough for two machines.');
+    panelLabel.position.set(hx - 0.195, 1.82, -hz * 0.3); panelLabel.rotation.y = -Math.PI / 2; s.add(panelLabel);
+    this.tag(panel, 'panel', 'breaker panel. enough for two machines.'); this.tag(panelDoor, 'panel', 'breaker panel. enough for two machines.');
 
     // the compressor. south-east corner. it came with the shop.
     const comp = new T.Group(); comp.position.set(hx - 1.0, 0, hz - 1.3);

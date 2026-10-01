@@ -39,7 +39,7 @@ export class Iso {
         if (this.parked && this.overGhost(p)) { this.dragging = true; this.dragOff = { x: p.x - this.pos.x, z: p.z - this.pos.z }; canvas.setPointerCapture(e.pointerId); }
         else { this.dragOff = { x: 0, z: 0 }; this.moveTo(p.x, p.z); this.parked = true; this.dragging = true; canvas.setPointerCapture(e.pointerId); }
         if (this.onChange) this.onChange();
-      } else if (this.onPick) { const uid = this.pickMachine(); if (uid != null) this.onPick(uid); }
+      } else { const hit = this.pickAny(); if (hit && hit.type === 'machine' && this.onPick) this.onPick(hit.uid); else if (hit && hit.type === 'person' && this.onPickPerson) this.onPickPerson(hit.id); }
     });
     const up = (e) => { if (this.dragging) { this.dragging = false; this.parked = true; if (this.onChange) this.onChange(); } };
     canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
@@ -55,10 +55,10 @@ export class Iso {
   floorHit() { this.ray.setFromCamera(this.ptr, this.camera); const p = new this.T.Vector3(); return this.ray.ray.intersectPlane(this.floorPlane, p) ? p : null; }
   overGhost(p) { const { hw, hd } = halfSizes(byId(this.pending.id), this.rot); return Math.abs(p.x - this.pos.x) < hw + 0.3 && Math.abs(p.z - this.pos.z) < hd + 0.3; }
 
-  pickMachine() {
+  pickAny() {
     this.ray.setFromCamera(this.ptr, this.camera);
     const hits = this.ray.intersectObjects(this.scene.children, true);
-    for (const h of hits) { const i = h.object.userData.interact; if (i && i.type === 'machine') return i.uid; }
+    for (const h of hits) { const i = h.object.userData.interact; if (i && (i.type === 'machine' || i.type === 'person')) return i; }
     return null;
   }
 

@@ -13,8 +13,9 @@
 import * as T from './js/vendor/three.module.js';
 import { MACHINES } from './js/catalog.js';
 import { buildMachine } from './js/machines.js';
+import { buildPerson, randomLook, pose } from './js/person.js';
 const params = new URLSearchParams(location.search);
-const all = params.has('all');
+const all = params.has('all'); const person = params.has('person');
 let idx = Math.max(0, MACHINES.findIndex((m) => m.id === params.get('id')));
 const renderer = new T.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight); document.body.appendChild(renderer.domElement);
 const scene = new T.Scene(); scene.background = new T.Color(0x1a1d22);
@@ -23,7 +24,15 @@ scene.add(new T.HemisphereLight(0xdfe6f0, 0x3a3630, 0.8)); const p = new T.Point
 const floor = new T.Mesh(new T.PlaneGeometry(40, 40), new T.MeshStandardMaterial({ color: 0x55585e })); floor.rotation.x = -Math.PI / 2; scene.add(floor);
 scene.add(new T.GridHelper(40, 80, 0x777, 0x444));
 const groups = [];
-if (all) {
+if (person) {
+  // a row of random people, posed: idle, walk, work, sulk. ?seed=N for the same faces again.
+  let seed = parseInt(params.get('seed')) || 7; const rng = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  const modes = ['idle', 'walk', 'work', 'sulk', 'idle', 'walk'];
+  const folk = modes.map((mode, i) => { const g = buildPerson(T, randomLook(rng)); g.position.x = (i - 2.5) * 1.1; scene.add(g); return { g, mode }; });
+  camera.position.set(0, 1.6, 6.2); camera.lookAt(0, 0.95, 0);
+  document.getElementById('label').textContent = 'people: ' + modes.join(' · ');
+  let t = 0; (function frame() { requestAnimationFrame(frame); t += 1 / 60; for (const f of folk) pose(f.g, { mode: f.mode, t, walk: f.mode === 'walk' ? 1 : 0, morale: f.mode === 'sulk' ? 0.1 : 0.8 }); if (params.has('spin')) for (const f of folk) f.g.rotation.y += 0.01; renderer.render(scene, camera); })();
+} else if (all) {
   MACHINES.forEach((d, i) => { const g = buildMachine(T, d); g.position.x = (i - (MACHINES.length - 1) / 2) * 3; scene.add(g); groups.push(g); });
   camera.position.set(0, 5, 11); camera.lookAt(0, 0.8, 0);
   document.getElementById('label').textContent = MACHINES.map((d) => d.name).join('  ·  ');

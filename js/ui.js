@@ -4,6 +4,7 @@ import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigu
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
 import { customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE } from './jobs.js';
+import { hire, fire, raise, fixGrievance, tough, moraleWord, SKILLS } from './people.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -20,6 +21,7 @@ export class UI {
     $('clipClose').addEventListener('click', () => this.closeClip());
     $('clipTabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; this.showTab(b.dataset.tab); audio.paper(); });
     $('panelClose').addEventListener('click', () => this.closePanel());
+    $('personClose').addEventListener('click', () => this.closePerson());
     $('clipBtn').addEventListener('click', () => this.toggleClip());
     $('isoBtn').addEventListener('click', () => hooks.toggleIso());
     $('pauseBtn').addEventListener('click', () => hooks.pause());
@@ -62,7 +64,7 @@ export class UI {
     this.tab = tab;
     for (const b of $('clipTabs').querySelectorAll('button')) b.classList.toggle('on', b.dataset.tab === tab);
     for (const t of document.querySelectorAll('.tab')) t.classList.toggle('hidden', t.id !== 'tab-' + tab);
-    if (tab === 'inbox') this.renderInbox(); if (tab === 'jobs') this.renderJobs(); if (tab === 'shop') this.renderShop(); if (tab === 'machines') this.renderMachines(); if (tab === 'bank') this.renderBank();
+    if (tab === 'inbox') this.renderInbox(); if (tab === 'jobs') this.renderJobs(); if (tab === 'people') this.renderPeople(); if (tab === 'shop') this.renderShop(); if (tab === 'machines') this.renderMachines(); if (tab === 'bank') this.renderBank();
   }
 
   renderInbox() {
@@ -117,6 +119,52 @@ export class UI {
       <p class="note">Reputation ${Math.round(s.rep * 100)}. On-time ships raise it. Late ones drop it faster.</p>`;
     el.querySelectorAll('[data-ship]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.ship); const r = ship(s, j); s.stats.shipped++; this.audio.cash(); this.toast(r.late ? `Shipped. ${r.late} day${r.late === 1 ? '' : 's'} late. They noticed.` : 'Shipped. One out the door.', 3200); this.hooks.shipped(); this.renderJobs(); }));
     el.querySelectorAll('[data-out]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.out); const r = sendOut(s, j, +b.dataset.i); if (!r.ok) { this.audio.nope(); this.toast(r.why); return; } this.audio.cash(); this.toast(`Off to Bramalea. ${money(r.cost)}. Back in two days.`); this.renderJobs(); }));
+  }
+
+  skillsHtml(p, showActual) {
+    return `<div class="skills">${SKILLS.map((k) => `<span class="${showActual && p.actual[k] < p.claimed[k] ? 'lie' : ''}" title="${k}">${k} ${showActual ? p.actual[k] : p.claimed[k]}${showActual && p.actual[k] < p.claimed[k] ? ` (said ${p.claimed[k]})` : ''}</span>`).join('')}</div>`;
+  }
+
+  renderPeople() {
+    const s = this.state, el = $('tab-people'), crew = this.hooks.crew();
+    const crewHtml = (p) => `<div class="pcard"><div class="row2"><div><b>${p.name}</b> · ${p.roleName} · $${p.wage}/hr</div><div class="morale ${p.morale < 0.4 ? 'low' : ''}">${moraleWord(p.morale)}</div></div>
+      <div class="note">${p.blurb} ${p.quirk}</div>
+      ${this.skillsHtml(p, p.revealed)}${p.revealed ? '' : '<div class="note">Skills as claimed. You will know in a few days.</div>'}
+      <div class="note">${crew ? crew.status(p) : ''}${p.grievance ? ` · <b>has a word to say about ${p.grievance.label}</b>` : ''} · ${p.daysWorked} day${p.daysWorked === 1 ? '' : 's'} here · ${p.crashes} crash${p.crashes === 1 ? '' : 'es'}</div>
+      <div class="acts"><button data-talk="${p.id}">A WORD</button><button class="ghost" data-raise="${p.id}">RAISE $1/HR</button><button class="danger" data-fire="${p.id}">LET GO</button></div></div>`;
+    const candHtml = (c) => `<div class="pcard"><div class="row2"><div><b>${c.name}</b> · ${c.roleName} · asks $${c.wage}/hr</div></div>
+      <div class="note">${c.blurb} ${c.quirk}</div>${this.skillsHtml(c, false)}
+      <div class="acts"><button data-hire="${c.id}">HIRE · starts tomorrow</button></div></div>`;
+    const weekly = s.people.reduce((a, p) => a + p.wage * 40, 0);
+    el.innerHTML = `<div class="row2"><div><div class="note">CREW</div><div class="big">${s.people.length}</div></div><div class="note">Payroll $${weekly.toLocaleString()} a week, paid Fridays. One person is you, and you are not on it.</div></div>
+      ${s.people.length ? s.people.map(crewHtml).join('') : '<p class="note">Nobody. You, the compressor, and the tarp.</p>'}
+      <h4 style="letter-spacing:.2em;font-size:12px;margin:18px 0 8px">RESUMES ON THE DESK</h4>
+      ${s.candidates.length ? s.candidates.map(candHtml).join('') : '<p class="note">None this week. Monday brings more.</p>'}
+      <p class="note">A resume is a document written by its subject. Skills are what they say; the floor will say otherwise.</p>`;
+    el.querySelectorAll('[data-hire]').forEach((b) => b.addEventListener('click', () => { const c = s.candidates.find((q) => q.id === +b.dataset.hire); hire(s, c); this.audio.paper(); this.toast(`${c.name} starts tomorrow. ${c.quirkId === 'late' ? 'Ish.' : ''}`); this.hooks.crewChanged(); this.renderPeople(); }));
+    el.querySelectorAll('[data-fire]').forEach((b) => b.addEventListener('click', () => { const p = s.people.find((q) => q.id === +b.dataset.fire); const sev = fire(s, p); this.audio.nope(); this.toast(`${p.name} is gone. ${money(sev)} in notice. The others saw.`, 3000); this.hooks.crewChanged(); this.renderPeople(); }));
+    el.querySelectorAll('[data-raise]').forEach((b) => b.addEventListener('click', () => { const p = s.people.find((q) => q.id === +b.dataset.raise); raise(s, p, 1); this.audio.cash(); this.toast(`${p.name}: a dollar an hour. They noticed.`); this.renderPeople(); }));
+    el.querySelectorAll('[data-talk]').forEach((b) => b.addEventListener('click', () => { const p = s.people.find((q) => q.id === +b.dataset.talk); this.closeClip(); this.openPerson(p); }));
+  }
+
+  // ---- person panel
+  get personOpen() { return !$('person').classList.contains('hidden'); }
+  openPerson(p) { this.personP = p; $('person').classList.remove('hidden'); this.hooks.modal(true); this.renderPerson(); }
+  closePerson() { $('person').classList.add('hidden'); this.personP = null; this.hooks.modal(false); }
+  renderPerson() {
+    const p = this.personP, s = this.state, crew = this.hooks.crew(); if (!p) return;
+    $('personTitle').textContent = `${p.name.toUpperCase()} · ${p.roleName.toUpperCase()}`;
+    const body = $('personBody');
+    const work = crew ? crew.workOptions(p) : [];
+    body.innerHTML = `<div class="speech">${crew ? crew.lineFor(p) : ''}</div>
+      <div class="note">${crew ? crew.status(p) : ''} · ${moraleWord(p.morale)} · $${p.wage}/hr</div>
+      ${p.grievance ? `<div class="pacts"><button data-fix>${p.grievance.fix.cost ? `FIX IT (${money(p.grievance.fix.cost)})` : p.grievance.fix.raise ? `A RAISE ($${p.grievance.fix.raise}/hr)` : 'HEAR THEM OUT'}</button><button class="ghost" data-tough>TOUGH</button></div>` : ''}
+      ${work.length ? `<div class="note" style="margin-top:8px">Point them at something:</div><div class="pacts">${work.map((w) => `<button data-go="${w.m.uid}">${w.d.name.toUpperCase()}: ${w.o.stage.label} (job ${w.o.job.id})</button>`).join('')}</div>` : '<div class="note" style="margin-top:8px">Nothing to point them at right now.</div>'}
+      <div class="pacts"><button class="ghost" data-break>TAKE FIVE</button></div>`;
+    body.querySelector('[data-fix]') && body.querySelector('[data-fix]').addEventListener('click', () => { const r = fixGrievance(s, p); if (!r.ok) { this.audio.nope(); this.toast(r.why || 'no'); return; } this.audio.cash(); this.toast(`${p.name} is happier. For now.`); this.renderPerson(); });
+    body.querySelector('[data-tough]') && body.querySelector('[data-tough]').addEventListener('click', () => { tough(s, p); this.audio.click(); this.toast(`${p.name} heard you.`); this.renderPerson(); });
+    body.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { const w = work.find((q) => q.m.uid === +b.dataset.go); if (crew.assign(p, w.m)) { this.audio.click(); this.toast(`${p.name}: "On it."`); this.closePerson(); } else { this.audio.nope(); this.toast('That machine is busy now.'); this.renderPerson(); } }));
+    body.querySelector('[data-break]').addEventListener('click', () => { crew.takeFive(p); this.audio.click(); this.toast(`${p.name} went for coffee.`); this.closePerson(); });
   }
 
   renderShop() {

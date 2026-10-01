@@ -81,15 +81,25 @@
     <nav id="clipTabs">
       <button data-tab="inbox" class="on">INBOX <i id="inboxBadge" class="badge hidden"></i></button>
       <button data-tab="jobs">JOBS</button>
+      <button data-tab="people">PEOPLE</button>
       <button data-tab="shop">SHOP</button>
       <button data-tab="machines">MACHINES</button>
       <button data-tab="bank">BANK</button>
     </nav>
     <section id="tab-inbox" class="tab"></section>
     <section id="tab-jobs" class="tab hidden"></section>
+    <section id="tab-people" class="tab hidden"></section>
     <section id="tab-shop" class="tab hidden"></section>
     <section id="tab-machines" class="tab hidden"></section>
     <section id="tab-bank" class="tab hidden"></section>
+  </div>
+</div>
+
+<!-- ============ PERSON PANEL ============ -->
+<div id="person" class="overlay hidden">
+  <div class="board small">
+    <div class="clipTop"><span class="clipTitle" id="personTitle">SOMEBODY</span><button id="personClose" class="x" aria-label="close">&times;</button></div>
+    <div id="personBody"></div>
   </div>
 </div>
 

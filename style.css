@@ -163,7 +163,20 @@ body.tired #vignette{opacity:1}
 .big{font-size:26px;font-weight:bold;margin:4px 0 14px}
 .note{font-size:12px;color:#666;line-height:1.6}
 .row2{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
-#panelBody{padding:6px 20px 24px;font-size:13px;line-height:1.6}
+#panelBody,#personBody{padding:6px 20px 24px;font-size:13px;line-height:1.6}
+.speech{background:#fff;border:2px solid var(--ink);padding:10px 14px;margin:6px 0 14px;position:relative;font-size:14px}
+.speech::after{content:'';position:absolute;left:22px;bottom:-10px;border:8px solid transparent;border-top-color:var(--ink);border-bottom:0}
+.skills{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;letter-spacing:.06em;margin:6px 0}
+.skills span{border:1px solid #999;padding:2px 8px;background:#f7f5ee}
+.skills span.lie{border-color:var(--red);color:var(--red)}
+.pcard{border:2px solid var(--ink);background:#fff;padding:12px 14px;margin:0 0 12px}
+.pcard .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.pcard .acts button,.pacts button{background:var(--ink);color:#fff;border:none;padding:8px 14px;font-size:12px;letter-spacing:.08em}
+.pcard .acts button.ghost,.pacts button.ghost{background:transparent;color:#444;border:1px solid #999}
+.pcard .acts button.danger{background:transparent;color:var(--red);border:1px solid var(--red)}
+.pacts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.morale{font-size:11px;letter-spacing:.15em;text-transform:uppercase}
+.morale.low{color:var(--red)}
 #panelBody .check{list-style:none;padding:0;margin:10px 0}
 #panelBody .check li{padding:6px 0;border-bottom:1px dotted #bbb;display:flex;justify-content:space-between;gap:10px}
 #panelBody .check li.done{color:#2a7a2a}

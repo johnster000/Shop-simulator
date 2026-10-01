@@ -5,6 +5,7 @@
 
 import { byId, SHOP } from './catalog.js';
 import { initJobs, endOfDay } from './jobs.js';
+import { initPeople, endOfDay as peopleEndOfDay } from './people.js';
 
 export const SAVE_KEY = 'shopsim.save.v1';
 export const OPEN_HOUR = 7;
@@ -35,7 +36,7 @@ export function newState(shopName) {
     firstCycle: false,
   };
 }
-export function fresh(shopName) { const s = newState(shopName); initJobs(s); return s; }
+export function fresh(shopName) { const s = newState(shopName); initJobs(s); initPeople(s); return s; }
 
 export function load() {
   try {
@@ -43,7 +44,7 @@ export function load() {
     if (!raw) return null;
     const s = JSON.parse(raw);
     if (!s || s.v !== 1) return null;
-    initJobs(s);
+    initJobs(s); initPeople(s);
     return s;
   } catch (e) { return null; }
 }
@@ -123,7 +124,7 @@ export function goHome(state) {
     night.week = { rent: RENT_WEEKLY, power };
   }
   night.day = state.day;
-  night.notes = endOfDay(state, byId);
+  night.notes = endOfDay(state, byId).concat(peopleEndOfDay(state));
   return night;
 }
 
