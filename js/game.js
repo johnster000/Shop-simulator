@@ -11,7 +11,7 @@ import { Delivery } from './truck.js';
 import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
 import { practice } from './people.js';
-import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY } from './sim.js';
+import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
@@ -238,8 +238,8 @@ export function startShop(T, audio, state) {
       if (m.fireT > 40) { // it burned. the tech will have opinions.
         m.fire = false; m.running = false; m.runLeft = 0; m.job = null; m.checklist = {}; const def = byId(m.id);
         m.down = { why: 'fire damage. the cabinet is black and the wiring is a sculpture', until: null, kind: 'broke' }; m.condition = Math.max(0, m.condition - 0.25);
-        post(state, 'Fire: cleanup and the insurance deductible', -2500); unlock('candle');
-        ui.toast(`The ${def.name.toLowerCase()} burned itself out. Black to the ceiling. $2,500 deductible, the machine is DOWN, and the inspector will hear about it.`, 7000);
+        const fc = fireCost(state, m); post(state, `Fire: ${state.insured ? 'deductible' : 'uninsured'}`, -fc.cost); unlock('candle'); if (!state.insured) unlock('uninsured');
+        ui.toast(`The ${def.name.toLowerCase()} burned itself out. Black to the ceiling. ${money(fc.cost)}, ${fc.text} The machine is DOWN, and the inspector will hear about it.`, 8000);
         state.inspectorSoon = true;
       }
     }
@@ -352,9 +352,9 @@ export function startShop(T, audio, state) {
       if (fire) {
         const fireItem = m.job ? m.job.itemIndex : 0;
         m.running = false; m.runLeft = 0; m.condition = 0.05; m.job = null; m.checklist = {};
-        post(state, 'Fire: smoke damage, dielectric, a very long form', -8500);
+        const fc = fireCost(state, m); post(state, `Fire: ${state.insured ? 'deductible' : 'uninsured'}`, -fc.cost); if (!state.insured) unlock('uninsured');
         if (job) { scrapJob(state, job, fireItem); shop.setScrap(state.scrapCount); }
-        notes.push(`The sinker caught fire at ${hourText((state.t + broke * 60) % 1440)}. The fire department has questions. $8,500 and the machine is a shell.${job ? ` Job ${job.id} is ash.` : ''}`);
+        notes.push(`The sinker caught fire at ${hourText((state.t + broke * 60) % 1440)}. The fire department has questions. ${money(fc.cost)}: ${fc.text} The machine is a shell.${job ? ` Job ${job.id} is ash.` : ''}`);
         unlock('candle'); unlock('lights_wrong');
       } else if (broke >= 0) {
         m.running = false; m.runLeft = m.runLeft; m.checklist = {}; // the stage is not done; it must be reloaded and finished
@@ -422,7 +422,7 @@ export function startShop(T, audio, state) {
     if (iso.active) { iso.exit(); endPlace(); }
     ui.closeClip(); ui.closePanel(); modal = true;
     const leftMin = state.t;
-    for (const m of state.machines) if (m.fire) { m.fire = false; m.down = { why: 'fire damage. you left while it was burning', until: null, kind: 'broke' }; m.condition = Math.max(0, m.condition - 0.3); m.running = false; m.job = null; post(state, 'Fire: you locked up while it burned', -2500); }
+    for (const m of state.machines) if (m.fire) { m.fire = false; m.down = { why: 'fire damage. you left while it was burning', until: null, kind: 'broke' }; m.condition = Math.max(0, m.condition - 0.3); m.running = false; m.job = null; const fc = fireCost(state, m); post(state, `Fire: you locked up while it burned (${state.insured ? 'deductible' : 'uninsured'})`, -fc.cost); }
     if (extItem.empty) { extItem.empty = false; post(state, 'Extinguisher refill', -90); }
     if (!coffeeItem) coffeeItem = items.make('coffee', shop.pcPos.x + 0.6, shop.pcPos.z + 0.1, { y: 0.77 });
     if (items.held) items.drop();

@@ -219,6 +219,13 @@ export function overnightMachines(state) {
   }
   return notes.filter(Boolean);
 }
+// insurance. a weekly premium you resent every Monday and are glad of exactly once.
+export function insuranceWeekly(state) { const iron = state.machines.reduce((a, m) => { const d = byId(m.id); return a + (m.used ? d.priceUsed : d.priceNew) * 0.6; }, 0); return 120 + Math.round(iron * 0.0025); }
+export function fireCost(state, m) {
+  const d = byId(m.id), resale = Math.round((m.used ? d.priceUsed : d.priceNew) * 0.6 * (0.5 + 0.5 * m.condition));
+  if (state.insured) { achieve(state, 'glad_once'); return { cost: 2500, text: 'the deductible. The adjuster took photos and said "huh".' }; }
+  return { cost: 2500 + 6000 + Math.round(resale * 0.5), text: `cleanup, the fire department's invoice, and half of what the machine was worth. You were not insured. You remember the Monday you turned it down.` };
+}
 export const BANK_DAYS = 20;
 export function bankCheck(state) { // four weeks in the red past the line and the bank calls it
   const notes = [];
@@ -282,6 +289,7 @@ export const ACHIEVEMENTS = {
   tour: ['The Tour', 'A customer walked the floor and liked it. An RFQ followed.'], wsib_visitor: ['Guest Relations', 'Hit a customer with something. There is a poster about this too.'],
   signed: ['Sign Here. And Here.', 'Signed for the steel before noon. The driver noticed.'],
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
+  glad_once: ['Glad Of It, Exactly Once', 'A fire, with insurance. The adjuster said "huh".'], uninsured: ['Should Have', 'A fire, without insurance. The Monday you turned it down.'],
   swept: ['Billable, Apparently', 'Swept the floor yourself. Ten times. The crew watched.'], chips_deep: ['Ankle Deep', 'A machine with chips to the top of its boots. Somebody should sweep.'],
   the_speech: ['The Speech', 'Somebody quit on the floor, out loud, with everyone watching.'],
   stayed: ['Everybody Stays', 'Kept the crew late. Time and a half, and a look.'], watched: ['Supervision', 'Stood behind somebody while they ran a machine. It helped. They hated it.'],
@@ -349,6 +357,7 @@ export function goHome(state) {
     post(state, 'Hydro', -power);
     night.week = { rent, power };
     const sw = softwareWeekly(state); if (sw) { post(state, 'Software maintenance', -sw); extra.push(`Software maintenance: $${sw}.`); }
+    if (state.insured) { const ins = insuranceWeekly(state); post(state, 'Insurance premium', -ins); extra.push(`Insurance: $${ins}.`); }
     extra.push(...loansWeekly(state));
   }
   night.day = state.day;

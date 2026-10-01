@@ -212,6 +212,10 @@ Then open http://localhost:8080/.
   on the office wall: pick it up and click to sweep yourself, and the crew will say something.
   Visitors notice chips. A machine ankle deep goes on the wall.
 
+- Insurance. The BANK tab sells it by the week, priced on the iron on the floor. Insured, a fire
+  costs the deductible and a form; uninsured, it costs the cleanup, the fire department and half
+  the machine, and you remember the Monday you turned it down. Both go on the wall.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
