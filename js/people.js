@@ -1,6 +1,7 @@
 // The crew, as numbers: who they are, what they can do, what they are paid, and what is bothering
 // them. Pure simulation. The bodies are in crew.js.
 import { post, tally } from './sim.js';
+import { message } from './jobs.js';
 import { randomLook } from './person.js';
 
 const FIRST = ['Dave', 'Rick', 'Kevin', 'Mike', 'Steve', 'Dan', 'Paul', 'Jim', 'Tony', 'Marco', 'Hank', 'Lorne', 'Terry', 'Gord', 'Wayne', 'Doug', 'Bruce', 'Chris', 'Kyle', 'Brandon', 'Tyler', 'Jordan', 'Sam', 'Alex', 'Jamie', 'Pat', 'Shannon', 'Tracy', 'Lee', 'Chantal', 'Maria', 'Priya', 'Nav', 'Raj', 'Sunny', 'Vlad', 'Dmitri', 'Zoran', 'Luis', 'Ahmed', 'Jen', 'Carla', 'Rob', 'Big Dave', 'Other Dave', 'Frenchie', 'Smitty', 'Moose'];
@@ -28,6 +29,7 @@ const GRIEVANCES = [
   ['idle', 'standing around', 'Nothing to do all day. They did not sign up to sweep.', { talk: true }],
   ['tools', 'tooling', 'The end mills are Shards. Shards. $180 of real ones would do.', { cost: 180 }],
 ];
+const HEAT = ['heat', 'the heat', 'Thirty degrees by ten. A fan is $120. Climate control is on the SHOP tab, and so is the rest of July.', { cost: 120 }];
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
@@ -154,7 +156,8 @@ export function endOfDay(state) {
     notes.push(...growSkills(state, p));
     p.workedToday = false; p.saidToday = false;
     if (!p.revealed && p.daysWorked >= 3) { p.revealed = true; const lied = SKILLS.some((k) => p.actual[k] < p.claimed[k]); if (lied) notes.push(`${p.name}'s resume was optimistic. You can see it now.`); }
-    if (!p.grievance && Math.random() < 0.08) { const g = pick(GRIEVANCES); p.grievance = { id: g[0], label: g[1], text: g[2], fix: g[3] }; p.morale = Math.max(0, p.morale - 0.08); notes.push(`${p.name} has something to say about ${g[1]}.`); }
+    if (!p.grievance && Math.random() < 0.08) { const g = state.summer && !state.facility.climate && Math.random() < 0.5 ? HEAT : pick(GRIEVANCES); p.grievance = { id: g[0], label: g[1], text: g[2], fix: g[3] }; p.morale = Math.max(0, p.morale - 0.08); notes.push(`${p.name} has something to say about ${g[1]}.`); }
+    if (p.grievance && p.morale < 0.4 && Math.random() < 0.12) { message(state, p.name, `Re: ${p.grievance.label}`, pick([`${p.grievance.text} I am writing it down so it is written down.`, `About ${p.grievance.label}. You said you would look into it. This is me asking what you saw.`, `${p.grievance.text} The guys asked me to send this. The guys did not ask me. I am sending it.`])); notes.push(`${p.name} put it in writing. ${p.grievance.label}. It is in the inbox, which is where things go to be ignored.`); }
     if (!p.quitting && (p.morale <= 0.05 || (p.morale < 0.2 && Math.random() < 0.25))) {
       if (p.startDay > state.day) { state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left'); notes.push(`${p.name} is not coming after all. A text message. Two words.`); }
       else if (p.role === 'nightshift') { state.people = state.people.filter((q) => q.id !== p.id); tally(state, 'left'); notes.push(`${p.name} quit. A note on the VMC, in marker. Nobody saw him go. Nobody had ever seen him arrive.`); }

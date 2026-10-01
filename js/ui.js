@@ -3,7 +3,7 @@ import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
 import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor, insuranceWeekly, askSteelTerms } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
-import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel, canCheapSteel, cheapSteel, canInspect, inspect, canShipEarly, shipEarly, CHEAP_STEELS, VENDORS, vendorFor, CUSTOMERS, customerOpen, confidence, SEGMENT_NORMS } from './jobs.js';
+import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel, holdUp, canCheapSteel, cheapSteel, canInspect, inspect, canShipEarly, shipEarly, CHEAP_STEELS, VENDORS, vendorFor, CUSTOMERS, customerOpen, confidence, SEGMENT_NORMS } from './jobs.js';
 import { hire, fire, raise, fixGrievance, tough, moraleWord, SKILLS } from './people.js';
 import { hasCad as hasCadFn } from './sim.js';
 import { hasEstimator } from './people.js';
@@ -134,7 +134,7 @@ export class UI {
           ${canShipEarly(j) ? `<button class="btn sm ghost" data-early="${j.id}" title="their tryout is your tryout, in public">SHIP WITHOUT T${j.tryouts + 1}</button>` : ''}
           ${canCheapSteel(j) ? `<button class="btn sm ghost" data-cheap="${j.id}" title="who checks">BUILD IT IN ${CHEAP_STEELS[j.steel].toUpperCase()} (+${money(Math.round((j.mold ? j.spec.steelCost : j.material) * 0.45))})</button>` : ''}
           ${j.cheap && j.status !== 'shipped' ? `<span class="note">Invoiced as ${j.realSteel}. Built in ${j.steelUsed}. Nobody checks.</span>` : ''}
-          ${j.status === 'work' ? `<span class="note">Next: ${nextLabel(j)}.</span>` : ''}
+          ${j.status === 'work' ? `<span class="note">Next: ${nextLabel(j)}.<br><b>Held up by:</b> ${holdUp(s, j, byId)}.</span>` : ''}
         </div></div>`;
     };
     el.innerHTML = board + `${live.length ? live.map(jobHtml).join('') : '<p class="note">No jobs. Quote something.</p>'}${done.length ? `<h4 class="sect">SHIPPED</h4>${done.map(jobHtml).join('')}` : ''}

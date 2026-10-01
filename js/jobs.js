@@ -4,7 +4,7 @@
 // Pure simulation: no three.js, no DOM.
 
 import { tally, post } from './sim.js';
-import { hasEstimator } from './people.js';
+import { hasEstimator, canRun } from './people.js';
 
 export const SHOP_RATE = 55;      // $/hr, Stage 0 work (design bible §4.1)
 export const CNC_RATE = 95;       // $/hr, work that needs a CNC
@@ -339,6 +339,36 @@ export function nextLabel(job) {
   if (open.length) return open.join(' · ');
   const q = job.jobStages.find((x) => !x.done); return q ? q.label.toLowerCase() : 'ship it';
 }
+
+// the critical path, in one line: what the job is waiting on right now, and why it is not moving (bible §6.3)
+export function holdUp(state, job, byId) {
+  if (job.status === 'material') return `steel on the truck, day ${job.materialDay}`;
+  if (job.status === 'ready') return 'nothing. ship it';
+  if (job.mold && !job.jobStages[0].done) { const q = job.jobStages[0]; return q.out ? `the designer, back day ${q.out.backDay}` : state.pc && state.pc.jobId === job.id ? 'you, at the PC' : 'mold design, at the office PC'; }
+  const outs = [], waits = [];
+  for (const it of job.items) { const q = it.stages.find((x) => !x.done); if (!q) continue; if (q.out) outs.push(`${it.name.toLowerCase()} at ${q.out.vendor === 'moldtex' ? 'Mold-Tex' : q.out.vendor === 'deephole' ? 'Deep Hole Drilling' : q.kind === 'heat' ? 'heat treat' : q.kind === 'base' ? 'the base supplier' : q.kind === 'manifold' ? 'Mould-Majors' : 'Bramalea'}, back day ${q.out.backDay}`); else waits.push({ it, q }); }
+  if (!waits.length && outs.length) return outs.join('; ');
+  const machines = state.machines.filter((m) => m.placed && !m.down);
+  for (const { it, q } of waits) {
+    if (VENDOR_KINDS.has(q.kind)) continue; // goes out by itself tonight
+    const can = machines.some((m) => { const d = byId(m.id); return matches(q.kind, d.kind) && (!BIG_STAGE[q.kind] || d.big); });
+    if (!can) return `${it.name.toLowerCase()}: ${q.label.toLowerCase()} needs a ${stationName(q.kind)} you do not have. Send it out, or buy one`;
+    const busy = machines.filter((m) => { const d = byId(m.id); return matches(q.kind, d.kind) && (!BIG_STAGE[q.kind] || d.big); }).every((m) => m.running || (m.job && m.job.jobId !== job.id));
+    if (busy) return `${it.name.toLowerCase()}: ${q.label.toLowerCase()}, waiting for a free ${stationName(q.kind)}`;
+    const crew = state.people.filter((p) => p.startDay != null && p.startDay <= state.day && p.role !== 'estimator' && p.role !== 'nightshift');
+    if (crew.length && !crew.some((p) => canRunKind(p, q.kind))) return `${it.name.toLowerCase()}: ${q.label.toLowerCase()}, and nobody on the crew can run the ${stationName(q.kind)}. You can`;
+    return `${it.name.toLowerCase()}: ${q.label.toLowerCase()}, at a free ${stationName(q.kind)}. Somebody has to walk over`;
+  }
+  const j = job.jobStages.findIndex((x) => !x.done); const q = job.jobStages[j];
+  if (!q) return 'nothing. ship it';
+  if (q.out) return `${q.label.toLowerCase()}, out, back day ${q.out.backDay}`;
+  if (!job.items.every((it) => it.stages.every((x) => x.done))) return `the pieces, before ${q.label.toLowerCase()}`;
+  if (q.kind === 'fitspot' && job.mold && !state.facility.crane) return 'fit and spot needs the crane to set the halves, or it goes out to Bramalea';
+  if (VENDOR_KINDS.has(q.kind)) return `${q.label.toLowerCase()} goes out tonight`;
+  const can = machines.some((m) => matches(q.kind, byId(m.id).kind));
+  return can ? `${q.label.toLowerCase()}, at the ${stationName(q.kind)}` : `${q.label.toLowerCase()} needs a ${stationName(q.kind)} you do not have`;
+}
+function canRunKind(p, kind) { try { return canRun(p, kind); } catch (e) { return true; } }
 
 export function stageDone(state, job, itemIndex, index) {
   const q = stageAt(job, itemIndex, index); if (!q) return false;

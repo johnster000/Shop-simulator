@@ -428,6 +428,13 @@ Then open http://localhost:8080/.
   while the spotting press runs; and a rack beside the sinker fills with graphite electrodes as
   they come off the mill and empties as they burn.
 
+- What is holding it up (§6.3), and the grumbling in writing (§8.3). Every job in work now says in
+  one line what it is waiting on and why it is not moving: steel on the truck, the designer, a
+  vendor and the day it is back, a station you do not have, a station that is busy, a crew that
+  cannot run it, or a free machine somebody has to walk over to. Grumbling crew put their
+  grievance in the inbox, which is where things go to be ignored, and in July the grievance is the
+  heat until the climate control arrives.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
