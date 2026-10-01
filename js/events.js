@@ -1,6 +1,7 @@
 // Things that happen when you are not looking. The bible's table, as inbox mail and overnight notes.
 import { post, valuation } from './sim.js';
-import { customerOf, message } from './jobs.js';
+import { byId } from './catalog.js';
+import { customerOf, message, makeRfq, TEMPLATES } from './jobs.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
@@ -47,6 +48,20 @@ export function nightlyEvents(state) {
   if (state.receivables.length && roll(0.004)) { const r = pick(state.receivables); state.receivables.splice(state.receivables.indexOf(r), 1); const c = r.text.split(',')[0]; message(state, 'A trustee in bankruptcy', `Re: ${c}`, `${c} has filed. Your invoice of $${r.amount.toLocaleString()} is noted. Creditors will be contacted in due course. Due course is long. The mold is yours to keep, legally, which is worth less than it sounds.`); state.orphans = (state.orphans || []).concat([{ customer: c, value: r.amount, day: state.day }]); notes.push(`${c} went under. $${r.amount.toLocaleString()} you will not see. There is a very nice mold in the corner with a for-sale sign.`); state.rep = Math.max(0, state.rep - 0.02); }
   // somebody wants the orphaned mold. rarely. for not much.
   if ((state.orphans || []).length && roll(0.02)) { const o = state.orphans.shift(); const got = Math.round(o.value * (0.12 + Math.random() * 0.1)); post(state, `Sold the orphaned mold (${o.customer})`, got); notes.push(`A man with a trailer bought ${o.customer}'s mold for $${got.toLocaleString()}. He is going to make the same product in a different colour.`); }
+  // the program. a customer who got two good molds offers three more, at a price, with a bonus for all three on time.
+  if (!state.program && state.rep >= 0.6) {
+    const good = {}; for (const j of state.jobs) if (j.status === 'shipped' && j.mold && j.tryouts === 1 && !j.defects.length) good[j.customer] = (good[j.customer] || 0) + 1;
+    const cid = Object.keys(good).find((k) => good[k] >= 2);
+    if (cid && roll(0.25)) {
+      const c = customerOf(cid), hasFive = state.machines.some((m) => m.placed && byId(m.id).five);
+      const temps = TEMPLATES.filter((t) => t.mold && !t.proto && !t.transfer && (!t.five || hasFive));
+      const ids = []; let total = 0;
+      for (let i = 0; i < 3; i++) { const t = temps[Math.floor(Math.random() * temps.length)]; const r = makeRfq(state, t, c); r.title = `PROGRAM ${i + 1}/3: ${t.title}`; r.program = true; r.expires = state.day + 10; r.lead = 40 + i * 25; state.rfqs.push(r); ids.push(r.id); total += r.expected; }
+      state.program = { customer: cid, rfqs: ids, jobs: [], bonus: Math.round(total * 0.1), day: state.day, done: 0, late: 0 };
+      message(state, c.name, 'A program', `We have a new product line. Three molds over the next four months, staggered. We would like you to build all three. Quote them as a set; ship all three on time and there is a ${money(state.program.bonus)} bonus at the end. Lose one and we are back to quoting one at a time.`);
+      notes.push(`${c.name} offered a program: three molds, staggered, ${money(state.program.bonus)} on top if all three ship on time. The RFQs are in the inbox. This is the mid-game.`);
+    }
+  }
   // Compliments, now and then.
   if (state.stats.shipped > 0 && roll(0.04)) { const c = pick(state.jobs.filter((j) => j.status === 'shipped').map((j) => customerOf(j.customer))); if (c) message(state, c.name, 'Nice work', pick(['The parts dropped right in. Our guy said nothing, which for him is a compliment.', 'That insert is running. Sending the next one your way.', 'Good job on the last one. Can you do it cheaper?'])); }
   return notes;
@@ -88,4 +103,16 @@ export function crewVerdict(state) {
   if (!lines.length) lines.push('Nobody came. The compressor hissed once, which counts.');
   if ((state.yr && state.yr.wsib) || (state.achievements || []).includes('wsib')) lines.push('A card from the WSIB office. It just says "finally".');
   return lines;
+}
+
+// a program job shipped: count it; all three on time pays the bonus
+export function programShipped(state, job, late) {
+  const pr = state.program; if (!pr || !pr.jobs.includes(job.id) || pr.finished) return null;
+  pr.done++; if (late > 0) pr.late++;
+  if (pr.done >= 3) {
+    pr.finished = true; const c = customerOf(pr.customer);
+    if (pr.late === 0) { post(state, `Program bonus, ${c.name}`, pr.bonus); state.rep = Math.min(1, state.rep + 0.1); message(state, c.name, 'The program: thank you', `All three, on time. The bonus is in the mail, which for us means actually in the mail. The next program is yours to lose.`); return `The program is done. All three on time. ${money(pr.bonus)} bonus from ${c.name}, and a reputation you can hear from across town.`; }
+    message(state, c.name, 'The program', `Three molds. ${pr.late} late. The bonus clause was clear. We will still call. Probably.`); return `The program is done. ${pr.late} of three late. No bonus. ${c.name} said "probably".`;
+  }
+  return `Program mold ${pr.done} of 3 shipped${late > 0 ? ', late. The bonus is gone' : ', on time'}.`;
 }

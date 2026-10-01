@@ -267,6 +267,11 @@ Then open http://localhost:8080/.
   coolant in the window. In the overhead view every machine and every person carries a permanent
   tag (name, status, job), idle ones in amber, down or burning ones in red, running ones in green.
 
+- The program. Ship two molds for the same customer first-time-right and, with a name, they may
+  offer a program: three molds over four months, quoted as a set, with a ten percent bonus if all
+  three ship on time. Lose one quote and the set is off; ship one late and the bonus is gone; ship
+  all three on time and the bonus clears, reputation jumps, and the next program is yours to lose.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

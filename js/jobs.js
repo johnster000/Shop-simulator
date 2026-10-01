@@ -219,9 +219,9 @@ export function startJob(state, rfq) {
     id: state.jobNo++, rfqId: rfq.id, customer: rfq.customer, title: rfq.title, qty: rfq.qty, steel: rfq.steel, mold: !!rfq.mold, spec: rfq.spec || null,
     items, jobStages: (rfq.jobStages || []).map((q) => ({ ...q })), price: rfq.price, material: rfq.material, minutes: rfq.minutes, cnc: !!rfq.cnc,
     poDay: state.day, dueDay: state.day + rfq.lead, materialDay: rfq.material > 0 ? state.day + 1 : state.day,
-    status: rfq.material > 0 ? 'material' : 'work', shippedDay: null, scrap: 0, risk: 0, tryouts: 0, defects: [],
+    status: rfq.material > 0 ? 'material' : 'work', shippedDay: null, scrap: 0, risk: 0, tryouts: 0, defects: [], program: !!rfq.program,
   };
-  state.jobs.push(job);
+  state.jobs.push(job); if (rfq.program && state.program) state.program.jobs.push(job.id);
   // deposit: 50% on PO for component work; 30/30/40 on a mold (bible §7.5). steel goes out today.
   const deposit = Math.round(job.price * (job.mold ? 0.3 : 0.5));
   job.paid = deposit;
@@ -370,7 +370,8 @@ export function endOfDay(state, byId) {
     if (r.status !== 'quoted') continue;
     const c = customerOf(r.customer);
     if (Math.random() < winChance(state, r)) { r.status = 'won'; const job = startJob(state, r); notes.push(`PO from ${c.name}: ${job.title}.`); }
-    else { r.status = 'lost'; const rival = RIVALS[Math.floor(Math.random() * RIVALS.length)], at = Math.round(r.expected * (0.82 + Math.random() * 0.16) / 10) * 10; state.lostTo = state.lostTo || {}; state.lostTo[rival] = (state.lostTo[rival] || 0) + 1; message(state, c.name, `Re: quote, ${r.title}`, `${rival} had it at about $${at.toLocaleString()}. ` + pick(['Thanks for the quote. We went another way.', 'We will keep you in mind for the next one.', 'A bit rich for us this time.', 'Our guy had a slot open. Next time.'])); notes.push(`Lost the ${r.title} to somebody cheaper.`); }
+    else { if (r.program && state.program && !state.program.finished) { state.program.finished = true; message(state, c.name, 'The program', 'One of the three went elsewhere, so the set is off. One at a time from here, like everybody else.'); }
+      r.status = 'lost'; const rival = RIVALS[Math.floor(Math.random() * RIVALS.length)], at = Math.round(r.expected * (0.82 + Math.random() * 0.16) / 10) * 10; state.lostTo = state.lostTo || {}; state.lostTo[rival] = (state.lostTo[rival] || 0) + 1; message(state, c.name, `Re: quote, ${r.title}`, `${rival} had it at about $${at.toLocaleString()}. ` + pick(['Thanks for the quote. We went another way.', 'We will keep you in mind for the next one.', 'A bit rich for us this time.', 'Our guy had a slot open. Next time.'])); notes.push(`Lost the ${r.title} to somebody cheaper.`); }
   }
   // expiry
   for (const r of state.rfqs) if (r.status === 'open' && state.day >= r.expires) { r.status = 'expired'; }

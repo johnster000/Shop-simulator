@@ -6,7 +6,7 @@ import * as TX from './textures.js';
 import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
-import { crewVerdict } from './events.js';
+import { crewVerdict, programShipped } from './events.js';
 import { Delivery } from './truck.js';
 import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
@@ -55,7 +55,7 @@ export function startShop(T, audio, state) {
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
     goHome() { leaveForTheNight(); },
-    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
+    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (j && j.program) { const line = programShipped(state, j, Math.max(0, state.day - j.dueDay)); if (line) { setTimeout(() => ui.toast(line, 6000), 1500); if (state.program && state.program.finished && state.program.late === 0) unlock('the_program'); } } if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
     crew() { return crew; },
     crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
     achievement(a) { showAchievement(a); },
