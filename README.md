@@ -115,7 +115,13 @@ Then open http://localhost:8080/.
   Monday at 8:04; the first stuck part at tryout is The Draw. The wall of achievements is on the
   pause screen.
 
-Not yet: the second building, year-end valuation, the retirement ending. Next.
+- The second building. The SHOP tab sells a move to the 10,000 sq ft unit across the lot: four
+  times the floor, two real bay doors, 600 amps, air for four, an inspection room with glass
+  walls for the CMM, a break room with a fridge nobody cleans, and rent to match. Moving day is a
+  weekend; everything comes off the trucks unplaced and you lay the floor out again from the
+  clipboard. The crew carried it and would like that noted.
+
+Not yet: year-end valuation, the retirement ending. Next.
 
 ## Layout
 

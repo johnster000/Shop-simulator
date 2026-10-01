@@ -3,7 +3,7 @@
 // closes at 17:00; you can stay late until 23:00, and then you go home whether you like it or not.
 // Monday is day 1.
 
-import { byId, SHOP, UPGRADES, SOFTWARE } from './catalog.js';
+import { byId, SHOP, BUILDINGS, UPGRADES, SOFTWARE } from './catalog.js';
 import { initJobs, endOfDay } from './jobs.js';
 import { initPeople, endOfDay as peopleEndOfDay } from './people.js';
 import { nightlyEvents, yearSummary } from './events.js';
@@ -14,7 +14,8 @@ export const CLOSE_MIN = 600;    // 17:00, in minutes after opening
 export const HARD_STOP_MIN = 960; // 23:00. nobody is any good after this.
 export const END_DAY_SPEED = 60;  // END DAY runs a shop minute per real second
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const RENT_WEEKLY = 850;      // $3,400 a month-ish for 2,500 sq ft, charged Monday morning
+const RENT_WEEKLY = 850;      // the small unit; the big one is in BUILDINGS
+export function building(state) { return BUILDINGS[state.building || 'small']; }
 const POWER_WEEKLY_BASE = 200; // the lights and the compressor
 const POWER_PER_MACHINE = 60;
 
@@ -119,7 +120,19 @@ export function upgradeDue(state) { // called at end of day
   const f = state.facility, notes = [];
   if (!f.done) f.done = [];
   for (const p of f.pending.slice()) if (state.day >= p.day) {
-    const up = UPGRADES.find((u) => u.id === p.id); Object.assign(f, up.gives); f.done.push(p.id); f.pending.splice(f.pending.indexOf(p), 1);
+    const up = UPGRADES.find((u) => u.id === p.id); f.done.push(p.id); f.pending.splice(f.pending.indexOf(p), 1);
+    if (up.gives.building) {
+      // moving day. everything is on trucks. the new place comes with more service than the old one.
+      state.building = up.gives.building; const b = BUILDINGS[state.building];
+      f.circuits = Math.max(f.circuits, b.powerSlots); f.air = Math.max(f.air, b.airSlots); f.door = true;
+      for (const m of state.machines) { m.placed = false; m.running = false; m.runLeft = 0; m.job = null; m.checklist = {}; }
+      state.crates = state.crates; state.moved = true; state.pc = null;
+      for (const q of state.people) q.morale = Math.min(1, q.morale + 0.1);
+      achieve(state, 'moved');
+      notes.push(`MOVING DAY. ${b.name}. Everything is on the floor by the doors, in the order it came off the trucks. Place it all again. The crew carried things all weekend and would like that noted.`);
+      continue;
+    }
+    Object.assign(f, up.gives);
     if (up.gives.crane) achieve(state, 'the_crane'); if (up.gives.circuits === 4) achieve(state, 'panel');
     notes.push(`${up.name}: done. ${up.group === 'power' ? 'The electrician left a bill and a sticker.' : up.group === 'door' ? 'The tarp is in the dumpster. Somebody took a photo.' : up.group === 'crane' ? 'The crane is up. Everyone stopped to watch the first lift. It lifted a chair.' : 'Installed.'}`);
   }
@@ -225,10 +238,11 @@ export function goHome(state) {
   if (friday) { night.weekend = true; night.fatigue = state.fatigue = Math.max(0, fatigue - 0.5); }
   const extra = [];
   if ((state.day - 1) % 7 === 0) {
-    post(state, 'Rent', -RENT_WEEKLY);
-    const power = POWER_WEEKLY_BASE + POWER_PER_MACHINE * poweredCount(state);
+    const rent = building(state).rent;
+    post(state, 'Rent', -rent);
+    const power = POWER_WEEKLY_BASE * (state.building === 'large' ? 2.5 : 1) + POWER_PER_MACHINE * poweredCount(state);
     post(state, 'Hydro', -power);
-    night.week = { rent: RENT_WEEKLY, power };
+    night.week = { rent, power };
     const sw = softwareWeekly(state); if (sw) { post(state, 'Software maintenance', -sw); extra.push(`Software maintenance: $${sw}.`); }
     extra.push(...loansWeekly(state));
   }

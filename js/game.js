@@ -5,7 +5,7 @@ import { MachineView } from './machines.js';
 import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
-import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH } from './sim.js';
+import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
@@ -29,9 +29,10 @@ export function startShop(T, audio, state) {
   camera.rotation.order = 'YXZ';
   scene.add(camera);
 
-  const shop = new Shop(T, scene, state.shopName);
+  const shop = new Shop(T, scene, state.shopName, building(state));
   const player = new Player(T, camera, canvas);
   camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
+  if (state.machines.some((m) => !m.placed)) setTimeout(() => ui.toast('Everything is on the floor by the doors. Place it all again, from the clipboard. The crew is watching.', 5000), 1500);
   const iso = new Iso(T, scene, shop, canvas);
   const views = state.machines.map((m) => new MachineView(T, scene, m));
   const viewOf = (uid) => views.find((v) => v.m.uid === uid);
@@ -293,6 +294,7 @@ export function startShop(T, audio, state) {
     run();
   }
   $('wakeBtn').addEventListener('click', () => {
+    if (state.moved) { state.moved = false; save(state); try { localStorage.setItem('shopsim.resume', '1'); } catch (e) { /* fine */ } location.reload(); return; }
     nightEl.classList.add('fade'); audio.paper();
     setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
     camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;

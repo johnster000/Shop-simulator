@@ -9,11 +9,15 @@ const audio = new ShopAudio();
 
 (async () => {
   const existing = load();
-  await runIntro(audio);
+  let resume = false; try { resume = localStorage.getItem('shopsim.resume') === '1'; localStorage.removeItem('shopsim.resume'); } catch (e) { /* fine */ }
   let state;
-  const r = await runNaming(audio, !!existing);
-  if (r.continue && existing) state = existing;
-  else { state = fresh(r.name); save(state); }
+  if (resume && existing) { document.getElementById('intro').classList.add('hidden'); state = existing; audio.init(); }
+  else {
+    await runIntro(audio);
+    const r = await runNaming(audio, !!existing);
+    if (r.continue && existing) state = existing;
+    else { state = fresh(r.name); save(state); }
+  }
   let THREE, game;
   try {
     THREE = await import('./vendor/three.module.js');

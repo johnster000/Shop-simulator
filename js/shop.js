@@ -1,11 +1,11 @@
 // The building. 2,500 square feet, 20 foot ceiling, one bay door with a tarp over it.
-import { SHOP } from './catalog.js';
+import { SHOP, BUILDINGS } from './catalog.js';
 import * as TX from './textures.js';
 
 export class Shop {
-  constructor(T, scene, shopName) {
-    this.T = T; this.scene = scene; this.name = shopName;
-    this.hx = SHOP.w / 2; this.hz = SHOP.d / 2; this.h = SHOP.h;
+  constructor(T, scene, shopName, spec = SHOP) {
+    this.T = T; this.scene = scene; this.name = shopName; this.spec = spec;
+    this.hx = spec.w / 2; this.hz = spec.d / 2; this.h = spec.h;
     this.colliders = [];      // static boxes the player bumps into
     this.interact = [];       // meshes the crosshair can hit
     this.roofStuff = [];      // hidden in the isometric view
@@ -20,7 +20,7 @@ export class Shop {
   solid(x, z, hw, hd) { this.colliders.push({ x, z, hw, hd }); }
 
   build() {
-    const T = this.T, s = this.scene, hx = this.hx, hz = this.hz, H = this.h;
+    const T = this.T, s = this.scene, hx = this.hx, hz = this.hz, H = this.h, SHOP = this.spec;
     s.background = new T.Color(0x0b0d10);
 
     // floor
@@ -37,12 +37,13 @@ export class Shop {
     wall(SHOP.d, -hx, 0, Math.PI / 2);       // west
     wall(SHOP.d, hx, 0, -Math.PI / 2);       // east
     // south wall has the bay door in it: left piece, right piece, header
-    const dw = SHOP.door.w, dh = SHOP.door.h, dx = 3.0; // door centre x
-    const leftW = (dx - dw / 2) + hx, rightW = hx - (dx + dw / 2);
-    wall(leftW, -hx + leftW / 2, hz, Math.PI);
-    wall(rightW, hx - rightW / 2, hz, Math.PI);
-    const header = new T.Mesh(new T.PlaneGeometry(dw, H - dh), wallMat); header.position.set(dx, dh + (H - dh) / 2, hz); header.rotation.y = Math.PI; s.add(header);
-    this.door = { x: dx, w: dw, h: dh };
+    const dw = SHOP.door.w, dh = SHOP.door.h, dx = SHOP.door.x; // door centre x
+    // the south wall, with one or two doors cut out of it
+    const doors = [{ x: dx, w: dw, h: dh }].concat(SHOP.door2 ? [{ x: SHOP.door2.x, w: SHOP.door2.w, h: SHOP.door2.h }] : []).sort((a, b) => a.x - b.x);
+    let cursor = -hx;
+    for (const d of doors) { const w = (d.x - d.w / 2) - cursor; if (w > 0.01) wall(w, cursor + w / 2, hz, Math.PI); const header = new T.Mesh(new T.PlaneGeometry(d.w, H - d.h), wallMat); header.position.set(d.x, d.h + (H - d.h) / 2, hz); header.rotation.y = Math.PI; s.add(header); cursor = d.x + d.w / 2; }
+    if (hx - cursor > 0.01) wall(hx - cursor, cursor + (hx - cursor) / 2, hz, Math.PI);
+    this.door = { x: dx, w: dw, h: dh }; this.doors = doors;
 
     // ceiling: dark deck with joists. hidden in iso.
     const ceil = new T.Mesh(new T.PlaneGeometry(SHOP.w, SHOP.d), new T.MeshStandardMaterial({ color: 0x2a2d31, roughness: 1 }));
@@ -54,30 +55,37 @@ export class Shop {
     this.fixtures = [];
     const onMat = new T.MeshStandardMaterial({ color: 0xffffff, emissive: 0xf4f6ff, emissiveIntensity: 1.6 });
     const offMat = new T.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.6 });
-    const dead = new Set([1, 4, 7, 10]); let idx = 0;
-    for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {
-      const x = -hx + (c + 0.5) * (SHOP.w / 4), z = -hz + (r + 0.5) * (SHOP.d / 3);
+    const [rows, cols] = SHOP.fixtures; const dead = new Set([1, 4, 7, 10, 17, 23]); let idx = 0;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const x = -hx + (c + 0.5) * (SHOP.w / cols), z = -hz + (r + 0.5) * (SHOP.d / rows);
       const f = this.box(1.25, 0.1, 0.32, dead.has(idx) ? offMat : onMat, x, H - 0.55, z);
       const hanger = this.box(0.02, 0.4, 0.02, joist, x, H - 0.3, z);
       this.roofStuff.push(f, hanger); this.fixtures.push({ mesh: f, on: !dead.has(idx), flick: idx === 6 }); idx++;
     }
     this.flickMat = new T.MeshStandardMaterial({ color: 0xffffff, emissive: 0xf4f6ff, emissiveIntensity: 1.6 });
     this.fixtures[6].mesh.material = this.flickMat;
+    // a big floor needs more light
+    const lightPts = SHOP.id === 'large' ? [[-hx * 0.66, -hz * 0.66], [0, -hz * 0.66], [hx * 0.66, -hz * 0.66], [-hx * 0.66, 0], [0, 0], [hx * 0.66, 0], [-hx * 0.66, hz * 0.66], [0, hz * 0.66], [hx * 0.66, hz * 0.66]] : [[-hx * 0.5, -hz * 0.5], [hx * 0.5, -hz * 0.5], [-hx * 0.5, hz * 0.5], [hx * 0.5, hz * 0.5]];
 
     // lights: a few points, a hemisphere, and daylight through the door
     this.hemi = new T.HemisphereLight(0xdfe6f0, 0x3a3630, 0.35); s.add(this.hemi);
     this.ambient = new T.AmbientLight(0xcfd6e0, 0.12); s.add(this.ambient);
     this.points = [];
-    for (const [x, z] of [[-hx * 0.5, -hz * 0.5], [hx * 0.5, -hz * 0.5], [-hx * 0.5, hz * 0.5], [hx * 0.5, hz * 0.5]]) {
-      const p = new T.PointLight(0xeef2ff, 26, 0, 1.6); p.position.set(x, H - 0.8, z); s.add(p); this.points.push(p);
+    for (const [x, z] of lightPts) {
+      const p = new T.PointLight(0xeef2ff, SHOP.id === 'large' ? 34 : 26, 0, 1.6); p.position.set(x, H - 0.8, z); s.add(p); this.points.push(p);
     }
+    // daylight leaks in at every door. the second door gets its own sun, which is more than the first shop had.
     this.day = new T.PointLight(0xfff1d0, 60, 0, 1.4); this.day.position.set(dx, 2.2, hz + 1.5); s.add(this.day);
+    this.dayLights = [this.day];
+    for (const d of doors) if (d.x !== dx) { const l = new T.PointLight(0xfff1d0, 60, 0, 1.4); l.position.set(d.x, 2.2, hz + 1.5); s.add(l); this.dayLights.push(l); }
 
     // outside: the lot, the sky, the neighbour's dumpster
-    const out = new T.Mesh(new T.PlaneGeometry(40, 20), new T.MeshBasicMaterial({ map: TX.outside(T) }));
-    out.position.set(dx, 8, hz + 12); out.rotation.y = Math.PI; s.add(out); this.roofStuff.push(out);
-    const lot = new T.Mesh(new T.PlaneGeometry(7, 4), new T.MeshStandardMaterial({ color: 0x6f6f6c, roughness: 1 }));
-    lot.rotation.x = -Math.PI / 2; lot.position.set(dx, -0.01, hz + 2); s.add(lot);
+    const out = new T.Mesh(new T.PlaneGeometry(SHOP.w + 26, 20), new T.MeshBasicMaterial({ map: TX.outside(T) }));
+    out.position.set(0, 8, hz + 12); out.rotation.y = Math.PI; s.add(out); this.roofStuff.push(out);
+    for (const d of doors) {
+      const lot = new T.Mesh(new T.PlaneGeometry(d.w + 2.8, 4), new T.MeshStandardMaterial({ color: 0x6f6f6c, roughness: 1 }));
+      lot.rotation.x = -Math.PI / 2; lot.position.set(d.x, -0.01, hz + 2); s.add(lot);
+    }
 
     // the tarp. strips. they flap. it is the first thing everyone complains about.
     const tarpTex = TX.tarp(T);
@@ -92,15 +100,17 @@ export class Shop {
     const rail = this.box(dw + 0.3, 0.12, 0.14, new T.MeshStandardMaterial({ color: 0x777, metalness: 0.6 }), dx, dh + 0.06, hz - 0.08);
     this.tag(this.tarpGroup, 'tarp', 'the door. it flaps.'); this.tag(rail, 'tarp', 'the door. it flaps.');
     // nobody walks out in this build
-    this.solid(dx, hz, dw / 2 + 0.2, 0.25);
+    for (const d of doors) this.solid(d.x, hz, d.w / 2 + 0.2, 0.25);
+    if (SHOP.door2) { this.tarpGroup.visible = false; rail.visible = false; }
 
     // breaker panel, east wall
-    const grey = new T.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.5, roughness: 0.4 });
+    const grey = this.greyMat = new T.MeshStandardMaterial({ color: 0x9aa0a6, metalness: 0.5, roughness: 0.4 });
     const panel = this.box(0.16, 0.9, 0.5, grey, hx - 0.09, 1.5, -hz * 0.3); // flat against the east wall
     const panelDoor = this.box(0.02, 0.8, 0.44, new T.MeshStandardMaterial({ color: 0xb8bec4, metalness: 0.5, roughness: 0.35 }), hx - 0.18, 1.5, -hz * 0.3);
-    const panelLabel = new T.Mesh(new T.PlaneGeometry(0.3, 0.12), new T.MeshBasicMaterial({ map: TX.label(T, ['200A', '2 MACHINES'], { size: 28 }) }));
+    const amps = SHOP.powerSlots > 2 ? '600A' : '200A', panelNote = SHOP.powerSlots > 2 ? `breaker panel. ${amps}. room for ${SHOP.powerSlots} machines before the electrician comes back.` : 'breaker panel. enough for two machines.';
+    const panelLabel = new T.Mesh(new T.PlaneGeometry(0.3, 0.12), new T.MeshBasicMaterial({ map: TX.label(T, [amps, `${SHOP.powerSlots} MACHINES`], { size: 28 }) }));
     panelLabel.position.set(hx - 0.195, 1.82, -hz * 0.3); panelLabel.rotation.y = -Math.PI / 2; s.add(panelLabel);
-    this.tag(panel, 'panel', 'breaker panel. enough for two machines.'); this.tag(panelDoor, 'panel', 'breaker panel. enough for two machines.');
+    this.tag(panel, 'panel', panelNote); this.tag(panelDoor, 'panel', panelNote);
 
     // the compressor. south-east corner. it came with the shop.
     const comp = new T.Group(); comp.position.set(hx - 1.0, 0, hz - 1.3);
@@ -157,7 +167,7 @@ export class Shop {
   }
 
   buildOffice() {
-    const T = this.T, s = this.scene, hx = this.hx, hz = this.hz, O = SHOP.office;
+    const T = this.T, s = this.scene, hx = this.hx, hz = this.hz, SHOP = this.spec, O = SHOP.office, grey = this.greyMat;
     const x0 = -hx, x1 = -hx + O.w, z0 = -hz, z1 = -hz + O.d; // office spans x0..x1, z0..z1
     const wallMat = new T.MeshStandardMaterial({ color: 0xd9d5c8, roughness: 0.9 });
     const trim = new T.MeshStandardMaterial({ color: 0x5a4a33, roughness: 0.7 });
@@ -201,14 +211,43 @@ export class Shop {
     // office light: one warm point
     const ol = new T.PointLight(0xffe8c0, 10, 0, 1.6); ol.position.set((x0 + x1) / 2, O.h - 0.2, (z0 + z1) / 2); s.add(ol);
     this.office = { x0, x1, z0, z1 };
+    this.rooms = [];
+    if (SHOP.inspection) {
+      // the inspection room: glass walls in the north-east corner, cool and quiet. the CMM wants it.
+      const I = SHOP.inspection, ix1 = hx, ix0 = hx - I.w, iz0 = -hz, iz1 = -hz + I.d;
+      const glass = new T.MeshStandardMaterial({ color: 0x9fc3e6, transparent: true, opacity: 0.25, roughness: 0.05, side: T.DoubleSide });
+      const frame = new T.MeshStandardMaterial({ color: 0x8a8f94, metalness: 0.5 });
+      const doorX = ix0 + 0.9;
+      this.box(0.06, 2.9, I.d, glass, ix0, 1.45, (iz0 + iz1) / 2); this.solid(ix0, (iz0 + iz1) / 2, 0.05, I.d / 2);
+      const rightW = ix1 - (doorX + 0.5), leftW = (doorX - 0.5) - ix0;
+      if (leftW > 0.05) { this.box(leftW, 2.9, 0.06, glass, ix0 + leftW / 2, 1.45, iz1); this.solid(ix0 + leftW / 2, iz1, leftW / 2, 0.05); }
+      this.box(rightW, 2.9, 0.06, glass, ix1 - rightW / 2, 1.45, iz1); this.solid(ix1 - rightW / 2, iz1, rightW / 2, 0.05);
+      this.box(1.0, 0.1, 0.06, frame, doorX, 2.9, iz1);
+      for (const [x, z] of [[ix0, iz1], [doorX - 0.5, iz1], [doorX + 0.5, iz1]]) this.box(0.08, 2.95, 0.08, frame, x, 1.475, z);
+      const lbl = new T.Mesh(new T.PlaneGeometry(0.9, 0.22), new T.MeshBasicMaterial({ map: TX.label(T, ['INSPECTION', '20 \u00b0C. DOOR SHUT.'], { size: 30 }) })); lbl.position.set(ix1 - rightW / 2, 2.3, iz1 + 0.05); s.add(lbl);
+      this.rooms.push({ x0: ix0, x1: ix1, z0: iz0, z1: iz1, name: 'inspection' });
+    }
+    if (SHOP.breakroom) {
+      // the break room, beside the office: a table, chairs, a fridge, the kettle's promotion
+      const B = SHOP.breakroom, bx0 = x1 + 0.3, bx1 = bx0 + B.w, bz0 = z0, bz1 = z0 + B.d;
+      this.box(0.12, 2.7, B.d, wallMat, bx1, 1.35, (bz0 + bz1) / 2); this.solid(bx1, (bz0 + bz1) / 2, 0.06, B.d / 2);
+      const bw = (bx1 - bx0) - 1.0; this.box(bw, 2.7, 0.12, wallMat, bx0 + bw / 2, 1.35, bz1); this.solid(bx0 + bw / 2, bz1, bw / 2, 0.06);
+      this.box(1.0, 0.6, 0.12, wallMat, bx1 - 0.5, 2.4, bz1);
+      const tbl = this.box(1.2, 0.05, 0.7, new T.MeshStandardMaterial({ color: 0xd8d2c0 }), (bx0 + bx1) / 2, 0.75, (bz0 + bz1) / 2); for (const dx of [-0.5, 0.5]) for (const dz of [-0.25, 0.25]) this.box(0.05, 0.75, 0.05, grey, (bx0 + bx1) / 2 + dx, 0.37, (bz0 + bz1) / 2 + dz);
+      this.solid((bx0 + bx1) / 2, (bz0 + bz1) / 2, 0.6, 0.35);
+      const fridge = this.box(0.7, 1.7, 0.7, new T.MeshStandardMaterial({ color: 0xe8e8e4 }), bx0 + 0.5, 0.85, bz0 + 0.5); this.tag(fridge, 'fridge', 'the fridge. somebody\'s lunch from April.'); this.solid(bx0 + 0.5, bz0 + 0.5, 0.35, 0.35);
+      const coffee = this.box(0.3, 0.4, 0.3, new T.MeshStandardMaterial({ color: 0x222 }), bx1 - 0.5, 0.95, bz0 + 0.4); this.tag(coffee, 'coffeemaker', 'the coffee machine. a real one. morale lives here.');
+      this.box(1.0, 0.75, 0.5, grey, bx1 - 0.5, 0.375, bz0 + 0.4); this.solid(bx1 - 0.5, bz0 + 0.4, 0.5, 0.25);
+      this.rooms.push({ x0: bx0, x1: bx1, z0: bz0, z1: bz1, name: 'breakroom' });
+    }
   }
 
   // a rectangle a machine may not be placed in (the office, the door apron)
   forbidden(x, z, hw, hd) {
     const o = this.office;
     if (x + hw > o.x0 - 0.3 && x - hw < o.x1 + 0.3 && z + hd > o.z0 && z - hd < o.z1 + 0.3) return 'that is the office';
-    const d = this.door;
-    if (x + hw > d.x - d.w / 2 - 0.5 && x - hw < d.x + d.w / 2 + 0.5 && z + hd > this.hz - 3.2) return 'keep the door clear';
+    for (const r of this.rooms || []) if (r.name !== 'inspection' && x + hw > r.x0 - 0.3 && x - hw < r.x1 + 0.3 && z + hd > r.z0 && z - hd < r.z1 + 0.3) return 'that is the ' + (r.name === 'breakroom' ? 'break room' : r.name);
+    for (const d of this.doors || [this.door]) if (x + hw > d.x - d.w / 2 - 0.5 && x - hw < d.x + d.w / 2 + 0.5 && z + hd > this.hz - 3.2) return 'keep the door clear';
     if (x + hw > this.hx - 2.2 && z + hd > this.hz - 2.4) return 'the compressor lives there';
     if (x - hw < -this.hx + 1.3 && z + hd > this.hz * 0.45 - 1.6 && z - hd < this.hz * 0.45 + 1.6) return 'that is the steel rack';
     return null;
@@ -234,9 +273,12 @@ export class Shop {
     if (!this.rollup) {
       const g = new T.Group();
       const mat = new T.MeshStandardMaterial({ color: 0xc8ccd0, roughness: 0.6, metalness: 0.3 });
-      for (let i = 0; i < 6; i++) { const slat = new T.Mesh(new T.BoxGeometry(d.w + 0.1, 0.42, 0.06), mat); slat.position.set(d.x, 0.22 + i * 0.44, this.hz - 0.08); g.add(slat); const line = new T.Mesh(new T.BoxGeometry(d.w + 0.1, 0.02, 0.065), new T.MeshStandardMaterial({ color: 0x8a8e92 })); line.position.set(d.x, 0.44 + i * 0.44, this.hz - 0.08); g.add(line); }
-      const drum = new T.Mesh(new T.CylinderGeometry(0.22, 0.22, d.w + 0.4, 16), new T.MeshStandardMaterial({ color: 0x555, metalness: 0.5 })); drum.rotation.z = Math.PI / 2; drum.position.set(d.x, d.h + 0.2, this.hz - 0.3); g.add(drum);
-      const win = new T.Mesh(new T.PlaneGeometry(0.5, 0.3), new T.MeshStandardMaterial({ color: 0x9fc3e6, transparent: true, opacity: 0.6 })); win.position.set(d.x, 1.65, this.hz - 0.04); win.rotation.y = Math.PI; g.add(win);
+      for (const d of this.doors || [this.door]) {
+        const slats = Math.ceil(d.h / 0.44);
+        for (let i = 0; i < slats; i++) { const slat = new T.Mesh(new T.BoxGeometry(d.w + 0.1, 0.42, 0.06), mat); slat.position.set(d.x, 0.22 + i * 0.44, this.hz - 0.08); g.add(slat); const line = new T.Mesh(new T.BoxGeometry(d.w + 0.1, 0.02, 0.065), new T.MeshStandardMaterial({ color: 0x8a8e92 })); line.position.set(d.x, 0.44 + i * 0.44, this.hz - 0.08); g.add(line); }
+        const drum = new T.Mesh(new T.CylinderGeometry(0.22, 0.22, d.w + 0.4, 16), new T.MeshStandardMaterial({ color: 0x555, metalness: 0.5 })); drum.rotation.z = Math.PI / 2; drum.position.set(d.x, d.h + 0.2, this.hz - 0.3); g.add(drum);
+        const win = new T.Mesh(new T.PlaneGeometry(0.5, 0.3), new T.MeshStandardMaterial({ color: 0x9fc3e6, transparent: true, opacity: 0.6 })); win.position.set(d.x, 1.65, this.hz - 0.04); win.rotation.y = Math.PI; g.add(win);
+      }
       g.visible = false; this.scene.add(g); this.rollup = g; this.tag(g, 'door', 'a real door. insulated. the tarp is in the dumpster.');
     }
     this.rollup.visible = real; this.tarpGroup.visible = !real;

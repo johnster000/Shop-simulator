@@ -12,14 +12,14 @@ export class Iso {
     this.T = T; this.scene = scene; this.shop = shop; this.canvas = canvas;
     this.active = false;
     this.camera = new T.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
-    this.camera.position.set(14, 16, 14); this.camera.lookAt(0, 0, 0);
+    const k = shop.hx / 7.6; this.camera.position.set(14 * k, 16 * k, 14 * k); this.camera.lookAt(0, 0, 0);
     this.fit();
     this.ray = new T.Raycaster(); this.ptr = new T.Vector2(); this.floorPlane = new T.Plane(new T.Vector3(0, 1, 0), 0);
     this.pending = null; this.ghost = null; this.ghostMat = null; this.valid = false; this.why = '';
     this.pos = { x: 0, z: 2 }; this.rot = 0; this.parked = false; this.dragging = false; this.dragOff = { x: 0, z: 0 };
     this.onConfirm = null; this.onCancel = null; this.onPick = null; this.onChange = null;
     // the half-metre grid, only in this view
-    this.grid = new T.GridHelper(SHOP.w, SHOP.w * 2, 0x6a7a8a, 0x3a4450); this.grid.position.y = 0.004; this.grid.visible = false; scene.add(this.grid);
+    this.grid = new T.GridHelper(shop.hx * 2, shop.hx * 4, 0x6a7a8a, 0x3a4450); this.grid.position.y = 0.004; this.grid.visible = false; scene.add(this.grid);
     // footprint outline: the machine's rectangle and the clearance band around it
     this.padMat = new T.MeshBasicMaterial({ color: 0x2ecc40, transparent: true, opacity: 0.18, depthWrite: false });
     this.rectMat = new T.MeshBasicMaterial({ color: 0x2ecc40, transparent: true, opacity: 0.35, depthWrite: false });
@@ -46,7 +46,7 @@ export class Iso {
   }
 
   fit() {
-    const aspect = innerWidth / innerHeight, span = aspect >= 1 ? 12.5 : 12.5 / aspect; // portrait: fit by width
+    const base = this.shop.hx * 0.82 + 6.3, aspect = innerWidth / innerHeight, span = aspect >= 1 ? base : base / aspect; // portrait: fit by width
     this.camera.left = -span * aspect; this.camera.right = span * aspect; this.camera.top = span; this.camera.bottom = -span;
     this.camera.updateProjectionMatrix();
   }

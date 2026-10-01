@@ -106,6 +106,7 @@ export const UPGRADES = [
   { id: 'door', name: 'A real bay door', group: 'door', price: 6500, days: 2, blurb: 'Insulated roll-up. Replaces the tarp. Everyone cheers. The heating bill drops.', gives: { door: true }, needs: null },
   { id: 'fire', name: 'Fire suppression on the EDMs', group: 'safety', price: 3500, days: 1, blurb: 'A bottle, a sensor, a sign. For the night the sinker decides to be a candle.', gives: { fire: true }, needs: null },
   { id: 'toolbreak', name: 'Tool-break detection', group: 'safety', price: 2200, days: 1, blurb: 'A laser in the VMC that notices the cutter is gone before the cutter does. Lights-out gets safer, not safe.', gives: { toolbreak: true }, needs: null },
+  { id: 'building2', name: 'The next building: 10,000 sq ft', group: 'building', price: 42000, days: 6, blurb: 'Four times the floor, a 24 ft ceiling, two real doors, an office with a window, an inspection room, a break room. First and last month, movers, riggers, and a weekend of everybody carrying things. The sign comes with you. Rent is four times the sign.', gives: { building: 'large' }, needs: null },
   { id: 'crane', name: 'Overhead crane, 5 tonne', group: 'crane', price: 18000, days: 4, blurb: 'Runway beams along both walls, a bridge, a hoist. Everyone stops to watch the first lift. Until then anything over a pallet jack goes out, and so does fit-and-spot on a real mold.', gives: { crane: true }, needs: null },
   { id: 'dust', name: 'Dust extraction', group: 'safety', price: 2800, days: 1, blurb: 'A vacuum for cutting graphite. Without it the dust gets into the ways, the coffee, and the crew.', gives: { dust: true }, needs: null },
 ];
@@ -119,14 +120,25 @@ export const SOFTWARE = [
   { id: 'ultramill', name: 'UltraMill by Autodusk', kind: 'cam', price: 24000, weekly: 320, blurb: 'The 5-axis package. Toolpaths so smooth the machine cries. You do not have a 5-axis.', fast: 0.9 },
 ];
 
-export const SHOP = {
-  // 2,500 sq ft, square-ish. 20 ft ceiling. One bay door the height of a small truck.
-  w: 15.2, d: 15.2, h: 6.1,
-  door: { w: 3.6, h: 3.4 },           // on the south wall, to the right of centre
-  office: { w: 4.2, d: 3.4, h: 2.7 }, // box in the north-west corner
-  powerSlots: 2,                      // circuits on day one
-  airSlots: 1,                        // the day-one compressor feeds one air machine
+export const BUILDINGS = {
+  small: {
+    id: 'small', name: 'the 2,500 sq ft unit',
+    // 2,500 sq ft, square-ish. 20 ft ceiling. One bay door the height of a small truck.
+    w: 15.2, d: 15.2, h: 6.1,
+    door: { w: 3.6, h: 3.4, x: 3.0 },   // on the south wall, to the right of centre
+    office: { w: 4.2, d: 3.4, h: 2.7 }, // box in the north-west corner
+    powerSlots: 2, airSlots: 1, rent: 850, fixtures: [3, 4],
+  },
+  large: {
+    id: 'large', name: 'the 10,000 sq ft building',
+    // 10,000 sq ft. 24 ft ceiling. Two real doors, a proper office, an inspection room, a break room.
+    w: 30.5, d: 30.5, h: 7.3,
+    door: { w: 4.2, h: 4.2, x: 8.0 }, door2: { w: 4.2, h: 4.2, x: -8.0 },
+    office: { w: 7.0, d: 5.0, h: 2.9 }, inspection: { w: 5.0, d: 4.0 }, breakroom: { w: 4.0, d: 3.0 },
+    powerSlots: 6, airSlots: 4, rent: 3400, fixtures: [5, 6],
+  },
 };
+export const SHOP = BUILDINGS.small;
 
 export const RANDOM_NAMES = [
   'Northside Mold & Tool', 'Ironwood Tooling', 'Precision Plastics Tooling', 'Three Rivers Mold',
