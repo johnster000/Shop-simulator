@@ -192,6 +192,13 @@ Then open http://localhost:8080/.
   will write to your customer. The expensive last resort, as the bible says. Disgruntled crew
   with nothing to do stand at the vending machine instead of sweeping, technically on break.
 
+- The traveller, the boss, and overtime. Every live job has a paper traveller on a clipboard,
+  with a coffee ring, hanging on a nail on the office wall or lying beside the machine that has
+  it. Look at it to see where the job is and when it is due; pick it up and click to read the
+  JOBS tab; throw it if you must. Standing behind somebody while they run a machine cuts their
+  crash odds and teaches them faster, and they will tell you to go. At five o'clock a third
+  button keeps the whole crew late at time and a half, with a look and a morale cost.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

@@ -4,7 +4,7 @@ import { buildPerson, pose, holdProp, dropProp, buildBroom } from './person.js';
 import { byId } from './catalog.js';
 import { runnableStages, IN_HOUSE_MIN } from './jobs.js';
 import { canRun, setupRoll, speedFactor, line, skillFor, practice } from './people.js';
-import { CLOSE_MIN } from './sim.js';
+import { CLOSE_MIN, HARD_STOP_MIN } from './sim.js';
 
 const SETUP_MIN = 6;          // shop minutes to set a machine up
 const LUNCH_AT = 300, LUNCH_LEN = 30; // 12:00, half an hour
@@ -58,7 +58,7 @@ export class Crew {
     return { x: m.x + Math.sin(a) * off, z: m.z + Math.cos(a) * off, face: Math.atan2(m.x - (m.x + Math.sin(a) * off), m.z - (m.z + Math.cos(a) * off)) };
   }
   homeSpot(i) { return { x: -this.shop.hx + 2.0 + (i % 4) * 1.1, z: -this.shop.hz + 5.2 + Math.floor(i / 4) * 1.0 }; }
-  present(p) { const s = this.state; return p.startDay != null && p.startDay <= s.day && s.t >= (p.quirkId === 'late' ? 20 : 0) && s.t < CLOSE_MIN; }
+  present(p) { const s = this.state; return p.startDay != null && p.startDay <= s.day && s.t >= (p.quirkId === 'late' ? 20 : 0) && (s.t < CLOSE_MIN || (s.crewOT && s.t < HARD_STOP_MIN)); }
 
   goTo(v, target, mode) {
     v.path = this.nav.path(v.pos.x, v.pos.z, target.x, target.z);

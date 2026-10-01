@@ -1,7 +1,8 @@
 // The render loop, the floor, the glue.
 import { Shop } from './shop.js';
 import { Player } from './player.js';
-import { MachineView } from './machines.js';
+import { MachineView, halfSizes } from './machines.js';
+import * as TX from './textures.js';
 import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
@@ -9,6 +10,7 @@ import { crewVerdict } from './events.js';
 import { Delivery } from './truck.js';
 import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
+import { practice } from './people.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob } from './jobs.js';
 import { Nav } from './nav.js';
@@ -80,6 +82,24 @@ export function startShop(T, audio, state) {
   let coffeeItem = items.items.find((it) => it.kind === 'coffee');
   const delivery = new Delivery(T, scene, shop, state);
   const phone = new Phone(shop, state, audio, { toast: (t, ms) => ui.toast(t, ms), unlock });
+  // the travellers: one clipboard per live job, beside the machine that has it or on the rack
+  const travellers = new Map();
+  function syncTravellers() {
+    const live = state.jobs.filter((j) => j.status === 'work' || j.status === 'material');
+    for (const [id, it] of travellers) if (!live.find((j) => j.id === id)) { items.remove(it); travellers.delete(id); }
+    let k = 0;
+    for (const j of live) {
+      const lines = [`JOB ${j.id}`, j.title.slice(0, 16).toUpperCase(), nextLabel(j).slice(0, 18)];
+      let it = travellers.get(j.id);
+      if (!it) { it = items.make('traveller', shop.office.x0 + 0.4, shop.office.z1 + 0.03, { y: 1.35, lines }); it.jobId = j.id; it.lines = lines.join('|'); travellers.set(j.id, it); }
+      if (it.lines !== lines.join('|')) { it.lines = lines.join('|'); it.mesh.userData.paper.material.map = TX.label(T, lines, { size: 24, bg: '#f4f1e6', border: '#f4f1e6', fg: '#222' }); it.mesh.userData.paper.material.needsUpdate = true; }
+      const mv = views.find((v) => v.m.placed && v.m.job && v.m.job.jobId === j.id);
+      // on the floor beside the machine that has it, or hanging on a nail on the office wall, by the door, in job order
+      const home = mv ? { x: mv.m.x + Math.cos((mv.m.rot * Math.PI) / 180) * (halfSizes(mv.def, mv.m.rot).hw + 0.3), z: mv.m.z + 0.2, y: 0.01, hang: false } : { x: shop.office.x0 + 0.4 + k * 0.32, z: shop.office.z1 + 0.03, y: 1.35, hang: true };
+      k++;
+      if (items.held !== it && !it.flying && !it.moved && (it.home.x !== home.x || it.home.z !== home.z || it.home.hang !== home.hang)) { it.home = home; it.mesh.position.set(home.x, home.y, home.z); it.rest = home.hang ? 0.01 : home.y; it.mesh.rotation.set(home.hang ? -Math.PI / 2 : 0, home.hang ? 0 : Math.random() * 0.6 - 0.3, home.hang ? (Math.random() - 0.5) * 0.1 : 0); }
+    }
+  }
   let steelItem = null;
   function syncSteel() {
     const want = state.jobs.some((j) => j.status === 'work');
@@ -243,7 +263,10 @@ export function startShop(T, audio, state) {
   function runMachine(m, skipped, p) {
     const def = byId(m.id);
     audio.cycleStart();
-    const risk = def.kind === 'bench' ? 0.02 : def.kind === 'press' || def.kind === 'heat' ? 0 : skipped * 0.18 + (1 - m.condition) * 0.12; // a press and an oven have their own ways of going wrong
+    let risk = def.kind === 'bench' ? 0.02 : def.kind === 'press' || def.kind === 'heat' ? 0 : skipped * 0.18 + (1 - m.condition) * 0.12; // a press and an oven have their own ways of going wrong
+    // the owner standing there: fewer crashes, faster learning, and a look
+    const watching = p && !iso.active && Math.hypot(camera.position.x - m.x, camera.position.z - m.z) < 4.5;
+    if (watching) { risk *= 0.6; practice(p, def.kind); state.watched = (state.watched || 0) + 1; if (state.watched >= 5) unlock('watched'); if (Math.random() < 0.3) crew.say(p, pick(['I know. I know.', 'Watching does not make it faster.', 'You can go.', 'Is this a test?', 'I have done this before. Twice.']), 3); }
     m.running = true; m.runTotal = m.job.min * (def.speed || 1) * (0.9 + Math.random() * 0.25) * (p ? 1.4 - Math.min(5, (p.actual[{ mill: 'mill', lathe: 'lathe', grinder: 'grind', bench: 'bench' }[def.kind] || 'general'] || 0)) * 0.1 : 1); m.runLeft = m.runTotal; // shop minutes
     state.stats.cycleStarts++;
     const who = p ? p.name : 'You';
@@ -367,10 +390,18 @@ export function startShop(T, audio, state) {
     if (player.locked) document.exitPointerLock(); player.enabled = false;
     const running = state.machines.filter((m) => m.running), cnc = running.filter((m) => byId(m.id).cnc).length, man = running.length - cnc;
     $('closingLine').textContent = running.length ? `${cnc ? `${cnc} CNC${cnc > 1 ? 's' : ''} will keep cutting tonight. ` : ''}${man ? `${man} manual machine${man > 1 ? 's' : ''} will stop where ${man > 1 ? 'they are' : 'it is'}. ` : ''}` : pick(['The compressor would like to be alone.', 'Nobody is waiting for you at home. The compressor knows that.', 'Go home. The chips will be here tomorrow.']);
+    const crewHere = state.people.filter((p) => p.startDay != null && p.startDay <= state.day).length;
+    $('crewBtn').classList.toggle('hidden', !crewHere); $('crewBtn').textContent = `EVERYBODY STAYS (${crewHere} × 1.5)`;
     closingEl.classList.remove('hidden'); modal = true;
   }
   $('stayBtn').addEventListener('click', () => { closingEl.classList.add('hidden'); modal = false; ui.setSpeed(1); audio.click(); ui.toast('Overtime. The lights hum a little louder.', 2600); if (!iso.active) { player.enabled = true; player.requestLock(); } });
   $('homeBtn').addEventListener('click', () => { closingEl.classList.add('hidden'); modal = false; leaveForTheNight(); });
+  $('crewBtn').addEventListener('click', () => {
+    state.crewOT = true; closingEl.classList.add('hidden'); modal = false; ui.setSpeed(1); audio.click(); unlock('stayed');
+    ui.toast('The crew is staying. Time and a half, and a look. Somebody is calling home.', 4000);
+    for (const q of state.people) { const v = crew.views.get(q.id); if (v && v.g.visible && Math.random() < 0.7) crew.say(q, pick(['Fine.', 'Time and a half?', 'I had a thing.', 'Sure. Pizza?', 'My wife is going to love this.']), 3); }
+    if (!iso.active) { player.enabled = true; player.requestLock(); }
+  });
   function leaveForTheNight() {
     if (night) return;
     night = true; modal = true; ui.setSpeed(0);
@@ -454,7 +485,10 @@ export function startShop(T, audio, state) {
     // a small thing hanging in front of a wall or a hook beats the wall behind it, if it is nearer than the wall
     if (lookAt && HANG_SURFACES.has(lookAt.type) && !items.held) {
       const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
-      for (const it of items.items) { if (it.flying) continue; const dx = it.mesh.position.x - camera.position.x, dz = it.mesh.position.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 1.6 && camera.position.distanceTo(it.mesh.position) < lookDist - 0.04 && (dx * fx + dz * fz) / (d || 1) > 0.86) { lookAt = { type: 'item', kind: it.kind, ref: it, text: ITEM_KINDS[it.kind].hint }; break; } }
+      // the item nearest the dot wins, in three dimensions: the clipboard on the lower shelf, not the block above it
+      const dir = camera.getWorldDirection(new T.Vector3()); let best = null, bestAng = 0.93;
+      for (const it of items.items) { if (it.flying) continue; const to = it.mesh.position.clone().sub(camera.position); const d = to.length(); if (d > 1.7 || d > lookDist - 0.04) continue; const ang = to.normalize().dot(dir); if (ang > bestAng) { bestAng = ang; best = it; } }
+      if (best) lookAt = { type: 'item', kind: best.kind, ref: best, text: ITEM_KINDS[best.kind].hint };
     }
     if (!lookAt) {
       // forgiving: a machine right in front of you counts, even if the dot is a little off
@@ -479,14 +513,15 @@ export function startShop(T, audio, state) {
         if (d < Math.min(bestD, 2.4) && (dx * fx + dz * fz) / (d || 1) > 0.8) { bestD = d; lookAt = { type: 'person', id: v.p.id }; }
       }
     }
-    if (!lookAt) { ui.tag(''); ui.hint(items.held ? `holding ${ITEM_KINDS[items.held.kind].label}${items.held.empty ? ' (empty)' : ''} · ${items.held.kind === 'airhose' ? 'click: PSSSHT' : 'click to throw'} · G to put it down` : ''); return; }
+    if (!lookAt) { ui.tag(''); ui.hint(items.held ? `holding ${ITEM_KINDS[items.held.kind].label}${items.held.empty ? ' (empty)' : ''} · ${items.held.kind === 'airhose' ? 'click: PSSSHT' : items.held.kind === 'traveller' ? 'click to read it' : 'click to throw'} · G to put it down` : ''); return; }
+    if (lookAt.type === 'item' && lookAt.kind === 'traveller' && !items.held) { const j = state.jobs.find((q) => q.id === lookAt.ref.jobId); ui.tag(j ? `JOB ${j.id} · ${j.title.toUpperCase()}` : 'TRAVELLER'); ui.hint(j ? `${nextLabel(j)} · due day ${j.dueDay}${state.day > j.dueDay ? ' (LATE)' : ''} · pick it up` : 'pick it up'); return; }
     if (lookAt.type === 'item') { ui.tag(''); ui.hint(items.held ? 'click to throw' : `pick up the ${ITEM_KINDS[lookAt.kind].label}`); return; }
     if (items.held && items.held.kind === 'hammer' && lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid), d = byId(m.id); ui.tag(`${d.brand.toUpperCase()} ${d.name.toUpperCase()}`); ui.hint('WHACK IT'); return; }
     if (items.held) {
       const hk = items.held.kind, pName = lookAt.type === 'person' ? (state.people.find((q) => q.id === lookAt.id) || {}).name : '';
       const mAt = lookAt.type === 'machine' ? state.machines.find((q) => q.uid === lookAt.uid) : null;
       ui.tag(pName || (mAt ? `${byId(mAt.id).brand.toUpperCase()} ${byId(mAt.id).name.toUpperCase()}${mAt.fire ? ' · ON FIRE' : ''}` : ''));
-      ui.hint(hk === 'extinguisher' && mAt && mAt.fire ? 'PUT IT OUT' : hk === 'extinguisher' && (mAt || pName) ? 'click to squeeze (it is not on fire)' : hk === 'airhose' ? (pName ? 'click to blast (do not)' : mAt ? 'click to blow the chips off' : 'click: PSSSHT') : hk === 'coffee' && pName ? 'click to hand it over' : 'click to throw');
+      ui.hint(hk === 'traveller' && !pAt && !mAt ? 'click to read it (the JOBS tab) · G to put it down' : hk === 'extinguisher' && mAt && mAt.fire ? 'PUT IT OUT' : hk === 'extinguisher' && (mAt || pName) ? 'click to squeeze (it is not on fire)' : hk === 'airhose' ? (pName ? 'click to blast (do not)' : mAt ? 'click to blow the chips off' : 'click: PSSSHT') : hk === 'coffee' && pName ? 'click to hand it over' : 'click to throw');
       $('hint').classList.toggle('alarm', !!(hk === 'extinguisher' && mAt && mAt.fire)); return;
     }
     if (lookAt.type === 'machine') {
@@ -510,6 +545,7 @@ export function startShop(T, audio, state) {
       if (hk === 'extinguisher') { if (mAt && mAt.fire) { putOut(mAt); return; } if (mAt || pAt) { audio.noise(0.5, 900, 0.12, 'highpass'); ui.toast(pAt ? `${pAt.name}, in a cloud of powder. "WHAT." Morale, and the floor, are worse.` : `A cloud of powder over the ${byId(mAt.id).name.toLowerCase()}. It was not on fire. It is dusty now.`, 3500); if (pAt) { pAt.morale = Math.max(0, pAt.morale - 0.15); crew.say(pAt, pick(['WHAT.', 'I was NOT on fire.', 'My coffee.']), 3); } else { mAt.condition = Math.max(0, mAt.condition - 0.01); } return; } }
       if (hk === 'airhose') { blast(mAt, pAt); return; }
       if (hk === 'coffee' && pAt) { giveCoffee(pAt); return; }
+      if (hk === 'traveller' && !pAt && !mAt) { if (player.locked) document.exitPointerLock(); ui.openClip('jobs'); return; }
       const it = items.throw(1); if (it) { it.throwDist = 0; it.from = { x: camera.position.x, z: camera.position.z }; }
       return;
     }
@@ -607,7 +643,7 @@ export function startShop(T, audio, state) {
       return;
     }
     if (e.code === 'KeyE' && !modal && !iso.active) use();
-    if (e.code === 'KeyG' && !modal && !iso.active && items.held) { const wasHose = items.held.kind === 'airhose'; items.drop(); audio.tick(0.08, 500); if (wasHose) { hoseItem.mesh.position.set(shop.hosePos.x, shop.hosePos.y, shop.hosePos.z); hoseItem.mesh.rotation.set(0, 0, 0); audio.noise(0.6, 1200, 0.05, 'bandpass', 2); ui.toast('The hose reeled itself back. Loudly.', 2000); } }
+    if (e.code === 'KeyG' && !modal && !iso.active && items.held) { const wasHose = items.held.kind === 'airhose'; if (items.held.kind === 'traveller') items.held.moved = true; items.drop(); audio.tick(0.08, 500); if (wasHose) { hoseItem.mesh.position.set(shop.hosePos.x, shop.hosePos.y, shop.hosePos.z); hoseItem.mesh.rotation.set(0, 0, 0); audio.noise(0.6, 1200, 0.05, 'bandpass', 2); ui.toast('The hose reeled itself back. Loudly.', 2000); } }
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { if (!modal) ui.setSpeed({ Digit1: 1, Digit2: 2, Digit3: 3 }[e.code]); }
     if (e.code === 'KeyP' || e.code === 'Space') { if (!modal) ui.setSpeed(state.speed ? 0 : 1); }
     if (e.code === 'KeyN' && !modal && !night) { $('endDay').click(); }
@@ -616,7 +652,7 @@ export function startShop(T, audio, state) {
   addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); iso.fit(); });
 
   // ---- loop
-  let last = performance.now();
+  let last = performance.now(), travT = 0;
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -661,7 +697,7 @@ export function startShop(T, audio, state) {
     if (iso.active) iso.update(); else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
     if (!paused && !modal) {
-    fireTick(dt);
+    fireTick(dt); if (now - travT > 700) { travT = now; syncTravellers(); }
     if (!paused && !modal && !night) { delivery.update(dt, (line) => { ui.toast(line, 5000); syncSteel(); }, () => { const v = [...crew.views.values()].find((q) => q.g.visible && (q.mode === 'idle' || q.mode === 'sweep')); return v ? v.p : null; }); visitor.update(dt); phone.update(dt, { x: camera.position.x, z: camera.position.z }); }
       items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })).concat(visitor.here ? [{ x: visitor.pos.x, z: visitor.pos.z, id: -1 }] : []));
       for (const it of items.items) if (it.flying && it.from) it.throwDist = Math.hypot(it.mesh.position.x - it.from.x, it.mesh.position.z - it.from.z);
@@ -681,6 +717,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, get paused() { return paused; }, get night() { return night; }, get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

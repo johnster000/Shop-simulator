@@ -10,6 +10,7 @@ const KINDS = {
   key: { label: 'chuck key', mass: 0.3, hint: 'the chuck key. somebody left it in.' },
   extinguisher: { label: 'fire extinguisher', mass: 5, hint: 'fire extinguisher. pull, aim, squeeze. the tag is from 2009.' },
   airhose: { label: 'air hose', mass: 1, hint: 'the air hose. for chips. only for chips.' },
+  traveller: { label: 'job traveller', mass: 0.3, hint: 'a traveller. where the job is, in pen, with a coffee ring.' },
 };
 
 export class Items {
@@ -42,6 +43,13 @@ export class Items {
       const lbl = new T.Mesh(new T.PlaneGeometry(0.1, 0.16), new T.MeshBasicMaterial({ map: TX.label(T, ['FIRE', 'ABC', '2009'], { size: 26 }) })); lbl.position.set(0, 0.24, 0.076); mesh.add(lbl);
       const tag = new T.Mesh(new T.PlaneGeometry(0.04, 0.06), new T.MeshBasicMaterial({ color: 0xe8d44a, side: T.DoubleSide })); tag.position.set(0.09, 0.5, 0); tag.rotation.y = Math.PI / 2; mesh.add(tag);
     }
+    else if (kind === 'traveller') {
+      mesh = new T.Group();
+      const board = new T.Mesh(new T.BoxGeometry(0.24, 0.012, 0.32), new T.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 0.8 })); mesh.add(board);
+      const paper = new T.Mesh(new T.PlaneGeometry(0.2, 0.27), new T.MeshBasicMaterial({ map: TX.label(T, opts.lines || ['JOB', '', ''], { size: 24, bg: '#f4f1e6', border: '#f4f1e6', fg: '#222' }) })); paper.rotation.x = -Math.PI / 2; paper.position.y = 0.008; mesh.add(paper); mesh.userData.paper = paper;
+      const clip = new T.Mesh(new T.BoxGeometry(0.1, 0.02, 0.03), new T.MeshStandardMaterial({ color: 0xb8bcc0, metalness: 0.8, roughness: 0.3 })); clip.position.set(0, 0.014, -0.14); mesh.add(clip);
+      const ring = new T.Mesh(new T.RingGeometry(0.03, 0.038, 20), new T.MeshBasicMaterial({ color: 0x8a5a2a, transparent: true, opacity: 0.6, side: T.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.position.set(0.05 - Math.random() * 0.1, 0.009, 0.06 + Math.random() * 0.05); mesh.add(ring);
+    }
     else if (kind === 'airhose') {
       mesh = new T.Group();
       const yel = new T.MeshStandardMaterial({ color: 0xd9b530, roughness: 0.6 }), chrome = new T.MeshStandardMaterial({ color: 0xc8ccd0, metalness: 0.8, roughness: 0.25 }), blk = new T.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 });
@@ -66,6 +74,7 @@ export class Items {
     item.mesh.position.set(0.36, -0.3, -0.8); item.mesh.rotation.set(0.2, -0.4, 0.1); item.mesh.scale.setScalar(item.kind === 'steel' || item.kind === 'scrap' ? 0.8 : 1);
     if (item.kind === 'extinguisher') { item.mesh.position.set(0.34, -0.62, -0.7); item.mesh.rotation.set(-0.15, -0.9, 0.1); }
     if (item.kind === 'airhose') { item.mesh.position.set(0.3, -0.45, -0.6); item.mesh.rotation.set(0.3, -1.4, 0); }
+    if (item.kind === 'traveller') { item.mesh.position.set(0.3, -0.28, -0.55); item.mesh.rotation.set(-0.9, -0.3, 0.1); }
     this.audio.tick(0.08, 600);
     return true;
   }
@@ -138,6 +147,7 @@ export class Items {
   }
   clang(it, k = 1) {
     if (it.kind === 'coffee') { this.audio.noise(0.12, 2500, 0.05 * k, 'highpass'); return; }
+    if (it.kind === 'traveller') { this.audio.noise(0.1, 3000, 0.04 * k, 'highpass'); return; }
     if (it.kind === 'hammer' || it.kind === 'key') { this.audio.noise(0.08, 1800, 0.08 * k, 'bandpass', 2); return; }
     this.audio.noise(0.25, 900 + Math.random() * 600, 0.2 * k, 'bandpass', 3); this.audio.noise(0.3, 160, 0.15 * k, 'lowpass');
   }

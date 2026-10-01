@@ -282,6 +282,7 @@ export const ACHIEVEMENTS = {
   tour: ['The Tour', 'A customer walked the floor and liked it. An RFQ followed.'], wsib_visitor: ['Guest Relations', 'Hit a customer with something. There is a poster about this too.'],
   signed: ['Sign Here. And Here.', 'Signed for the steel before noon. The driver noticed.'],
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
+  stayed: ['Everybody Stays', 'Kept the crew late. Time and a half, and a look.'], watched: ['Supervision', 'Stood behind somebody while they ran a machine. It helped. They hated it.'],
   gold_watch: ['The Gold Watch', 'Ten years. You could retire. You did not.'], retired: ['Sold the Shop', 'Somebody else\'s compressor now.'],
   first_cycle: ['First Cycle Start', 'Press the button.'], one_out: ['One Out the Door', 'Ship a mold. Or a pin. It counts.'], oops: ['OOPS', 'First scrapped block. There will be more.'],
   hired: ['Somebody Else\'s Problem', 'Hire a person.'], lights_out: ['Lights Out, Nobody Home', 'An unattended run that worked.'], lights_wrong: ['Lights Out, Something\'s Wrong', 'An unattended run that did not.'],
@@ -326,6 +327,13 @@ export function goHome(state) {
   const fatigue = Math.max(0, Math.min(1, (9.5 - sleep) / 4.5));
   const overtime = state.t - CLOSE_MIN > 5 ? state.t - CLOSE_MIN : 0; // END DAY overshoots by a fraction of a minute
   const night = { leftAt: hourText(state.t), sleep, fatigue, overtime, dayDone: state.day };
+  if (state.crewOT) {
+    const hrs = Math.max(0, (state.t - CLOSE_MIN) / 60), crew = state.people.filter((p) => p.startDay != null && p.startDay <= state.day);
+    const cost = Math.round(crew.reduce((a, p) => a + p.wage * 1.5 * hrs, 0));
+    if (cost > 0) { post(state, `Overtime, ${crew.length} on the crew, ${hrs.toFixed(1)} h`, -cost); night.crewOT = cost; }
+    for (const p of crew) p.morale = Math.max(0, p.morale - (hrs > 2 ? 0.06 : 0.03));
+    state.crewOT = false;
+  }
   state.lastSleep = sleep; state.fatigue = fatigue;
   const friday = (state.day - 1) % 7 === 4;
   state.day += friday ? 3 : 1; state.t = 0; state.closingShown = false; state.speed = 1;
