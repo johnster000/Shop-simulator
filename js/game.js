@@ -720,6 +720,19 @@ export function startShop(T, audio, state) {
 
   addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); iso.fit(); });
 
+  // ---- the overhead view's permanent tags: every machine and person, idle ones flagged
+  const tagEls = new Map(), tagLayer = $('isoTags');
+  function projectTags() {
+    const seen = new Set();
+    const put = (key, x, y, z, text, cls) => {
+      let el = tagEls.get(key); if (!el) { el = document.createElement('div'); el.className = 'isoTag'; tagLayer.appendChild(el); tagEls.set(key, el); }
+      const p = new T.Vector3(x, y, z).project(iso.camera);
+      el.style.left = `${(p.x * 0.5 + 0.5) * innerWidth}px`; el.style.top = `${(-p.y * 0.5 + 0.5) * innerHeight}px`; el.textContent = text; el.className = 'isoTag ' + cls; seen.add(key);
+    };
+    for (const v of views) { const m = v.m; if (!m.placed) continue; const d = v.def; const st = m.fire ? 'FIRE' : m.down ? 'DOWN' : m.running ? `${Math.round((1 - m.runLeft / (m.runTotal || 1)) * 100)}%` : m.job ? 'LOADED' : 'IDLE'; put('m' + m.uid, m.x, d.h + 0.3, m.z, `${d.name.toUpperCase()} · ${st}${m.job && m.job.jobId ? ' · JOB ' + m.job.jobId : ''}`, m.fire || m.down ? 'down' : m.running ? 'run' : 'idle'); }
+    for (const v of crew.views.values()) { if (!v.g.visible) continue; const p = v.p; const stt = crew.status(p); put('p' + p.id, v.pos.x, 2.3, v.pos.z, `${p.name.toUpperCase()} · ${stt}`, 'person ' + (/waiting|sweeping|vending|break/.test(stt) ? 'idle' : 'run')); }
+    for (const [key, el] of tagEls) if (!seen.has(key)) { el.remove(); tagEls.delete(key); }
+  }
   // ---- loop
   let last = performance.now(), travT = 0;
   function frame(now) {
@@ -782,7 +795,7 @@ export function startShop(T, audio, state) {
       running: paused ? [] : state.machines.filter((m) => m.running && m.placed).map((m) => ({ x: m.x, z: m.z, kind: byId(m.id).kind })),
       compressor: shop.compressorPos, radio: shop.radioPos, truck: delivery.here || delivery.leaving ? { x: delivery.truck.position.x, z: delivery.truck.position.z } : null,
     });
-    look(); ui.update(); crew.projectBubbles(iso.active ? iso.camera : camera, iso.active);
+    look(); ui.update(); crew.projectBubbles(iso.active ? iso.camera : camera, iso.active); if (iso.active) projectTags(); else if (tagEls.size) { for (const [, el] of tagEls) el.remove(); tagEls.clear(); }
     if (ui.panelOpen && ui.panelM && ui.panelM.running) ui.renderPanel();
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);

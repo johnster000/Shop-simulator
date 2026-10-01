@@ -533,6 +533,21 @@ export class MachineView {
       this.chipMesh.rotation.x = -Math.PI / 2; this.chipMesh.position.set(0, 0.012, d.d * 0.25); this.chipMesh.raycast = () => {}; this.group.add(this.chipMesh);
     }
     this.chipMesh.material.opacity = Math.min(1, (m.chips || 0) * 1.1); this.chipMesh.visible = (m.chips || 0) > 0.03;
+    // work in progress: a block on the table while a job is loaded. the sinker always has one in the tank.
+    const PART = { vmc: [0, 1.13, 0.25, 0.26, 0.16, 0.2], mill: [-0.1, 1.2, 0.05, 0.22, 0.1, 0.16], lathe: [0.12, 1.17, -0.05, 0.3, 0.05, 0.05], grinder: [0, 1.0, 0.15, 0.3, 0.06, 0.14], wire: [0, 1.09, 0.2, 0.3, 0.14, 0.24], drill: [0, 1.05, 0.1, 0.16, 0.06, 0.12], saw: [0.2, 0.95, 0, 0.5, 0.1, 0.1], graphite: [0, 1.1, 0.2, 0.18, 0.12, 0.14] }[this.def.kind];
+    if (PART && !this.part) { const T = this.T, geo = this.def.kind === 'lathe' ? new T.CylinderGeometry(PART[4], PART[4], PART[3], 14) : new T.BoxGeometry(PART[3], PART[4], PART[5]); this.part = new T.Mesh(geo, new T.MeshStandardMaterial({ color: 0x7a8088, metalness: 0.6, roughness: 0.4 })); if (this.def.kind === 'lathe') this.part.rotation.z = Math.PI / 2; this.part.position.set(PART[0], PART[1], PART[2]); this.part.raycast = () => {}; this.group.add(this.part); }
+    if (this.part) this.part.visible = !!m.job;
+    // the EDMs spark when they run; the VMCs spray coolant
+    const edm = this.def.kind === 'sinker' || this.def.kind === 'wire';
+    if (edm && m.running) {
+      if (!this.spark) { const T = this.T; this.spark = new T.PointLight(0x9fd0ff, 0, 2.5, 2); this.spark.position.set(0, this.def.kind === 'sinker' ? 1.05 : 1.15, 0.2); this.group.add(this.spark); this.sparkBits = []; for (let i = 0; i < 6; i++) { const b = new T.Mesh(new T.SphereGeometry(0.012, 5, 4), new T.MeshBasicMaterial({ color: 0xcfe8ff })); b.raycast = () => {}; this.group.add(b); this.sparkBits.push(b); } }
+      this.spark.intensity = Math.random() < 0.6 ? 2 + Math.random() * 6 : 0;
+      for (const b of this.sparkBits) { b.visible = Math.random() < 0.5; b.position.set((Math.random() - 0.5) * 0.14, (this.def.kind === 'sinker' ? 1.0 : 1.1) + Math.random() * 0.08, 0.2 + (Math.random() - 0.5) * 0.14); }
+    } else if (this.spark) { this.spark.intensity = 0; for (const b of this.sparkBits) b.visible = false; }
+    if (this.def.kind === 'vmc') {
+      if (!this.coolant) { const T = this.T; this.coolant = new T.Mesh(new T.ConeGeometry(0.09, 0.42, 8, 1, true), new T.MeshBasicMaterial({ color: 0xbfe9ff, transparent: true, opacity: 0.35, depthWrite: false, side: T.DoubleSide })); this.coolant.position.set(0.08, 1.33, 0.12); this.coolant.rotation.z = 0.5; this.coolant.raycast = () => {}; this.group.add(this.coolant); }
+      this.coolant.visible = !!m.running; if (m.running) { this.coolant.material.opacity = 0.2 + Math.random() * 0.25; this.coolant.rotation.y += dt * 9; }
+    }
     if (m.fire) {
       if (!this.flames) {
         const T = this.T, g = new T.Group(), d = this.def; g.position.set(0, d.h * 0.55, 0); this.flames = g; this.group.add(g);

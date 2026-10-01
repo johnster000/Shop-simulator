@@ -238,3 +238,10 @@ canvas.mg{display:block;width:100%;max-width:420px;height:auto;border:2px solid 
 .board td{border:1px solid #d8d2c0;padding:0;height:18px;min-width:26px}
 .board td.lane{padding:2px 6px;text-align:right;color:#333;border:none;min-width:0}
 .board td i{display:block;height:18px;line-height:18px;text-align:center;font-style:normal;color:#111;font-size:10px}
+#isoTags{position:fixed;inset:0;pointer-events:none;z-index:3;display:none}
+body.iso #isoTags{display:block}
+.isoTag{position:absolute;transform:translate(-50%,-100%);font-size:10px;letter-spacing:.06em;color:#eee;background:rgba(10,12,16,.72);padding:2px 6px;border:1px solid rgba(255,255,255,.18);white-space:nowrap}
+.isoTag.idle{border-color:#e0a020;color:#ffd27a}
+.isoTag.down{border-color:var(--red);color:#ff8a8a}
+.isoTag.run{border-color:#3fbf5f;color:#bff0c8}
+.isoTag.person{background:rgba(30,40,60,.8)}

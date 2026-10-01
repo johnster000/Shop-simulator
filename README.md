@@ -262,6 +262,11 @@ Then open http://localhost:8080/.
   everyone on the floor wears safety glasses for ten days. When a customer goes under, their mold
   sits in the corner with a FOR SALE sign until a man with a trailer buys it for not much.
 
+- The look, from bible 13.1. A block appears on the table (or in the chuck, or on the mag chuck)
+  whenever a job is loaded. The EDMs spark blue in the tank while they burn; the VMCs spray
+  coolant in the window. In the overhead view every machine and every person carries a permanent
+  tag (name, status, job), idle ones in amber, down or burning ones in red, running ones in green.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
