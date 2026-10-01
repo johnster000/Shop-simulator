@@ -64,6 +64,7 @@ export function startShop(T, audio, state) {
     machineViews: () => views,
     runMachine: (m, skipped, p) => runMachine(m, skipped, p),
     say: (p, text) => { crew.say(p, text); },
+    vendSulk: (p) => { state.vendSulks = (state.vendSulks || 0) + 1; if (state.vendSulks >= 3) unlock('vending_sulk'); },
   });
   visitor = new Visitor(T, scene, shop, nav, state, crew, { say: (p, t, secs) => crew.say(p, t, secs), toast: (t, ms) => ui.toast(t, ms), unlock });
   nav.rebuild(allColliders()); crew.sync();

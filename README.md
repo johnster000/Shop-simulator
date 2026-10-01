@@ -187,6 +187,11 @@ Then open http://localhost:8080/.
   extended machine warranty who costs four minutes. Let it ring and the rush job goes to
   Lakeshore and the complaint becomes a voicemail.
 
+- Money and morale. The BANK tab lists what is owed to you, who is late, and a FACTOR button on
+  each invoice: 85 cents on the dollar today from a company called Receivable Solutions, who
+  will write to your customer. The expensive last resort, as the bible says. Disgruntled crew
+  with nothing to do stand at the vending machine instead of sweeping, technically on break.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

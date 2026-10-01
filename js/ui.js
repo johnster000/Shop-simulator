@@ -251,6 +251,8 @@ export class UI {
       <div class="note">Rent $850/wk · hydro $200/wk + $60 per circuit · software $${softwareWeekly(s)}/wk · due Monday morning.<br>Owed to you: ${money(rcv)} on terms.</div></div>
       <h4 class="sect">WHAT IT IS WORTH</h4>
       <div class="note">${(() => { const v = valuation(s); return `<b>${money(v.total)}</b> · cash ${money(v.cash)} + iron ${money(v.machines)} + owed to you ${money(v.receivables)} + half the backlog ${money(v.backlog)} − the bank ${money(v.debt)}. That is the score. ${canRetire(s) ? 'You could retire. The night screen has the button.' : `Retirement is on the table after ten years. It is day ${s.day}.`}`; })()}</div>
+      ${(s.receivables || []).length ? `<h4 class="sect">OWED TO YOU</h4><table class="ledger"><tr><th>WHO</th><th>DUE</th><th class="num">AMOUNT</th><th></th></tr>${s.receivables.map((r, i) => `<tr><td>${r.text}</td><td>day ${r.due}${r.due < s.day ? ' <b style="color:var(--red)">LATE</b>' : ''}</td><td class="num">${money(r.amount)}</td><td class="num"><button class="btn sm ghost" data-factor="${i}">FACTOR · ${money(Math.round(r.amount * 0.85))} NOW</button></td></tr>`).join('')}</table>
+      <p class="note">Factoring: a company you have never heard of pays you 85 cents on the dollar today and collects the rest from your customer, who will hear about it. The expensive last resort.</p>` : ''}
       <h4 class="sect">THE BANK</h4>
       <div class="note">${s.loans.length ? s.loans.map((l) => `${l.name}: ${money(l.balance)} left, ${money(l.weekly)}/wk`).join('<br>') : 'No loans.'}</div>
       <div class="pacts">${s.loans.some((l) => l.kind === 'startup') ? '' : `<button data-loan="startup">START-UP LOAN · $100,000 at 11%</button>`}${s.stats.shipped >= 3 && !s.loans.some((l) => l.kind === 'loc') ? `<button data-loan="loc">LINE OF CREDIT · $50,000 at 9%</button>` : `<span class="note">${s.stats.shipped >= 3 ? '' : 'A line of credit after three shipped jobs. The bank wants to see something leave the building.'}</span>`}</div>
@@ -258,6 +260,11 @@ export class UI {
       <div class="note">${(s.achievements || []).length ? s.achievements.map((id) => ACHIEVEMENTS[id] ? `<b>${ACHIEVEMENTS[id][0]}</b> · ${ACHIEVEMENTS[id][1]}` : id).join('<br>') : 'Nothing framed yet.'}</div>
       <h4 class="sect">LEDGER</h4>
       <table class="ledger"><tr><th>DAY</th><th>ITEM</th><th class="num">AMOUNT</th></tr>${rows.map((r) => `<tr class="${r.amount < 0 ? 'neg' : ''}"><td>${r.day}</td><td>${r.text}</td><td class="num">${r.amount === 0 ? '' : money(r.amount)}</td></tr>`).join('')}</table>`;
+    el.querySelectorAll('[data-factor]').forEach((b) => b.addEventListener('click', () => {
+      const r = s.receivables[+b.dataset.factor]; if (!r) return; s.receivables.splice(+b.dataset.factor, 1);
+      const now = Math.round(r.amount * 0.85); post(s, `Factored: ${r.text} (85%)`, now); s.rep = Math.max(0, s.rep - 0.02); achieve(s, 'factored');
+      this.audio.cash(); this.toast(`${money(now)} today. ${money(r.amount - now)} to a company called Receivable Solutions. ${r.text.split(',')[0]} will get a letter from them, and will mention it.`, 5000); this.renderBank();
+    }));
     el.querySelectorAll('[data-loan]').forEach((b) => b.addEventListener('click', () => { const r = takeLoan(s, b.dataset.loan); if (!r.ok) { this.audio.nope(); this.toast(r.why || 'no'); return; } this.audio.cash(); this.toast(`Signed. ${money(r.weekly)} a week. The bank sends a calendar.`, 3200); this.renderBank(); }));
   }
 

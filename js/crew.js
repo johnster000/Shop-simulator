@@ -137,14 +137,15 @@ export class Crew {
         if (dist <= step + 0.01) v.path.shift();
         if (!v.path.length) this.arrived(v);
       }
-      else if (['arrive', 'leave', 'toMachine', 'toBreak', 'toSweep'].includes(v.mode)) this.arrived(v); // nowhere left to walk: we are there
+      else if (['arrive', 'leave', 'toMachine', 'toBreak', 'toSweep', 'toVend'].includes(v.mode)) this.arrived(v); // nowhere left to walk: we are there
       v.walk += ((walking ? 1 : 0) - v.walk) * Math.min(1, dt * 8);
 
       // ---- doing things
       if (v.mode === 'idle' && here && !lunch) {
         if (Math.random() < dt * 0.012) this.hooks.say(p, line(p, {}));
         v.idleMin = (v.idleMin || 0) + shopDt;
-        if (v.idleMin > 25 && Math.random() < dt * 0.15) { const t = this.sweepSpot(); if (t) { v.idleMin = 0; this.goTo(v, t, 'toSweep'); this.hooks.say(p, pick(['Sweeping. Billable, apparently.', 'I will sweep. Again.', 'If I sweep it, will it make chips?', 'Somebody has to.']), 3); } }
+        if (p.morale < 0.35 && v.idleMin > 8 && this.shop.vendingPos && Math.random() < dt * 0.3) { v.idleMin = 0; this.goTo(v, { x: this.shop.vendingPos.x + (Math.random() - 0.5) * 0.6, z: this.shop.vendingPos.z + Math.random() * 0.4 }, 'toVend'); this.hooks.say(p, pick(['Break. Technically.', 'B4 is stuck. I am going to look at it anyway.', 'I will be at the machine. The other machine.', 'Five minutes.']), 3); }
+        else if (v.idleMin > 25 && Math.random() < dt * 0.15) { const t = this.sweepSpot(); if (t) { v.idleMin = 0; this.goTo(v, t, 'toSweep'); this.hooks.say(p, pick(['Sweeping. Billable, apparently.', 'I will sweep. Again.', 'If I sweep it, will it make chips?', 'Somebody has to.']), 3); } }
         v.think -= dt;
         if (v.think <= 0) { v.think = 1.5 + Math.random() * 2; const f = this.freeMachineFor(p); if (f) { v.idleMin = 0; f.m.job = { jobId: f.o.job.id, itemIndex: f.o.itemIndex, item: f.o.item ? f.o.item.name : null, index: f.o.index, label: f.o.stage.label, min: f.o.stage.min, operator: p.id }; f.m.checklist = {}; v.machine = f.m; this.goTo(v, this.spotFor(f.m), 'toMachine'); } }
       }
@@ -164,6 +165,7 @@ export class Crew {
       }
       if (v.mode === 'work') { const m = v.machine; if (!m || !m.running) { v.machine = null; v.mode = 'idle'; v.think = 0.5; } }
       if (v.mode === 'break') { v.wait -= shopDt; if (v.wait <= 0 && !lunch) { v.mode = 'idle'; v.think = 0.3; } }
+      if (v.mode === 'vend') { v.wait -= shopDt; if (Math.random() < dt * 0.02) this.hooks.say(p, pick(['B4.', 'Still stuck.', 'I have a lawyer. He is also stuck.', 'This is a break.']), 2.5); if (v.wait <= 0 || lunch || !here) { v.mode = 'idle'; v.think = 0.3; v.idleMin = 0; } }
       if (v.mode === 'sweep') { v.wait -= shopDt; v.yaw += dt * 0.15; if (v.wait <= 0 || lunch || !here) { this.setBroom(v, false); v.mode = 'idle'; v.think = 0.3; v.idleMin = 0; } }
       if (v.mode === 'gawk') { v.wait -= shopDt; if (v.wait <= 0) { v.mode = 'idle'; v.think = 0.5; } }
 
@@ -171,7 +173,7 @@ export class Crew {
       const m = v.machine;
       const faceYaw = v.mode === 'work' || v.mode === 'setup' ? (v.target && v.target.face != null ? v.target.face : v.yaw) : v.yaw;
       v.g.position.set(v.pos.x, 0, v.pos.z); v.g.rotation.y = v.walk > 0.3 ? v.yaw : faceYaw;
-      const mood = v.mode === 'work' || v.mode === 'setup' ? 'work' : v.mode === 'sweep' ? 'sweep' : v.mode === 'gawk' ? 'sulk' : p.morale < 0.35 && (v.mode === 'idle' || v.mode === 'break') ? 'sulk' : 'idle';
+      const mood = v.mode === 'work' || v.mode === 'setup' ? 'work' : v.mode === 'sweep' ? 'sweep' : v.mode === 'gawk' || v.mode === 'vend' ? 'sulk' : p.morale < 0.35 && (v.mode === 'idle' || v.mode === 'break') ? 'sulk' : 'idle';
       if (v.mode === 'gawk' && this.gather) { const want = Math.atan2(this.gather.x - v.pos.x, this.gather.z - v.pos.z); v.yaw += Math.atan2(Math.sin(want - v.yaw), Math.cos(want - v.yaw)) * Math.min(1, dt * 4); }
       pose(v.g, { mode: v.walk > 0.05 ? 'walk' : mood, t: this.t + p.id * 1.7, walk: v.walk, morale: p.morale });
       if (v.g.userData.mood !== (p.morale < 0.35 ? 'grumpy' : p.morale > 0.8 ? 'happy' : 'ok')) { v.g.userData.mood = p.morale < 0.35 ? 'grumpy' : p.morale > 0.8 ? 'happy' : 'ok'; v.g.userData.setMood(v.g.userData.mood); }
@@ -183,6 +185,7 @@ export class Crew {
     else if (v.mode === 'leave') { v.mode = 'offsite'; v.g.visible = false; }
     else if (v.mode === 'toMachine') { if (v.machine && v.machine.job && !v.machine.running) { v.mode = 'setup'; v.setupLeft = SETUP_MIN * (1.4 - skillFor(v.p, byId(v.machine.id).kind) * 0.12); } else { v.machine = null; v.mode = 'idle'; } }
     else if (v.mode === 'toBreak') { v.mode = 'break'; }
+    else if (v.mode === 'toVend') { v.mode = 'vend'; v.wait = 30 + Math.random() * 30; v.yaw = Math.atan2(this.shop.vendingPos.x - v.pos.x, (this.shop.vendingPos.z - 1.0) - v.pos.z); this.hooks.vendSulk && this.hooks.vendSulk(v.p); }
     else if (v.mode === 'toSweep') { v.mode = 'sweep'; v.wait = 12 + Math.random() * 10; this.setBroom(v, true); }
     else if (v.mode === 'toGather') { v.mode = 'gawk'; v.wait = 6; this.hooks.say(v.p, pick(['Oof.', 'That is going to need a tech.', 'I heard it from the office.', 'Was that in the program?', 'Not it.', 'Did anyone photograph that? For the wall.'])); }
     else v.mode = 'idle';
@@ -195,6 +198,7 @@ export class Crew {
     if (v.mode === 'work' || v.mode === 'setup') { const d = byId(v.machine.id); return `${v.mode === 'setup' ? 'setting up' : 'running'} the ${d.name.toLowerCase()}${v.machine.job && v.machine.job.jobId ? `, job ${v.machine.job.jobId}` : ''}`; }
     if (v.mode === 'break' || v.mode === 'toBreak') return 'on a break';
     if (v.mode === 'sweep' || v.mode === 'toSweep') return 'sweeping';
+    if (v.mode === 'vend' || v.mode === 'toVend') return 'at the vending machine. technically on break';
     if (v.mode === 'gawk' || v.mode === 'toGather') return 'having a look';
     if (v.mode === 'toMachine') return 'walking over to the ' + byId(v.machine.id).name.toLowerCase();
     return p.morale < 0.35 ? 'standing around, pointedly' : 'waiting for work';

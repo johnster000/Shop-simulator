@@ -288,6 +288,7 @@ export class Shop {
     const glow = new T.PointLight(0x6a8fd0, 2.5, 3, 2); glow.position.set(0, 1.2, 0.6); g.add(glow);
     g.traverse((o) => { o.userData.interact = { type: 'vending', text: 'the vending machine. B4 is stuck. everyone knows B4 is stuck.' }; });
     this.solid(x, z, 0.5, 0.42);
+    this.vendingPos = { x: x - Math.sin(rot) * 1.0, z: z + Math.cos(rot) * 1.0 };
     return g;
   }
 
