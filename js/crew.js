@@ -170,9 +170,10 @@ export class Crew {
         if (Math.random() < dt * 0.012) this.hooks.say(p, line(p, {}));
         v.idleMin = (v.idleMin || 0) + shopDt;
         if (p.morale < 0.35 && v.idleMin > 8 && this.shop.vendingPos && Math.random() < dt * 0.3) { v.idleMin = 0; this.goTo(v, { x: this.shop.vendingPos.x + (Math.random() - 0.5) * 0.6, z: this.shop.vendingPos.z + Math.random() * 0.4 }, 'toVend'); this.hooks.say(p, pick(['Break. Technically.', 'B4 is stuck. I am going to look at it anyway.', 'I will be at the machine. The other machine.', 'Five minutes.']), 3); }
+        else if (p.role === 'moldmaker' && this.shop.polisherPos && v.idleMin > 12 && Math.random() < dt * 0.12) { v.idleMin = 0; this.goTo(v, { x: this.shop.polisherPos.x, z: this.shop.polisherPos.z }, 'toBreak'); v.wait = 15 + Math.random() * 15; v.faceAt = this.shop.polisherPos.face; this.hooks.say(p, pick(['Stones.', 'I will be in my corner.', 'Nobody touch anything.', 'Finishing is a state of mind. Mine.']), 3); }
         else if (v.idleMin > 25 && Math.random() < dt * 0.15) { const t = this.sweepSpot(); if (t) { v.idleMin = 0; this.goTo(v, t, 'toSweep'); this.hooks.say(p, pick(['Sweeping. Billable, apparently.', 'I will sweep. Again.', 'If I sweep it, will it make chips?', 'Somebody has to.']), 3); } }
         v.think -= dt;
-        if (v.think <= 0) { v.think = 1.5 + Math.random() * 2; const f = this.freeMachineFor(p); if (f) { v.idleMin = 0; f.m.job = { jobId: f.o.job.id, itemIndex: f.o.itemIndex, item: f.o.item ? f.o.item.name : null, index: f.o.index, label: f.o.stage.label, min: f.o.stage.min, operator: p.id }; f.m.checklist = {}; v.machine = f.m; this.goTo(v, this.spotFor(f.m), 'toMachine'); } }
+        if (v.think <= 0) { v.think = 1.5 + Math.random() * 2; const f = this.freeMachineFor(p); if (!f && (p.quirkId === 'cncOnly' || p.quirkId === 'manualOnly') && Math.random() < 0.08 && s.machines.some((m) => m.placed && !m.running && m.job)) this.hooks.say(p, line(p, { refused: true }), 3.5); if (f) { v.idleMin = 0; f.m.job = { jobId: f.o.job.id, itemIndex: f.o.itemIndex, item: f.o.item ? f.o.item.name : null, index: f.o.index, label: f.o.stage.label, min: f.o.stage.min, operator: p.id }; f.m.checklist = {}; v.machine = f.m; this.goTo(v, this.spotFor(f.m), 'toMachine'); } }
       }
       if (v.mode === 'setup') {
         v.setupLeft -= shopDt;
@@ -209,7 +210,7 @@ export class Crew {
     if (v.mode === 'arrive') { v.mode = 'idle'; v.think = 0.5; }
     else if (v.mode === 'leave') { v.mode = 'offsite'; v.g.visible = false; }
     else if (v.mode === 'toMachine') { if (v.machine && v.machine.job && !v.machine.running) { v.mode = 'setup'; v.setupLeft = SETUP_MIN * (1.4 - skillFor(v.p, byId(v.machine.id).kind) * 0.12); } else { v.machine = null; v.mode = 'idle'; } }
-    else if (v.mode === 'toBreak') { v.mode = 'break'; }
+    else if (v.mode === 'toBreak') { v.mode = 'break'; if (v.faceAt != null) { v.yaw = v.faceAt; v.faceAt = null; } }
     else if (v.mode === 'toVend') { v.mode = 'vend'; v.wait = 30 + Math.random() * 30; v.yaw = Math.atan2(this.shop.vendingPos.x - v.pos.x, (this.shop.vendingPos.z - 1.0) - v.pos.z); this.hooks.vendSulk && this.hooks.vendSulk(v.p); }
     else if (v.mode === 'toSpeech') { v.mode = 'speech'; v.nextLine = performance.now() + 500; }
     else if (v.mode === 'toSweep') { v.mode = 'sweep'; v.wait = 12 + Math.random() * 10; this.setBroom(v, true); }

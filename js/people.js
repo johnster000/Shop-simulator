@@ -17,6 +17,7 @@ const QUIRKS = [
   ['tenths', 'Calls everything a tenth. Nothing is a tenth.'], ['softjaws', 'Does not believe in soft jaws.'], ['chuckkey', 'Leaves the chuck key in. Once.'], ['neat', 'Cleans the machine before and after. Slow, but nothing ever breaks.'],
   ['saturday', 'Will not work Saturdays. Has said so twice.'], ['stories', 'Has a story about every machine in the catalogue.'], ['whistle', 'Whistles. Only one song.'], ['lunch', 'Takes a long lunch. Takes it at 11:15.'],
 ];
+const CNC_ONLY = ['cncOnly', 'Will not run the Bridgeford. "I am a programmer." Has a lanyard.'], MANUAL_ONLY = ['manualOnly', 'Will not run anything with a screen. Has said so, to the screen.'];
 const GRIEVANCES = [
   ['raise', 'wants a raise', 'It has been a while. A dollar an hour would do it.', { raise: 1 }],
   ['coffee', 'the coffee', 'The coffee is terrible. A real machine is $320.', { cost: 320 }],
@@ -50,7 +51,8 @@ export function makeCandidate(state) {
     // the resume is not under oath
     actual[k] = Math.max(0, claimed[k] - (Math.random() < 0.3 ? rint(1, 2) : 0));
   }
-  const quirk = pick(QUIRKS);
+  const quirk = pick(roleId === 'machinist' && Math.random() < 0.3 ? [CNC_ONLY] : roleId === 'moldmaker' && Math.random() < 0.3 ? [MANUAL_ONLY] : QUIRKS);
+  if (quirk === CNC_ONLY) { claimed.vmc = Math.max(claimed.vmc, 3); actual.vmc = Math.max(actual.vmc, 2); }
   return {
     id: state.nextPerson++, name: pick(FIRST), role: roleId, roleName: role.name, blurb: pick(role.blurbs), quirk: quirk[1], quirkId: quirk[0],
     claimed, actual, wage: rint(role.wage[0], role.wage[1]), look: randomLook(), weld: roleId === 'moldmaker' && Math.random() < 0.25,
@@ -104,7 +106,8 @@ export function growSkills(state, p) {
   return notes;
 }
 // CNC wants a machinist or a moldmaker; an apprentice on a VMC is how you learn what a VMC costs
-export function canRun(p, kind) { if (p.role === 'estimator' || p.role === 'nightshift') return false; if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'press') return p.role === 'moldmaker' || (p.role === 'machinist' && skillFor(p, 'general') >= 3); if (kind === 'heat') return true; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
+export const MANUAL_KINDS = ['mill', 'lathe', 'drill', 'saw', 'grinder'], SCREEN_KINDS = ['vmc', 'sinker', 'wire', 'graphite', 'cmm'];
+export function canRun(p, kind) { if (p.role === 'estimator' || p.role === 'nightshift') return false; if (p.quirkId === 'cncOnly' && MANUAL_KINDS.includes(kind)) return false; if (p.quirkId === 'manualOnly' && SCREEN_KINDS.includes(kind)) return false; if (kind === 'laser') return !!p.weld; if (kind === 'spot') return p.role === 'moldmaker'; if (kind === 'press') return p.role === 'moldmaker' || (p.role === 'machinist' && skillFor(p, 'general') >= 3); if (kind === 'heat') return true; if (kind === 'cmm') return p.role !== 'apprentice'; if (kind === 'vmc' || kind === 'sinker' || kind === 'wire' || kind === 'graphite') return p.role !== 'apprentice' && skillFor(p, kind) >= 2; return skillFor(p, kind) >= 1 || kind === 'saw' || kind === 'drill' || kind === 'bench'; }
 // one setup step: pass or skip
 export function setupRoll(p, kind) { const sk = skillFor(p, kind); return Math.random() < 0.42 + sk * 0.115 + (p.morale - 0.5) * 0.12; }
 export function moraleWord(m) { return m >= 0.85 ? 'happy' : m >= 0.6 ? 'fine' : m >= 0.4 ? 'grumbling' : m >= 0.2 ? 'disgruntled' : 'done'; }
@@ -125,6 +128,8 @@ export function tough(state, p) { p.morale = Math.max(0, p.morale - 0.1); p.grie
 export function line(p, ctx = {}) {
   const m = p.morale;
   if (ctx.working) return pick([`Running job ${ctx.job}. Don't touch anything.`, `${ctx.stage}. Give me an hour.`, 'It is cutting. That is all I ask of it.', 'Chips look right. For once.']);
+  if (p.quirkId === 'cncOnly' && ctx.refused) return pick(['I do not run the Bridgeford. I program.', 'That has a handle. I have a lanyard.', 'Not running that. It is a matter of principle. And a handwheel.']);
+  if (p.quirkId === 'manualOnly' && ctx.refused) return pick(['I do not run anything with a screen.', 'That thing has a menu. I do not do menus.', 'Give me a handwheel and a dial. Then we will talk.']);
   if (p.grievance) return p.grievance.text;
   if (m < 0.2) return pick(['I have been looking at the classifieds.', 'My cousin has a shop in Barrie.', 'Say the word and I am gone. Or do not say it. Same result.']);
   if (m < 0.4) return pick(['Fine. Everything is fine.', 'Is the tarp ever getting fixed?', 'I am not saying anything. I am just saying.']);

@@ -262,6 +262,7 @@ export class Shop {
       const blocks = this.box(0.26, 0.05, 0.16, new T.MeshStandardMaterial({ color: 0x5a3b22, roughness: 0.7 }), px - 0.25, 0.965, pz + 0.15); this.tag(blocks, 'blocks', 'gauge blocks. wrung together once by an apprentice. once.');
       const lamp = new T.PointLight(0xdfe8ff, 6, 6, 1.8); lamp.position.set(px, 2.4, pz); s.add(lamp);
     }
+    this.polisherCorner(hx - 0.55, hz * 0.05);
     if (!SHOP.breakroom) this.vending(x1 + 1.0, z0 + 0.45);
     if (SHOP.breakroom) {
       // the break room, beside the office: a table, chairs, a fridge, the kettle's promotion
@@ -281,6 +282,45 @@ export class Shop {
   }
 
   // the vending machine. B4 is stuck. it has been stuck since the lease.
+  // the polisher's corner. a low bench against the east wall, a magnifier lamp on an arm, the stones in a
+  // block, a die grinder with a felt wheel, a jar of diamond paste, a stool, and a sign. DO NOT TOUCH.
+  polisherCorner(x, z) {
+    const T = this.T, s = this.scene, g = new T.Group(); g.position.set(x, 0, z); s.add(g);
+    const wood = new T.MeshStandardMaterial({ color: 0x8a6a42, roughness: 0.8 }), dark = new T.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.6 }), steel = new T.MeshStandardMaterial({ color: 0xb8bcc0, metalness: 0.7, roughness: 0.35 });
+    const bench = new T.Mesh(new T.BoxGeometry(0.7, 0.06, 1.5), wood); bench.position.set(0, 0.88, 0); g.add(bench);
+    for (const dz of [-0.65, 0.65]) for (const dx of [-0.28, 0.28]) { const leg = new T.Mesh(new T.BoxGeometry(0.05, 0.86, 0.05), dark); leg.position.set(dx, 0.43, dz); g.add(leg); }
+    const shelf = new T.Mesh(new T.BoxGeometry(0.6, 0.03, 1.4), wood); shelf.position.set(0, 0.25, 0); g.add(shelf);
+    const mat = new T.Mesh(new T.BoxGeometry(0.5, 0.01, 0.7), new T.MeshStandardMaterial({ color: 0x2f5a3a, roughness: 0.95 })); mat.position.set(0, 0.915, -0.2); g.add(mat); // the green mat. the good one.
+    // the stones: a wooden block with eight slots, eight stones, eight colours, in order. the order matters to one person.
+    const block = new T.Mesh(new T.BoxGeometry(0.26, 0.05, 0.12), wood); block.position.set(0.1, 0.935, 0.42); g.add(block);
+    const cols = [0xd9d2b8, 0xc8c0a0, 0xb0a890, 0x9a8f78, 0x7a7060, 0x5a5048, 0x3a3430, 0x1c1a18];
+    cols.forEach((c, i) => { const st = new T.Mesh(new T.BoxGeometry(0.012, 0.11, 0.012), new T.MeshStandardMaterial({ color: c, roughness: 0.9 })); st.position.set(0.1 - 0.105 + i * 0.03, 0.99, 0.42); st.rotation.z = (i - 3.5) * 0.02; g.add(st); });
+    const paste = new T.Mesh(new T.CylinderGeometry(0.025, 0.025, 0.05, 12), new T.MeshStandardMaterial({ color: 0xe8e0c0, roughness: 0.5 })); paste.position.set(-0.2, 0.935, 0.5); g.add(paste);
+    const pasteLid = new T.Mesh(new T.CylinderGeometry(0.026, 0.026, 0.012, 12), new T.MeshStandardMaterial({ color: 0xc83a3a })); pasteLid.position.set(-0.2, 0.966, 0.5); g.add(pasteLid);
+    const grinder = new T.Mesh(new T.CylinderGeometry(0.018, 0.022, 0.2, 10), dark); grinder.position.set(-0.15, 0.93, -0.55); grinder.rotation.z = Math.PI / 2; grinder.rotation.y = 0.3; g.add(grinder);
+    const felt = new T.Mesh(new T.CylinderGeometry(0.035, 0.035, 0.012, 14), new T.MeshStandardMaterial({ color: 0xe9e4d2, roughness: 1 })); felt.position.set(-0.26, 0.93, -0.58); felt.rotation.z = Math.PI / 2; felt.rotation.y = 0.3; g.add(felt);
+    const rag = new T.Mesh(new T.BoxGeometry(0.16, 0.02, 0.12), new T.MeshStandardMaterial({ color: 0xb02020, roughness: 1 })); rag.position.set(0.2, 0.92, -0.5); rag.rotation.y = 0.5; g.add(rag);
+    const insert = new T.Mesh(new T.BoxGeometry(0.14, 0.08, 0.1), new T.MeshStandardMaterial({ color: 0xd0d4d8, metalness: 0.9, roughness: 0.08 })); insert.position.set(0, 0.96, -0.2); insert.rotation.y = 0.2; g.add(insert); // the piece. A-2 on one face, nearly.
+    // the magnifier lamp: a clamp, two arms, a ring, a warm light
+    const clamp = new T.Mesh(new T.BoxGeometry(0.06, 0.1, 0.06), dark); clamp.position.set(0.3, 0.93, 0.05); g.add(clamp);
+    const arm1 = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.55, 8), steel); arm1.position.set(0.22, 1.2, 0.0); arm1.rotation.z = 0.35; g.add(arm1);
+    const arm2 = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.5, 8), steel); arm2.position.set(0.0, 1.38, -0.1); arm2.rotation.z = 1.25; arm2.rotation.y = 0.3; g.add(arm2);
+    const ring = new T.Mesh(new T.TorusGeometry(0.1, 0.02, 10, 24), new T.MeshStandardMaterial({ color: 0xf0f0ea, roughness: 0.5 })); ring.position.set(-0.15, 1.3, -0.2); ring.rotation.x = Math.PI / 2 + 0.6; g.add(ring);
+    const lens = new T.Mesh(new T.CircleGeometry(0.085, 20), new T.MeshPhysicalMaterial({ color: 0xcfe6ff, transparent: true, opacity: 0.35, roughness: 0.05 })); lens.position.copy(ring.position); lens.rotation.x = -Math.PI / 2 + 0.6; g.add(lens);
+    const lamp = new T.PointLight(0xffe2b0, 4, 3, 2); lamp.position.set(-0.15, 1.2, -0.2); g.add(lamp);
+    // the stool, pushed in. and the sign, on the wall, in marker, on the back of a traveller.
+    const seat = new T.Mesh(new T.CylinderGeometry(0.16, 0.16, 0.04, 16), dark); seat.position.set(-0.75, 0.62, 0.2); g.add(seat);
+    const post = new T.Mesh(new T.CylinderGeometry(0.02, 0.02, 0.6, 8), steel); post.position.set(-0.75, 0.3, 0.2); g.add(post);
+    const foot = new T.Mesh(new T.TorusGeometry(0.17, 0.012, 8, 16), steel); foot.position.set(-0.75, 0.03, 0.2); foot.rotation.x = Math.PI / 2; g.add(foot);
+    const sign = new T.Mesh(new T.PlaneGeometry(0.42, 0.3), new T.MeshBasicMaterial({ map: TX.label(T, ['DO NOT', 'TOUCH', '(this means you)'], { size: 40, bg: '#f4f1e6', fg: '#c0392b', border: '#f4f1e6' }) })); sign.position.set(0.43, 1.65, 0.0); sign.rotation.y = -Math.PI / 2; g.add(sign);
+    for (const dy of [0.17, -0.17]) { const tape = new T.Mesh(new T.PlaneGeometry(0.08, 0.025), new T.MeshBasicMaterial({ color: 0xd8d2b0, transparent: true, opacity: 0.8 })); tape.position.set(0.425, 1.65 + dy, 0.0); tape.rotation.y = -Math.PI / 2; g.add(tape); }
+    g.traverse((o) => { o.userData.interact = { type: 'stones', text: 'the polisher\'s corner. the stones, in order. the sign is not a suggestion.' }; }); this.interact.push(g);
+    this.solid(x, z, 0.4, 0.8); this.solid(x - 0.75, z + 0.2, 0.18, 0.18);
+    this.polisherPos = { x: x - 0.85, z: z - 0.2, face: Math.PI / 2 };
+    this.rooms.push({ x0: x - 1.1, x1: x + 0.5, z0: z - 1.0, z1: z + 1.0, name: 'polisher\'s corner' });
+    return g;
+  }
+
   vending(x, z, rot = 0) {
     const T = this.T, s = this.scene, g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = rot; s.add(g);
     const body = new T.Mesh(new T.BoxGeometry(0.9, 1.9, 0.75), new T.MeshStandardMaterial({ color: 0x24324a, roughness: 0.5, metalness: 0.3 })); body.position.y = 0.95; g.add(body);

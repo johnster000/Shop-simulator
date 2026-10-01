@@ -58,7 +58,7 @@ export function startShop(T, audio, state) {
     goHome() { leaveForTheNight(); },
     shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (j && j.program) { const line = programShipped(state, j, Math.max(0, state.day - j.dueDay)); if (line) { setTimeout(() => ui.toast(line, 6000), 1500); if (state.program && state.program.finished && state.program.late === 0) unlock('the_program'); } } if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); state.cake = { day: state.day, job: j.id }; syncCake(); unlock('cake'); setTimeout(() => ui.toast(pick(['A mold shipped. There is cake on the table. The grocery store had one left. It is not for us, strictly, but it is cake.', 'Ship day. Cake. The crew have already found it.']), 4500), 800); for (const q of state.people) if (Math.random() < 0.6) crew.say(q, pick(['Cake.', 'Corner piece is mine.', 'Who is Barb?', 'Is there a plate? There is no plate.', 'I will have a small one. Three small ones.']), 3.5); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
     crew() { return crew; },
-    crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.returned && p.startDay != null)) unlock('boomerang'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
+    crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.returned && p.startDay != null)) unlock('boomerang'); if (state.people.some((p) => (p.quirkId === 'cncOnly' || p.quirkId === 'manualOnly') && p.startDay != null)) unlock('principles'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
     achievement(a) { showAchievement(a); },
   });
   function showAchievement(a) { if (!a) return; ui.toast(`ACHIEVEMENT: ${a[0].toUpperCase()}`, 3400); audio.ding(); }
@@ -352,6 +352,7 @@ export function startShop(T, audio, state) {
     if (jobNow && def.kind === 'spot') jobNow.spotted = true;
     if (p && (def.kind === 'press' || /spot/i.test(m.job.label))) { p.blueUntil = state.day + 2; crew.sync(); if (Math.random() < 0.4) crew.say(p, pick(['Blue hands. Again.', 'It does not come off. It is not supposed to.', 'My wife asked. I said spotting. She said that is not an answer.']), 3.5); unlock('blue_hands'); }
     if (p && p.role === 'apprentice' && def.kind === 'bench' && Math.random() < 0.12) { m.runTotal *= 1.6; m.runLeft = m.runTotal; unlock('wrong_edge'); setTimeout(() => { crew.say(p, pick(['I deburred it. The whole edge.', 'Which edge? I did an edge.', 'It looked like it needed it.']), 3.5); ui.toast(`${p.name} deburred the wrong edge. Beautifully. It will take a while longer now, and a print.`, 4000); }, 1500); }
+    if (jobNow && /polish/i.test(m.job.label) && skipped) { jobNow.rushedPolish = true; unlock('rushed_polish'); ui.toast(`${who} rushed the polish. Across the draw, not along it. The part will tell you at T1. It will not come out to tell you.`, 4200); }
     if (jobNow && def.kind === 'bench' && m.job.label === 'Fit and spot') { jobNow.risk = (jobNow.risk || 0) + 0.1; ui.toast('Fit and spot at the bench, with bluing and a straightedge. A press would be better. The flash will tell you.', 3600); }
     if (def.kind === 'vmc' && /electrode/i.test(m.job.label) && !state.facility.dust) { m.condition = Math.max(0, m.condition - 0.03); for (const q of state.people) q.morale = Math.max(0, q.morale - 0.02); ui.toast('Graphite on the VMC. Black dust in the ways, the coffee, and everyone\'s nose. A vacuum is $2,800.', 4200); }
     if ((m.oil <= 0 || m.taped) && !def.manual && def.kind !== 'press' && def.kind !== 'heat' && Math.random() < 0.08) {
@@ -713,6 +714,14 @@ export function startShop(T, audio, state) {
       if (state.b4 >= 5) unlock('b4');
       ui.toast(pick(['B4. The coil turned. The bag did not. $2.', 'B4. You hit the side. It judged you. $2.', 'B4 is stuck. You knew that. $2.', 'B4. Nothing. The machine hums a little smugly. $2.', 'B4. Two bags dropped. You took both and said nothing.']), 3200);
       for (const q of state.people) if (Math.random() < 0.25) crew.say(q, pick(['B4 is stuck.', 'Everybody knows B4 is stuck.', 'Hit it on the left.', 'Those are mine, technically.']), 2.5);
+      return;
+    }
+    if (lookAt.type === 'stones') {
+      state.touchedStones = (state.touchedStones || 0) + 1; audio.tick(0.05, 1800);
+      const pol = state.people.filter((p) => p.startDay != null && p.startDay <= state.day).sort((a, b) => (b.actual.bench || 0) - (a.actual.bench || 0))[0];
+      ui.toast(pick(['You touched the stones. They were in order. They are still in order. Somebody knows anyway.', 'You picked up the 600 and put it back in the 400 slot. It will be found. You will be found.', 'Diamond paste. Three microns. On your thumb now. On everything now.', 'You looked through the magnifier. The insert looks like the moon. It is supposed to look like glass.']), 4000);
+      if (pol) { pol.morale = Math.max(0, pol.morale - 0.02); crew.say(pol, pick(['DO NOT TOUCH.', 'The sign. Read the sign.', 'Those are in ORDER.', 'I can tell. I can always tell.', 'Hands. Off.']), 3.5); }
+      if (state.touchedStones >= 3) unlock('do_not_touch');
       return;
     }
     if (lookAt.type === 'plate') { ui.toast(pick(['Flat. Within a tenth. You put your hand on it anyway.', 'Cold. Flat. The only honest thing in the building.'])); return; }

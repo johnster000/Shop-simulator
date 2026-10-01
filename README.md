@@ -301,6 +301,14 @@ Then open http://localhost:8080/.
   everything, and the crew say so. And on a bad Monday somebody draws you on the whiteboard; the
   eyebrows are accurate and nobody saw anything.
 
+- The polisher's corner. A low bench against the east wall with the stones in a block, in order,
+  a magnifier lamp, a die grinder with a felt wheel, a jar of three-micron paste, a stool, and a
+  sign that says DO NOT TOUCH (this means you). Touch the stones and the moldmaker knows. The
+  moldmaker drifts over there when idle. Rush a polish (skip the checklist) and the part sticks at
+  T1 with drag marks down the side. Two new quirks on the resumes: the CNC guy who will not run the
+  Bridgeford, and the old moldmaker who will not run anything with a screen; both say so, to the
+  machine, when it is the only one free.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

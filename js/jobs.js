@@ -306,7 +306,7 @@ export function resolveTryout(state, job, byId) {
   const found = [];
   for (const d of DEFECTS) {
     if (d[2] === 'slide' && !(spec.slides > 0)) continue;
-    let w = d[5]; if (d[0] === 'Dimension out' && hasCmm) w *= 0.3; if (d[0] === 'Dimension out' && state.machines.some((m) => m.placed && m.bumped)) w *= 2.5; if (d[0] === 'Flash' && job.spotted) w *= 0.4;
+    let w = d[5]; if (d[0] === 'Dimension out' && hasCmm) w *= 0.3; if (d[0] === 'Dimension out' && state.machines.some((m) => m.placed && m.bumped)) w *= 2.5; if (d[0] === 'Flash' && job.spotted) w *= 0.4; if (d[0] === 'Stuck part' && job.rushedPolish) w *= 2.2;
     if (Math.random() < Math.max(0.02, base * w)) found.push(d);
   }
   const notes = [];
