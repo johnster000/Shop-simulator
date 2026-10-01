@@ -55,6 +55,7 @@ export class Visitor {
       else if (m.running) note('running', 1, pick(['Busy. Good.', 'What is that one cutting?', 'Nice. Ours is louder.']));
       else if (d.five) note('five', 1, 'Oh. You have one of those.');
       else if (d.kind === 'cmm') note('cmm', 1, 'A CMM. Quality will be pleased.');
+      else if ((m.chips || 0) > 0.7) note('chips', -1, pick(['Somebody should sweep.', 'Are those chips or is that the floor?', 'I am wearing good shoes.']));
       else if (m.condition < 0.4) note('tired', -1, pick(['That one has seen some things.', 'How old is this?']));
       else note('idle' + m.uid, 0, pick(['Hm.', 'Okay.', 'What does this one do?']));
     } else {

@@ -106,3 +106,18 @@ export function screen(T, lines) {
     x.fillStyle = 'rgba(255,255,255,.06)'; for (let y = 0; y < h; y += 4) x.fillRect(0, y, w, 1);
   });
 }
+
+// chips. a drift of curls and needles around the base of a machine. alpha everywhere else.
+export function chips(T) {
+  return canvasTexture(T, 256, 256, (x, w, h) => {
+    x.clearRect(0, 0, w, h);
+    const g = x.createRadialGradient(w / 2, h / 2, 10, w / 2, h / 2, w / 2); g.addColorStop(0, 'rgba(90,96,104,0.75)'); g.addColorStop(0.7, 'rgba(90,96,104,0.35)'); g.addColorStop(1, 'rgba(90,96,104,0)');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 900; i++) {
+      const a = Math.random() * Math.PI * 2, r = Math.pow(Math.random(), 0.6) * w * 0.48, px = w / 2 + Math.cos(a) * r, py = h / 2 + Math.sin(a) * r;
+      const v = 120 + Math.random() * 100 | 0, tint = Math.random() < 0.15 ? [v + 30, v + 10, v - 30] : Math.random() < 0.1 ? [v - 10, v - 5, v + 25] : [v, v + 2, v + 6]; // steel, a few straw-coloured, a few blued
+      x.strokeStyle = `rgba(${tint[0]},${tint[1]},${tint[2]},${0.5 + Math.random() * 0.5})`; x.lineWidth = 1 + Math.random();
+      x.beginPath(); if (Math.random() < 0.5) { x.arc(px, py, 2 + Math.random() * 3, 0, Math.PI * (1 + Math.random())); } else { x.moveTo(px, py); x.lineTo(px + (Math.random() - 0.5) * 8, py + (Math.random() - 0.5) * 8); } x.stroke();
+    }
+  });
+}

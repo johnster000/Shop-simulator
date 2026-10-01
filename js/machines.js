@@ -526,6 +526,13 @@ export class MachineView {
   update(dt) {
     const p = this.group.userData.parts, m = this.m;
     if ((m.notes || []).join('~') !== (this.noteKey || '')) this.setNotes(m.notes || []);
+    if (!this.chipMesh) {
+      if (!MachineView.chipTex) MachineView.chipTex = TX.chips(this.T);
+      const d = this.def, size = Math.max(d.w, d.d) * 1.25;
+      this.chipMesh = new this.T.Mesh(new this.T.PlaneGeometry(size, size), new this.T.MeshBasicMaterial({ map: MachineView.chipTex, transparent: true, opacity: 0, depthWrite: false }));
+      this.chipMesh.rotation.x = -Math.PI / 2; this.chipMesh.position.set(0, 0.012, d.d * 0.25); this.chipMesh.raycast = () => {}; this.group.add(this.chipMesh);
+    }
+    this.chipMesh.material.opacity = Math.min(1, (m.chips || 0) * 1.1); this.chipMesh.visible = (m.chips || 0) > 0.03;
     if (m.fire) {
       if (!this.flames) {
         const T = this.T, g = new T.Group(), d = this.def; g.position.set(0, d.h * 0.55, 0); this.flames = g; this.group.add(g);

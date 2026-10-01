@@ -105,8 +105,9 @@ export class Crew {
     return true;
   }
   // nothing to run: sweep. it is not billable. it is what you do when the boss is looking.
-  sweepSpot() { const hx = this.shop.hx, hz = this.shop.hz; for (let i = 0; i < 8; i++) { const t = { x: -hx + 2 + Math.random() * (2 * hx - 4), z: -hz + 4 + Math.random() * (2 * hz - 7) }; if (!this.shop.forbidden(t.x, t.z, 0.4, 0.4) && this.nav.path(0, 0, t.x, t.z).length) return t; } return null; }
-  setBroom(v, on) { if (on && !v.broom) { v.broom = holdProp(v.g, buildBroom(this.T), 'r'); } if (!on && v.broom) { dropProp(v.g, 'r'); v.broom = null; } }
+  sweepSpot() { const dirty = this.state.machines.filter((m) => m.placed && (m.chips || 0) > 0.3); if (dirty.length) { const m = dirty[Math.floor(Math.random() * dirty.length)]; const sp = this.spotFor(m); const t = { x: sp.x + (Math.random() - 0.5) * 0.6, z: sp.z + 0.5 }; if (this.nav.path(0, 0, t.x, t.z).length) return t; }
+    const hx = this.shop.hx, hz = this.shop.hz; for (let i = 0; i < 8; i++) { const t = { x: -hx + 2 + Math.random() * (2 * hx - 4), z: -hz + 4 + Math.random() * (2 * hz - 7) }; if (!this.shop.forbidden(t.x, t.z, 0.4, 0.4) && this.nav.path(0, 0, t.x, t.z).length) return t; } return null; }
+  setBroom(v, on) { if (on && !v.broom) { v.broom = holdProp(v.g, buildBroom(this.T), 'r'); v.broom.traverse((o) => { o.raycast = () => {}; }); } if (!on && v.broom) { dropProp(v.g, 'r'); v.broom = null; } }
   takeFive(p) { const v = this.views.get(p.id); if (!v) return; this.dropMachine(v); this.setBroom(v, false); this.goTo(v, this.breakSpot, 'toBreak'); v.wait = 15; }
   dropMachine(v) { if (v.machine && !v.machine.running) { v.machine.job = null; v.machine.checklist = {}; } v.machine = null; }
 
@@ -178,7 +179,7 @@ export class Crew {
       if (v.mode === 'work') { const m = v.machine; if (!m || !m.running) { v.machine = null; v.mode = 'idle'; v.think = 0.5; } }
       if (v.mode === 'break') { v.wait -= shopDt; if (v.wait <= 0 && !lunch) { v.mode = 'idle'; v.think = 0.3; } }
       if (v.mode === 'vend') { v.wait -= shopDt; if (Math.random() < dt * 0.02) this.hooks.say(p, pick(['B4.', 'Still stuck.', 'I have a lawyer. He is also stuck.', 'This is a break.']), 2.5); if (v.wait <= 0 || lunch || !here) { v.mode = 'idle'; v.think = 0.3; v.idleMin = 0; } }
-      if (v.mode === 'sweep') { v.wait -= shopDt; v.yaw += dt * 0.15; if (v.wait <= 0 || lunch || !here) { this.setBroom(v, false); v.mode = 'idle'; v.think = 0.3; v.idleMin = 0; } }
+      if (v.mode === 'sweep') { v.wait -= shopDt; v.yaw += dt * 0.15; for (const m of s.machines) if (m.placed && m.chips > 0 && Math.hypot(m.x - v.pos.x, m.z - v.pos.z) < 3.5) m.chips = Math.max(0, m.chips - shopDt * 0.06); if (v.wait <= 0 || lunch || !here) { this.setBroom(v, false); v.mode = 'idle'; v.think = 0.3; v.idleMin = 0; } }
       if (v.mode === 'gawk') { v.wait -= shopDt; if (v.wait <= 0) { v.mode = 'idle'; v.think = 0.5; } }
 
       // ---- the body

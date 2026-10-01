@@ -282,6 +282,7 @@ export const ACHIEVEMENTS = {
   tour: ['The Tour', 'A customer walked the floor and liked it. An RFQ followed.'], wsib_visitor: ['Guest Relations', 'Hit a customer with something. There is a poster about this too.'],
   signed: ['Sign Here. And Here.', 'Signed for the steel before noon. The driver noticed.'],
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
+  swept: ['Billable, Apparently', 'Swept the floor yourself. Ten times. The crew watched.'], chips_deep: ['Ankle Deep', 'A machine with chips to the top of its boots. Somebody should sweep.'],
   the_speech: ['The Speech', 'Somebody quit on the floor, out loud, with everyone watching.'],
   stayed: ['Everybody Stays', 'Kept the crew late. Time and a half, and a look.'], watched: ['Supervision', 'Stood behind somebody while they ran a machine. It helped. They hated it.'],
   gold_watch: ['The Gold Watch', 'Ten years. You could retire. You did not.'], retired: ['Sold the Shop', 'Somebody else\'s compressor now.'],
@@ -313,6 +314,7 @@ export function tick(state, dt) {
       // the way lube. fifty hours a fill. nobody checks it. then it is dry and the ways start to sing.
       if (m.oil == null) m.oil = 1;
       m.oil = Math.max(0, m.oil - elapsed / 60 / 50);
+      m.chips = Math.min(1, (m.chips || 0) + elapsed / 60 * (byId(m.id).kind === 'vmc' ? 0.14 : byId(m.id).kind === 'sinker' || byId(m.id).kind === 'wire' ? 0.02 : 0.09));
       if (m.oil <= 0) { m.condition = Math.max(0, m.condition - elapsed * 0.0015); if (!m.dryWarned) { m.dryWarned = true; events.push({ type: 'dry', uid: m.uid }); } }
       if (m.runLeft <= 0) { m.running = false; m.runLeft = 0; m.checklist = {}; events.push({ type: 'cycleDone', uid: m.uid }); }
     }

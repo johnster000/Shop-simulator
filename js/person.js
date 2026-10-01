@@ -189,7 +189,7 @@ export function buildBroom(T) {
   const handle = new T.Mesh(new T.CylinderGeometry(0.014, 0.014, 1.3, 8), new T.MeshStandardMaterial({ color: 0xc9a86a, roughness: 0.8 })); handle.position.set(0, -0.35, 0.25); handle.rotation.x = 0.55; g.add(handle);
   const head = new T.Mesh(new T.BoxGeometry(0.45, 0.06, 0.07), new T.MeshStandardMaterial({ color: 0x6b4a2b, roughness: 0.9 })); head.position.set(0, -0.92, 0.62); g.add(head);
   const bristles = new T.Mesh(new T.BoxGeometry(0.44, 0.1, 0.06), new T.MeshStandardMaterial({ color: 0xb8b48a, roughness: 1 })); bristles.position.set(0, -1.0, 0.62); g.add(bristles);
-  g.traverse((o) => { o.raycast = () => {}; });
+  g.userData.noRay = true;
   return g;
 }
 export function buildClipboard(T) {

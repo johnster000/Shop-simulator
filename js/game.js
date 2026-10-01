@@ -90,6 +90,7 @@ export function startShop(T, audio, state) {
   const extItem = items.make('extinguisher', shop.extPos.x, shop.extPos.z, { y: shop.extPos.y });
   const hoseItem = items.make('airhose', shop.hosePos.x, shop.hosePos.z, { y: shop.hosePos.y });
   let coffeeItem = items.items.find((it) => it.kind === 'coffee');
+  const broomItem = items.make('broom', shop.office.x1 + 0.35, shop.office.z1 - 0.9, { y: 0.0 });
   const delivery = new Delivery(T, scene, shop, state);
   const phone = new Phone(shop, state, audio, { toast: (t, ms) => ui.toast(t, ms), unlock });
   // the travellers: one clipboard per live job, beside the machine that has it or on the rack
@@ -525,7 +526,7 @@ export function startShop(T, audio, state) {
         if (d < Math.min(bestD, 2.4) && (dx * fx + dz * fz) / (d || 1) > 0.8) { bestD = d; lookAt = { type: 'person', id: v.p.id }; }
       }
     }
-    if (!lookAt) { ui.tag(''); ui.hint(items.held ? `holding ${ITEM_KINDS[items.held.kind].label}${items.held.empty ? ' (empty)' : ''} · ${items.held.kind === 'airhose' ? 'click: PSSSHT' : items.held.kind === 'traveller' ? 'click to read it' : 'click to throw'} · G to put it down` : ''); return; }
+    if (!lookAt) { ui.tag(''); ui.hint(items.held ? `holding ${ITEM_KINDS[items.held.kind].label}${items.held.empty ? ' (empty)' : ''} · ${items.held.kind === 'airhose' ? 'click: PSSSHT' : items.held.kind === 'traveller' ? 'click to read it' : items.held.kind === 'broom' ? 'click to sweep' : 'click to throw'} · G to put it down` : ''); return; }
     if (lookAt.type === 'item' && lookAt.kind === 'traveller' && !items.held) { const j = state.jobs.find((q) => q.id === lookAt.ref.jobId); ui.tag(j ? `JOB ${j.id} · ${j.title.toUpperCase()}` : 'TRAVELLER'); ui.hint(j ? `${nextLabel(j)} · due day ${j.dueDay}${state.day > j.dueDay ? ' (LATE)' : ''} · pick it up` : 'pick it up'); return; }
     if (lookAt.type === 'item') { ui.tag(''); ui.hint(items.held ? 'click to throw' : `pick up the ${ITEM_KINDS[lookAt.kind].label}`); return; }
     if (items.held && items.held.kind === 'hammer' && lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid), d = byId(m.id); ui.tag(`${d.brand.toUpperCase()} ${d.name.toUpperCase()}`); ui.hint('WHACK IT'); return; }
@@ -533,7 +534,7 @@ export function startShop(T, audio, state) {
       const hk = items.held.kind, pName = lookAt.type === 'person' ? (state.people.find((q) => q.id === lookAt.id) || {}).name : '';
       const mAt = lookAt.type === 'machine' ? state.machines.find((q) => q.uid === lookAt.uid) : null;
       ui.tag(pName || (mAt ? `${byId(mAt.id).brand.toUpperCase()} ${byId(mAt.id).name.toUpperCase()}${mAt.fire ? ' · ON FIRE' : ''}` : ''));
-      ui.hint(hk === 'traveller' && !pAt && !mAt ? 'click to read it (the JOBS tab) · G to put it down' : hk === 'extinguisher' && mAt && mAt.fire ? 'PUT IT OUT' : hk === 'extinguisher' && (mAt || pName) ? 'click to squeeze (it is not on fire)' : hk === 'airhose' ? (pName ? 'click to blast (do not)' : mAt ? 'click to blow the chips off' : 'click: PSSSHT') : hk === 'coffee' && pName ? 'click to hand it over' : 'click to throw');
+      ui.hint(hk === 'broom' ? 'click to sweep' : hk === 'traveller' && !pAt && !mAt ? 'click to read it (the JOBS tab) · G to put it down' : hk === 'extinguisher' && mAt && mAt.fire ? 'PUT IT OUT' : hk === 'extinguisher' && (mAt || pName) ? 'click to squeeze (it is not on fire)' : hk === 'airhose' ? (pName ? 'click to blast (do not)' : mAt ? 'click to blow the chips off' : 'click: PSSSHT') : hk === 'coffee' && pName ? 'click to hand it over' : 'click to throw');
       $('hint').classList.toggle('alarm', !!(hk === 'extinguisher' && mAt && mAt.fire)); return;
     }
     if (lookAt.type === 'machine') {
@@ -557,6 +558,13 @@ export function startShop(T, audio, state) {
       if (hk === 'extinguisher') { if (mAt && mAt.fire) { putOut(mAt); return; } if (mAt || pAt) { audio.noise(0.5, 900, 0.12, 'highpass'); ui.toast(pAt ? `${pAt.name}, in a cloud of powder. "WHAT." Morale, and the floor, are worse.` : `A cloud of powder over the ${byId(mAt.id).name.toLowerCase()}. It was not on fire. It is dusty now.`, 3500); if (pAt) { pAt.morale = Math.max(0, pAt.morale - 0.15); crew.say(pAt, pick(['WHAT.', 'I was NOT on fire.', 'My coffee.']), 3); } else { mAt.condition = Math.max(0, mAt.condition - 0.01); } return; } }
       if (hk === 'airhose') { blast(mAt, pAt); return; }
       if (hk === 'coffee' && pAt) { giveCoffee(pAt); return; }
+      if (hk === 'broom') {
+        let got = 0; for (const m of state.machines) if (m.placed && (m.chips || 0) > 0 && Math.hypot(m.x - camera.position.x, m.z - camera.position.z) < 2.8) { got += Math.min(m.chips, 0.25); m.chips = Math.max(0, m.chips - 0.25); }
+        audio.noise(0.25, 1200, 0.07, 'bandpass', 0.7);
+        if (got > 0) { state.sweeps = (state.sweeps || 0) + 1; if (state.sweeps >= 10) unlock('swept'); if (Math.random() < 0.3) ui.toast(pick(['Swish. Chips in the ways, chips in your boots.', 'Swish. The apprentice is watching you sweep. Learning.', 'Swish. Billable, apparently.', 'Swish. A curl of P20 down your sock.']), 2500); for (const q of state.people) if (Math.random() < 0.15) crew.say(q, pick(['I was going to do that.', 'The boss is sweeping. Hide.', 'That is my broom.']), 2.5); }
+        else ui.toast(pick(['Swish. Clean already. Mostly.', 'Swish. Nothing. Satisfying anyway.']), 1800);
+        return;
+      }
       if (hk === 'traveller' && !pAt && !mAt) { if (player.locked) document.exitPointerLock(); ui.openClip('jobs'); return; }
       const it = items.throw(1); if (it) { it.throwDist = 0; it.from = { x: camera.position.x, z: camera.position.z }; }
       return;
@@ -709,7 +717,7 @@ export function startShop(T, audio, state) {
     if (iso.active) iso.update(); else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
     if (!paused && !modal) {
-    fireTick(dt); if (now - travT > 700) { travT = now; syncTravellers(); }
+    fireTick(dt); if (now - travT > 700) { travT = now; syncTravellers(); if (state.machines.some((m) => (m.chips || 0) >= 1)) unlock('chips_deep'); }
     if (!paused && !modal && !night) { delivery.update(dt, (line) => { ui.toast(line, 5000); syncSteel(); }, () => { const v = [...crew.views.values()].find((q) => q.g.visible && (q.mode === 'idle' || q.mode === 'sweep')); return v ? v.p : null; }); visitor.update(dt); phone.update(dt, { x: camera.position.x, z: camera.position.z }); }
       items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })).concat(visitor.here ? [{ x: visitor.pos.x, z: visitor.pos.z, id: -1 }] : []));
       for (const it of items.items) if (it.flying && it.from) it.throwDist = Math.hypot(it.mesh.position.x - it.from.x, it.mesh.position.z - it.from.z);

@@ -207,6 +207,11 @@ Then open http://localhost:8080/.
   whistle. The crew leave sticky notes on machines after crashes, dry oil and duct tape
   (NOT MY FAULT, OIL ME, TAPE IS LOAD BEARING); a service takes them down.
 
+- Chips. Machines pile up chips around their base as they run (the VMC fastest, the EDMs barely).
+  Sweepers head for the dirtiest machine and clear what is near them. There is a broom leaning
+  on the office wall: pick it up and click to sweep yourself, and the crew will say something.
+  Visitors notice chips. A machine ankle deep goes on the wall.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
