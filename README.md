@@ -435,6 +435,13 @@ Then open http://localhost:8080/.
   grievance in the inbox, which is where things go to be ignored, and in July the grievance is the
   heat until the climate control arrives.
 
+- Shop software (§3.4). JobLORD 2 on the office PC is a thirty-day trial: the board sees ten
+  days out and the screen asks, politely. When the trial expires the board drops to five days
+  and the nag screen is every morning. JobLORD 2 Pro is $2,400 and $45 a week, forever, for
+  fifteen days of board and a slightly tighter estimate. The PC screen now shows the licence,
+  the inbox count and the jobs in work. And when you are wrecked (§10.4), the crew say so: you look
+  like the tarp.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

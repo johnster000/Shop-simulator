@@ -1,6 +1,6 @@
 // HUD, the clipboard, the machine panel. Honest HTML. No 3D UI.
 import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
-import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor, insuranceWeekly, askSteelTerms } from './sim.js';
+import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor, insuranceWeekly, askSteelTerms, jobLord } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
 import { IN_HOUSE_MIN, schedule, memoryOf, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel, holdUp, canCheapSteel, cheapSteel, canInspect, inspect, canShipEarly, shipEarly, CHEAP_STEELS, VENDORS, vendorFor, CUSTOMERS, customerOpen, confidence, SEGMENT_NORMS } from './jobs.js';
@@ -106,9 +106,9 @@ export class UI {
   renderJobs() {
     const s = this.state, el = $('tab-jobs');
     const live = s.jobs.filter((j) => j.status !== 'shipped').slice().reverse();
-    const sch = schedule(s, byId);
+    const jl = jobLord(s); const sch = schedule(s, byId, jl.days);
     const hue = (id) => (id * 47) % 360;
-    const board = sch.lanes.length ? `<h4 class="sect">THE BOARD</h4><div class="boardWrap"><table class="board"><tr><th></th>${sch.cols.map((d, i) => `<th>${i === 0 ? 'today' : 'd' + d}</th>`).join('')}</tr>
+    const board = sch.lanes.length ? `<h4 class="sect">THE BOARD <span class="note" style="letter-spacing:0;font-weight:normal">· ${jl.label}${jl.pro ? '' : jl.trial ? '' : ' · five days out. Pro is on the SHOP tab, under software'}</span></h4><div class="boardWrap"><table class="board"><tr><th></th>${sch.cols.map((d, i) => `<th>${i === 0 ? 'today' : 'd' + d}</th>`).join('')}</tr>
       ${sch.lanes.map((l) => `<tr><td class="lane">${l.name}</td>${sch.cols.map((d, c) => { const cell = l.cells.find((x) => x.c === c); return `<td>${cell ? `<i style="background:hsl(${hue(cell.j)},55%,62%)" title="job ${cell.j}: ${cell.label}">${cell.j % 1000}</i>` : ''}</td>`; }).join('')}</tr>`).join('')}</table></div>
       <div class="boardNote">${sch.summary.map((q) => `<b style="color:hsl(${hue(q.id)},55%,38%)">job ${q.id}</b> ${q.beyond ? 'runs past the board' : `done around day ${q.endDay}`}, due day ${q.due}${q.late ? ' <b style="color:var(--red)">LATE</b>' : ''}${q.missing ? ' <b style="color:var(--red)">needs a machine you do not have</b>' : ''}`).join(' · ')}. A projection: one shift, nobody sick, vendors on time. So, no.</div>` : '';
     const done = s.jobs.filter((j) => j.status === 'shipped').slice().reverse().slice(0, 8);
@@ -223,8 +223,8 @@ export class UI {
     const upCard = (u) => { const got = done.includes(u.id), pend = f.pending.find((p) => p.id === u.id), locked = u.needs && !done.includes(u.needs); return `
       <li><div class="name">${u.name}</div><div class="blurb">${u.blurb}</div><div class="foot">${u.days} day${u.days > 1 ? 's' : ''} of contractor${locked ? ` · needs ${UPGRADES.find((q) => q.id === u.needs).name}` : ''}</div>
         <div class="buy">${got ? '<button disabled>DONE</button>' : pend ? `<button disabled>COMING DAY ${pend.day}</button>` : `<button data-up="${u.id}" ${s.cash < u.price || locked ? 'disabled' : ''}>${money(u.price)}</button>`}</div></li>`; };
-    const swCard = (w) => { const have = sw.cad === w.id || sw.cam === w.id; return `
-      <li>${w.pirated ? '<span class="tagx">FREE*</span>' : ''}<div class="name">${w.name}</div><div class="brand">${w.kind === 'both' ? 'CAD + CAM' : w.kind.toUpperCase()} seat</div><div class="blurb">${w.blurb}</div>
+    const swCard = (w) => { const have = sw.cad === w.id || sw.cam === w.id || sw.shop === w.id; return `
+      <li>${w.pirated ? '<span class="tagx">FREE*</span>' : ''}<div class="name">${w.name}</div><div class="brand">${w.kind === 'both' ? 'CAD + CAM' : w.kind === 'shop' ? 'shop software' : w.kind.toUpperCase()} seat</div><div class="blurb">${w.blurb}</div>
         <div class="foot">${w.price ? money(w.price) + ' + ' : ''}${w.weekly ? '$' + w.weekly + '/wk maintenance' : w.pirated ? 'no maintenance, no invoice, no record' : ''}</div>
         <div class="buy">${have ? '<button disabled>INSTALLED</button>' : `<button data-sw="${w.id}" ${s.cash < w.price ? 'disabled' : ''}>${w.price ? money(w.price) : 'DOWNLOAD'}</button>`}</div></li>`; };
     el.innerHTML = `<div class="row2"><div class="big">${money(s.cash)}</div><div class="note">Panel: ${free} of ${circuits(s)} circuits free. Air: ${airFree} of ${airSlots(s)}. CAM: ${hasCam(s) ? SOFTWARE.find((w) => w.id === sw.cam).name : '<b style="color:var(--red)">none</b>'}. Trucks arrive today, which is to say now.</div></div>

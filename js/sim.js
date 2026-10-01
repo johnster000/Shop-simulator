@@ -171,12 +171,16 @@ export function buySoftware(state, sw) {
   const s = state.software;
   if (state.cash < sw.price) return { ok: false, why: 'not enough cash' };
   if (sw.price) post(state, `${sw.name} seat`, -sw.price);
+  if (sw.kind === 'shop') { s.shop = sw.id; return { ok: true }; }
   if (sw.kind === 'cad' || sw.kind === 'both') s.cad = sw.id;
   if (sw.kind === 'cam' || sw.kind === 'both') { s.cam = sw.id; s.camDownUntil = 0; }
   s.pirated = (s.cad === 'katya_ce') || (s.cam === 'katya_ce');
   return { ok: true };
 }
-export function softwareWeekly(state) { let t = 0; for (const id of [state.software.cad, state.software.cam]) { const sw = SOFTWARE.find((x) => x.id === id); if (sw && sw.weekly) t += sw.weekly; } return state.software.cad && state.software.cad === state.software.cam ? t / 2 : t; }
+export function softwareWeekly(state) { let t = 0; for (const id of [state.software.cad, state.software.cam]) { const sw = SOFTWARE.find((x) => x.id === id); if (sw && sw.weekly) t += sw.weekly; } const base = state.software.cad && state.software.cad === state.software.cam ? t / 2 : t; const shop = SOFTWARE.find((x) => x.id === state.software.shop); return base + (shop ? shop.weekly : 0); }
+// JobLORD: the shop software on the office PC. a trial, then a nag, then a licence that never stops billing.
+export const JOBLORD_TRIAL_DAYS = 30;
+export function jobLord(state) { const pro = !!(state.software && state.software.shop); const left = JOBLORD_TRIAL_DAYS - (state.day - 1); return pro ? { pro: true, days: 15, label: 'JobLORD 2 Pro' } : left > 0 ? { pro: false, trial: true, left, days: 10, label: `JobLORD 2 (trial, ${left} day${left === 1 ? '' : 's'} left)` } : { pro: false, trial: false, left: 0, days: 5, label: 'JobLORD 2 (TRIAL EXPIRED)' }; }
 
 // ---- maintenance. money fixes anything. a little money band-aids it.
 export const BREAKDOWNS = [

@@ -12,7 +12,7 @@ import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
 import { Forklift } from './forklift.js';
 import { practice, nightShift, setupRoll, skillFor, raise } from './people.js';
-import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost, saturdayWorth, isSaturday } from './sim.js';
+import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost, saturdayWorth, isSaturday, jobLord } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message, openCrate, DEFECTS } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
@@ -478,7 +478,8 @@ export function startShop(T, audio, state) {
     lines.push(pick(['- coffee', '- radio: NO', '- sweep', '- call Rick back (no)', '- order end mills']));
     return lines.slice(0, 6);
   }
-  shop.setWhiteboard(whiteboardLines(), state.doodle || null);
+  function syncScreen() { const jl = jobLord(state); const un = state.inbox.filter((m) => !m.read).length; shop.setScreen([state.shopName.toUpperCase().slice(0, 20), '', jl.label, `inbox: ${un}`, `jobs: ${state.jobs.filter((j) => j.status === 'work').length} in work`, jl.pro ? 'licence: current' : jl.trial ? 'BUY NOW? [later]' : 'BUY NOW. [later] [later]', '> _']); if (!jl.pro && !jl.trial && (state.day - 1) % 5 === 0) setTimeout(() => ui.toast('The office PC: JobLORD 2 trial expired. The board shows five days out and the nag screen shows every morning. Pro is $2,400 and $45 a week, forever.', 5000), 4000); }
+  shop.setWhiteboard(whiteboardLines(), state.doodle || null); syncScreen();
   syncWalked(); syncCake();
   audio.setStation(state.radio || 0);
 
@@ -643,7 +644,7 @@ export function startShop(T, audio, state) {
     if (!phoneItem) phoneItem = items.make('phone', shop.cribPos.phone.x, shop.cribPos.phone.z, { y: shop.cribPos.phone.y });
     if (!pinsItem) pinsItem = items.make('pins', shop.cribPos.pins.x, shop.cribPos.pins.z, { y: shop.cribPos.pins.y }); if (!electrodeItem) electrodeItem = items.make('electrode', shop.cribPos.electrode.x, shop.cribPos.electrode.z, { y: shop.cribPos.electrode.y });
     if ((state.day - 1) % 7 === 0) { state.doodle = null; const sour = state.people.filter((p) => p.morale < 0.45 && p.startDay != null && p.startDay <= state.day); if (sour.length && Math.random() < 0.5) { state.doodle = pick(['THE BOSS', 'YOU', '"management"', state.shopName.split(' ')[0].toUpperCase()]); unlock('the_foreman'); setTimeout(() => ui.toast('Somebody drew you on the whiteboard. The eyebrows are accurate. Nobody saw anything.', 4000), 3000); } }
-    shop.setWhiteboard(whiteboardLines(), state.doodle || null);
+    shop.setWhiteboard(whiteboardLines(), state.doodle || null); syncScreen();
     if (state.fatigue >= 0.25) ui.toast(state.fatigue >= 0.6 ? 'Day ' + state.day + '. You are wrecked. Read every button twice.' : 'Day ' + state.day + '. Tired. Coffee first.', 3500);
     else if ((state.day - 1) % 7 === 0) ui.toast('Monday. ' + pick(['The rent went out before you did.', 'Resumes on the desk.', 'The tarp survived the weekend.']), 2800);
     else ui.toast('Day ' + state.day + '. ' + pick(['The compressor is already going.', 'Fresh. For now.', 'The tarp let the night in.']), 2600);

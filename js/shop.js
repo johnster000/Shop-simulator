@@ -463,6 +463,7 @@ export class Shop {
     }
     this.rollup.visible = real; this.tarpGroup.visible = !real;
   }
+  setScreen(lines) { if (!this.screenMat) return; this.screenMat.map = TX.screen(this.T, lines); this.screenMat.needsUpdate = true; }
   setWhiteboard(lines, doodle = null) { if (!this.wbMat) return; this.wbMat.map = TX.whiteboard(this.T, lines, doodle); this.wbMat.needsUpdate = true; }
 
   // the estimate sheet, framed, with the real number next to it. on the office wall, beside the whiteboard, where you sit.

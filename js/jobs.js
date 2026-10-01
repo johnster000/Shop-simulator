@@ -240,7 +240,7 @@ export function sendQuote(state, rfq, price) { rfq.price = Math.round(price); rf
 export function confidence(state) {
   const molds = state.jobs.filter((j) => j.status === 'shipped' && j.mold).length;
   const est = state.people.find((p) => p.role === 'estimator' && p.startDay != null && p.startDay <= state.day);
-  let band = 0.35 - Math.min(0.2, molds * 0.025) - (est ? 0.06 + Math.min(0.06, (est.actual.general || 0) * 0.015) : 0);
+  let band = 0.35 - Math.min(0.2, molds * 0.025) - (est ? 0.06 + Math.min(0.06, (est.actual.general || 0) * 0.015) : 0) - (state.software && state.software.shop ? 0.04 : 0);
   band = Math.max(0.06, band);
   return { band, word: band > 0.28 ? 'a guess' : band > 0.18 ? 'rough' : band > 0.1 ? 'fair' : 'tight' };
 }

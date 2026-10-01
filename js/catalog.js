@@ -170,6 +170,7 @@ export const SOFTWARE = [
   { id: 'rigid', name: 'RigidWorks CAD', kind: 'cad', price: 6000, weekly: 110, blurb: 'What most shops run. Crashes at 4:55 on Fridays.' },
   { id: 'mastercram', name: 'MasterCram CAM', kind: 'cam', price: 9000, weekly: 160, blurb: 'Everybody learned on it. Everybody has opinions.' },
   { id: 'ultramill', name: 'UltraMill by Autodusk', kind: 'cam', price: 24000, weekly: 320, blurb: 'The 5-axis package. Toolpaths so smooth the machine cries. You do not have a 5-axis.', fast: 0.9 },
+  { id: 'joblord', name: 'JobLORD 2 Pro', kind: 'shop', price: 2400, weekly: 45, blurb: 'Scheduling, quoting, job tracking. The trial on the office PC runs thirty days and then the board goes to five days out and the nag screen goes to every morning. Pro sees fifteen days out and tightens the estimate a little. It never stops billing. None of them do.' },
 ];
 
 export const BUILDINGS = {
