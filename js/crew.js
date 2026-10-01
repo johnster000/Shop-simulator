@@ -13,7 +13,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 export class Crew {
   constructor(T, scene, shop, nav, state, hooks) {
     this.T = T; this.scene = scene; this.shop = shop; this.nav = nav; this.state = state; this.hooks = hooks; // hooks: { machineViews(), runMachine(m, skipped, p), toast(msg), say(p, text) }
-    this.views = new Map();
+    this.views = new Map(); this.extras = new Map(); // extras: visitors, drivers; they get bubbles, not wages
     this.door = { x: shop.door.x, z: shop.hz - 0.6 }; this.outside = { x: shop.door.x, z: shop.hz + 2.5 };
     const br = (shop.rooms || []).find((r) => r.name === 'breakroom');
     // the break room, if there is one; otherwise the strip of wall by the office where the coffee was
@@ -26,7 +26,7 @@ export class Crew {
 
   // say it over their head, where it belongs
   say(p, text, secs = 3.2) {
-    const v = this.views.get(p.id); if (!v || !v.g.visible) return;
+    const v = this.views.get(p.id) || (this.extras && this.extras.get(p.id)); if (!v || !v.g.visible) return;
     let b = this.bubbles.get(p.id);
     if (!b) { const el = document.createElement('div'); el.className = 'bubble'; this.layer.appendChild(el); b = { el, until: 0 }; this.bubbles.set(p.id, b); }
     b.el.innerHTML = `<b>${p.name}</b>${text}`; b.until = performance.now() + secs * 1000; b.el.classList.add('show');
@@ -34,7 +34,7 @@ export class Crew {
   projectBubbles(camera, iso) {
     const now = performance.now(), T = this.T;
     for (const [id, b] of this.bubbles) {
-      const v = this.views.get(id);
+      const v = this.views.get(id) || (this.extras && this.extras.get(id));
       if (!v || now > b.until || !v.g.visible) { b.el.classList.remove('show'); continue; }
       const p = new T.Vector3(v.pos.x, 1.95 * v.g.userData.H, v.pos.z).project(camera);
       if (p.z > 1 || (!iso && p.z < -1)) { b.el.classList.remove('show'); continue; }

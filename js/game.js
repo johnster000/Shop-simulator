@@ -7,6 +7,7 @@ import { UI } from './ui.js';
 import { byId } from './catalog.js';
 import { crewVerdict } from './events.js';
 import { Delivery } from './truck.js';
+import { Visitor } from './visitor.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob } from './jobs.js';
 import { Nav } from './nav.js';
@@ -40,7 +41,7 @@ export function startShop(T, audio, state) {
   const viewOf = (uid) => views.find((v) => v.m.uid === uid);
   const nav = new Nav(shop.hx, shop.hz);
   const allColliders = () => [...shop.colliders, ...views.filter((v) => v.m.placed).map((v) => v.collider())];
-  let crew = null;
+  let crew = null, visitor = null;
 
   let modal = false, paused = false, placing = null, night = false;
   const ui = new UI(state, audio, {
@@ -63,6 +64,7 @@ export function startShop(T, audio, state) {
     runMachine: (m, skipped, p) => runMachine(m, skipped, p),
     say: (p, text) => { crew.say(p, text); },
   });
+  visitor = new Visitor(T, scene, shop, nav, state, crew, { say: (p, t, secs) => crew.say(p, t, secs), toast: (t, ms) => ui.toast(t, ms), unlock });
   nav.rebuild(allColliders()); crew.sync();
 
   // ---- things to throw
@@ -91,6 +93,7 @@ export function startShop(T, audio, state) {
       else { m.condition = Math.max(0, m.condition - 0.02); ui.toast(pick([`CLANG. The ${d.name.toLowerCase()} has been hit by worse.`, `CLANG. A handwheel is slightly less round.`, 'CLANG. Nothing important. Probably.'])); if (Math.random() < 0.15) { post(state, 'Bent handwheel', -120); unlock('bent'); ui.toast('Bent a handwheel. $120. The crew saw. They will say they did not.', 3600); } }
       return;
     }
+    if (what.type === 'person' && what.id === -1) { visitor.struck(); post(state, 'Visitor first aid, and the vest', -120); unlock('wsib_visitor'); ui.toast(`You hit the customer. With a ${ITEM_KINDS[kind].label}. They are leaving. The RFQ is leaving with them.`, 5000); return; }
     if (what.type === 'person') {
       const p = state.people.find((q) => q.id === what.id); if (!p) return;
       if (heavy) {
@@ -376,7 +379,7 @@ export function startShop(T, audio, state) {
     if (!coffeeItem) coffeeItem = items.make('coffee', shop.pcPos.x + 0.6, shop.pcPos.z + 0.1, { y: 0.77 });
     if (items.held) items.drop();
     hoseItem.mesh.position.set(shop.hosePos.x, shop.hosePos.y, shop.hosePos.z); hoseItem.mesh.rotation.set(0, 0, 0); hoseItem.flying = false;
-    crew.night(); delivery.night();
+    crew.night(); delivery.night(); visitor.night();
     const lightsOut = runLightsOut();
     const n = goHome(state); save(state);
     if (lightsOut.length) n.notes = (n.notes || []).concat(lightsOut);
@@ -486,7 +489,8 @@ export function startShop(T, audio, state) {
     } else if (lookAt.type === 'person') {
       const p = state.people.find((q) => q.id === lookAt.id);
       if (p) { ui.tag(`${p.name.toUpperCase()} · ${p.roleName.toUpperCase()} · ${crew.status(p)}`); ui.hint('talk'); }
-    } else if (lookAt.type === 'driver') { ui.tag('THE DRIVER · BRAMALEA STEEL'); ui.hint('sign for the steel'); $('hint').classList.remove('alarm'); }
+    } else if (lookAt.type === 'visitor') { ui.tag(`${visitor.p.name.toUpperCase()} · ${visitor.title.toUpperCase()}`); ui.hint(visitor.toured ? 'they are looking' : 'say hello'); $('hint').classList.remove('alarm'); }
+    else if (lookAt.type === 'driver') { ui.tag('THE DRIVER · BRAMALEA STEEL'); ui.hint('sign for the steel'); $('hint').classList.remove('alarm'); }
     else { ui.tag(''); ui.hint(lookAt.text || lookAt.type); $('hint').classList.remove('alarm'); }
   }
   function use() {
@@ -504,6 +508,7 @@ export function startShop(T, audio, state) {
     audio.click();
     if (lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid); if (m.alarm) { estop(m); return; } if (m.job && m.job.operator && m.job.operator !== 'owner' && !m.running) { ui.toast(`${state.people.find((q) => q.id === m.job.operator).name} is setting this one up.`); return; } if (player.locked) document.exitPointerLock(); ui.openPanel(m); return; }
     if (lookAt.type === 'person') { const p = state.people.find((q) => q.id === lookAt.id); if (p) { if (player.locked) document.exitPointerLock(); ui.openPerson(p); } return; }
+    if (lookAt.type === 'visitor') { if (visitor.tour()) { audio.click(); ui.toast(pick(['You walked them round. You said "we can do that" four times.', 'The tour. You skipped the scrap bin.', 'You showed them the whiteboard. You should not have.']), 4000); } else ui.toast('They are looking. Let them look.'); return; }
     if (lookAt.type === 'driver' || lookAt.type === 'truck') {
       const r = delivery.sign();
       if (!r) { ui.toast(lookAt.type === 'truck' ? 'The truck. It is leaving.' : 'The driver is leaving. He waved. It was not a friendly wave.'); return; }
@@ -631,8 +636,8 @@ export function startShop(T, audio, state) {
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
     if (!paused && !modal) {
     fireTick(dt);
-    if (!paused && !modal && !night) delivery.update(dt, (line) => { ui.toast(line, 5000); syncSteel(); });
-      items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })));
+    if (!paused && !modal && !night) { delivery.update(dt, (line) => { ui.toast(line, 5000); syncSteel(); }); visitor.update(dt); }
+      items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })).concat(visitor.here ? [{ x: visitor.pos.x, z: visitor.pos.z, id: -1 }] : []));
       for (const it of items.items) if (it.flying && it.from) it.throwDist = Math.hypot(it.mesh.position.x - it.from.x, it.mesh.position.z - it.from.z);
       itemsAtRest(); syncSteel();
     }
@@ -650,6 +655,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

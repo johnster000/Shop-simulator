@@ -68,7 +68,8 @@ export class Delivery {
     }
     if (this.here) pose(this.driver, { mode: 'idle', t: this.t, walk: 0, morale: 0.6 });
     // noon: he leaves it on the pad
-    if (this.here && s.t >= 300 && !this.leaving) { for (const j of this.waiting()) { j.truck = false; j.status = 'work'; } if (onLeft) onLeft(LEFT_LINES[Math.floor(Math.random() * LEFT_LINES.length)]); this.leave(); }
+    // noon: he leaves it on the pad. if the truck never got here (it was leaving, or you loaded the game at two), it is on the pad anyway.
+    if (s.t >= 300 && this.waiting().length) { for (const j of this.waiting()) { j.truck = false; j.status = 'work'; } if (onLeft) onLeft(LEFT_LINES[Math.floor(Math.random() * LEFT_LINES.length)]); if (this.here) this.leave(); }
     if (this.leaving) { this.leaving -= dt; this.truck.position.z += dt * 2.2; this.truck.position.x += dt * 0.3; if (this.leaving <= 0) { this.leaving = 0; this.truck.visible = false; } }
   }
   leave() { this.here = false; this.driver.visible = false; this.leaving = 5; }

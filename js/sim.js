@@ -276,6 +276,7 @@ export function auditCheck(state) {
 export const ACHIEVEMENTS = {
   pin_aim_squeeze: ['Pull, Aim, Squeeze', 'Put out a fire on the shop floor. The tag was from 2009.'], chips_only: ['For Chips Only', 'The air hose. On a person. There is a poster about this.'], my_round: ['My Round', 'Brought somebody a coffee. Unthrown.'],
   five_axis: ['Five Axes', 'Bought the one everybody wants. Fourteen months, they said.'], press_time: ['Press Time', 'Ran a tryout on your own press. Saw the flash yourself.'], banana: ['The Banana', 'Heat treated a block into a curve. Quench & Sons sent a card.'], in_house_heat: ['Hard, In House', 'Heat treated a block in your own oven. It came out straight.'],
+  tour: ['The Tour', 'A customer walked the floor and liked it. An RFQ followed.'], wsib_visitor: ['Guest Relations', 'Hit a customer with something. There is a poster about this too.'],
   signed: ['Sign Here. And Here.', 'Signed for the steel before noon. The driver noticed.'],
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   gold_watch: ['The Gold Watch', 'Ten years. You could retire. You did not.'], retired: ['Sold the Shop', 'Somebody else\'s compressor now.'],

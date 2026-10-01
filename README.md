@@ -163,6 +163,13 @@ Then open http://localhost:8080/.
   skill goes up a notch, whether or not the resume agrees. An apprentice who gets good on a mill,
   lathe or grinder asks for the machinist's rate and gets it.
 
+- The customer walks the floor. Some mornings somebody from a customer turns up in a visitor vest
+  and safety glasses and wanders past three machines and the whiteboard, forming an opinion out
+  loud: a machine with a sign on it, duct tape, a full scrap bin and a relaxed-looking crew count
+  against you; a running machine, a crane, a CMM, the 5-axis and the big building count for you.
+  Press E on them to say hello (once). The verdict comes by email that night, sometimes with an
+  RFQ attached. Throw something at them and the verdict comes faster.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
