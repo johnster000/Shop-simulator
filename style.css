@@ -129,6 +129,13 @@ body.touch #enter small{display:none}
 #nightClock{font-size:clamp(40px,8vw,72px);letter-spacing:.1em;margin:8px 0 14px;font-variant-numeric:tabular-nums}
 #nightLine{color:#aaa;font-size:14px;letter-spacing:.06em;max-width:520px;line-height:1.8;min-height:3em}
 body.tired #vignette{opacity:1}
+#bubbles{position:fixed;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.bubble{position:absolute;transform:translate(-50%,-100%);background:#f3efe4;color:#111;font-size:13px;padding:6px 10px;border:2px solid #111;max-width:260px;white-space:normal;text-align:center;line-height:1.35;opacity:0;transition:opacity .2s}
+.bubble.show{opacity:1}
+.bubble::after{content:'';position:absolute;left:50%;bottom:-9px;margin-left:-7px;border:7px solid transparent;border-top-color:#111;border-bottom:0}
+.bubble b{display:block;font-size:10px;letter-spacing:.15em;color:#666;margin-bottom:2px}
+#pauseWall{max-width:560px;font-size:12px;color:#999;line-height:1.8;margin-top:14px;letter-spacing:.04em}
+#pauseWall b{color:#eee}
 #vignette{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity 2s;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.55) 100%)}
 #pause .btn{background:transparent;color:#eee;border-color:#eee;min-width:260px;margin:5px}
 #pause .btn:hover{background:#eee;color:#111}

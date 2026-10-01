@@ -5,7 +5,7 @@ import { MachineView } from './machines.js';
 import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
-import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve } from './sim.js';
+import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
@@ -48,7 +48,7 @@ export function startShop(T, audio, state) {
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
     goHome() { leaveForTheNight(); },
-    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (state.t >= 780) unlock('shipped_friday'); if (j && j.mold) { unlock('first_mold'); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); } },
+    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (state.t >= 780) unlock('shipped_friday'); if (j && j.mold) { unlock('first_mold'); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
     crew() { return crew; },
     crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); },
     achievement(a) { showAchievement(a); },
@@ -58,7 +58,7 @@ export function startShop(T, audio, state) {
   crew = new Crew(T, scene, shop, nav, state, {
     machineViews: () => views,
     runMachine: (m, skipped, p) => runMachine(m, skipped, p),
-    say: (p, text) => { ui.toast(`${p.name}: "${text}"`, 2600); },
+    say: (p, text) => { crew.say(p, text); },
   });
   nav.rebuild(allColliders()); crew.sync();
 
@@ -196,10 +196,24 @@ export function startShop(T, audio, state) {
           if (job) { scrapJob(state, job, jobItem); shop.setScrap(state.scrapCount); unlock('oops'); ui.toast(`Chatter. Job ${job.id}${jobItemName} is scrap. ${money(job.material)} of ${job.steel} in the bin. Start over. OOPS.${blame}`, 4500); }
           else { post(state, 'Chatter, scrapped block', -40); state.scrapCount++; shop.setScrap(state.scrapCount); ui.toast(`Chatter. The scrap block is more scrap now. OOPS.${blame}`, 4000); }
         }
-        else { const bill = def.manual ? 900 : 4000 + Math.round(Math.random() * 6000); post(state, 'Crash: tech visit', -bill); unlock('oops'); m.condition = Math.max(0, m.condition - 0.2); if (job) { scrapJob(state, job, jobItem); shop.setScrap(state.scrapCount); } ui.toast(`Crash on the ${def.name.toLowerCase()}. A tech has to come. ${money(bill)}.${job ? ` Job ${job.id}${jobItemName} is scrap too.` : ''}${blame} He arrives Thursday.`, 4500); }
+        else { const bill = def.manual ? 900 : 4000 + Math.round(Math.random() * 6000); post(state, 'Crash: tech visit', -bill); unlock('oops'); crew.gatherRound(m.x, m.z); m.condition = Math.max(0, m.condition - 0.2); if (job) { scrapJob(state, job, jobItem); shop.setScrap(state.scrapCount); } ui.toast(`Crash on the ${def.name.toLowerCase()}. A tech has to come. ${money(bill)}.${job ? ` Job ${job.id}${jobItemName} is scrap too.` : ''}${blame} He arrives Thursday.`, 4500); }
       }, 1500 + Math.random() * 6000);
     }
   }
+
+  // what the whiteboard says. the real schedule.
+  function whiteboardLines() {
+    const lines = ['TO DO:'];
+    const due = state.jobs.filter((j) => j.status === 'work' || j.status === 'ready').sort((a, b) => a.dueDay - b.dueDay).slice(0, 2);
+    for (const j of due) lines.push(`- job ${j.id} due day ${j.dueDay}${state.day > j.dueDay ? ' !!!' : ''}`);
+    if (!state.facility.door) lines.push('- fix the door');
+    const g = state.people.find((p) => p.grievance); if (g) lines.push(`- talk to ${g.name}`);
+    if (!state.machines.length) lines.push('- buy a mill');
+    if (state.cash < 5000) lines.push('- MONEY');
+    lines.push(pick(['- coffee', '- radio: NO', '- sweep', '- call Rick back (no)', '- order end mills']));
+    return lines.slice(0, 6);
+  }
+  shop.setWhiteboard(whiteboardLines());
 
   // ---- lights out. CNC machines keep cutting after you lock up. Manual ones wait for a person.
   function runLightsOut() {
@@ -282,6 +296,7 @@ export function startShop(T, audio, state) {
     nightEl.classList.add('fade'); audio.paper();
     setTimeout(() => { nightEl.classList.add('hidden'); night = false; modal = false; ui.setSpeed(1); player.enabled = true; player.requestLock(); }, 1200);
     camera.position.set(shop.door.x - 1.5, 1.65, shop.hz - 3.0); player.yaw = 0.12;
+    shop.setWhiteboard(whiteboardLines());
     if (state.fatigue >= 0.25) ui.toast(state.fatigue >= 0.6 ? 'Day ' + state.day + '. You are wrecked. Read every button twice.' : 'Day ' + state.day + '. Tired. Coffee first.', 3500);
     else if ((state.day - 1) % 7 === 0) ui.toast('Monday. ' + pick(['The rent went out before you did.', 'Resumes on the desk.', 'The tarp survived the weekend.']), 2800);
     else ui.toast('Day ' + state.day + '. ' + pick(['The compressor is already going.', 'Fresh. For now.', 'The tarp let the night in.']), 2600);
@@ -312,6 +327,8 @@ export function startShop(T, audio, state) {
       if (best) lookAt = { type: 'machine', uid: best.m.uid };
       // or a thing on the floor or a bench right in front of you
       if (!lookAt && !items.held) { let bi = null, bd = 1.7; for (const it of items.items) { if (it.flying) continue; const dx = it.mesh.position.x - camera.position.x, dz = it.mesh.position.z - camera.position.z, d = Math.hypot(dx, dz); if (d < bd && (dx * fx + dz * fz) / (d || 1) > 0.75) { bd = d; bi = it; } } if (bi) lookAt = { type: 'item', kind: bi.kind, ref: bi, text: ITEM_KINDS[bi.kind].hint }; }
+      // or the radio
+      if (!lookAt) { const r = { x: -shop.hx + 0.55, z: shop.hz * 0.45 + 1.0 }; const dx = r.x - camera.position.x, dz = r.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 1.6 && (dx * fx + dz * fz) / (d || 1) > 0.7) lookAt = { type: 'radio', text: 'the radio. one station. argued over.' }; }
       // or the office PC, when you are standing at the desk
       if (!lookAt) { const dx = shop.pcPos.x - camera.position.x, dz = shop.pcPos.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 1.8 && (dx * fx + dz * fz) / (d || 1) > 0.6) lookAt = { type: 'pc', text: 'the office PC. quotes, bills, the inbox.' }; }
       // or a person standing right there
@@ -356,6 +373,13 @@ export function startShop(T, audio, state) {
     if (lookAt.type === 'whiteboard') { ui.toast('The real schedule.'); return; }
     if (lookAt.type === 'panel') { ui.toast('200 amps. Two machines. Then the electrician.'); return; }
     if (lookAt.type === 'rack') { ui.toast('Steel goes here. When there is steel.'); return; }
+    if (lookAt.type === 'radio') {
+      const stations = ['classic rock', 'country', 'talk', 'the French station', 'static'];
+      state.radio = ((state.radio || 0) + 1) % stations.length; const st = stations[state.radio];
+      audio.tick(0.1, 1500); ui.toast(`The radio: ${st}.`);
+      for (const q of state.people) { const likes = (q.id + state.radio) % 3 === 0; q.morale = Math.max(0, Math.min(1, q.morale + (likes ? 0.04 : -0.03))); if (Math.random() < 0.5) crew.say(q, likes ? pick(['Finally.', 'Leave it there.', 'Now we are talking.']) : pick(['Who changed that?', 'No.', 'Put it back.', 'Not this again.'])); }
+      return;
+    }
     if (lookAt.type === 'jack') { ui.toast('It lifts 5,000 lb. A mold base is 6,000.'); return; }
   }
   canvas.addEventListener('mousedown', (e) => {
@@ -374,7 +398,7 @@ export function startShop(T, audio, state) {
   enter.addEventListener('click', () => { enter.classList.add('hidden'); audio.init(); audio.resume(); player.enabled = true; player.requestLock(); });
   player.onDragFallback = () => ui.toast('No pointer lock here. Drag to look.', 3000);
   player.onLockRetry = () => { if (!modal && !paused && !iso.active) ui.toast('click to look around again', 1500); };
-  function pause() { if (paused) return; paused = true; if (player.locked) document.exitPointerLock(); player.enabled = false; pauseEl.classList.remove('hidden'); $('pauseShop').textContent = state.shopName.toUpperCase(); $('pauseNote').textContent = `day ${state.day} · ${state.machines.length} machine${state.machines.length === 1 ? '' : 's'} · ${money(state.cash)}`; }
+  function pause() { if (paused) return; paused = true; if (player.locked) document.exitPointerLock(); player.enabled = false; pauseEl.classList.remove('hidden'); $('pauseShop').textContent = state.shopName.toUpperCase(); $('pauseWall').innerHTML = (state.achievements || []).length ? `<b>THE WALL</b> · ${state.achievements.map((id) => (ACH[id] || [id])[0]).join(' · ')}` : 'The wall is empty. Press a green button.'; $('pauseNote').textContent = `day ${state.day} · ${state.machines.length} machine${state.machines.length === 1 ? '' : 's'} · ${money(state.cash)}`; }
   function resume() { paused = false; pauseEl.classList.add('hidden'); if (!iso.active) { player.enabled = true; player.requestLock(); } }
   $('resumeBtn').addEventListener('click', resume);
   $('saveBtn').addEventListener('click', () => { $('pauseNote').textContent = save(state) ? 'saved. the shop will be here tomorrow.' : 'could not save. this browser is being difficult.'; audio.paper(); });
@@ -458,7 +482,7 @@ export function startShop(T, audio, state) {
       running: paused ? [] : state.machines.filter((m) => m.running && m.placed).map((m) => ({ x: m.x, z: m.z, kind: byId(m.id).kind })),
       compressor: shop.compressorPos,
     });
-    look(); ui.update();
+    look(); ui.update(); crew.projectBubbles(iso.active ? iso.camera : camera, iso.active);
     if (ui.panelOpen && ui.panelM && ui.panelM.running) ui.renderPanel();
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);

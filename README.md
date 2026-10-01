@@ -108,6 +108,12 @@ Then open http://localhost:8080/.
   the inspector after a WSIB claim, the radio war, a customer going under, and the odd compliment.
   Every fifty-two weeks the night screen sums the year up.
 - Each machine sounds like itself: a VMC whines, a grinder screams, the EDMs crackle.
+- Life on the floor. The crew talk in speech bubbles over their heads, gather round a crash to look
+  and not help, and argue about the radio on the steel rack (click it to change the station; every
+  station is somebody's wrong station). The whiteboard in the office lists what is actually due.
+  The two war stories from the bible are in: ship a mold late on a Friday and the revision lands
+  Monday at 8:04; the first stuck part at tryout is The Draw. The wall of achievements is on the
+  pause screen.
 
 Not yet: the second building, year-end valuation, the retirement ending. Next.
 

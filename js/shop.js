@@ -121,6 +121,13 @@ export class Shop {
     for (const y of [0.5, 1.2, 1.9]) for (const z of [-1.3, 1.3]) this.box(0.9, 0.08, 0.08, rackMat, 0, y, z, rack);
     for (const y of [0.5, 1.2, 1.9]) { this.box(0.08, 0.06, 2.7, rackMat, 0.4, y, 0, rack); this.box(0.08, 0.06, 2.7, rackMat, -0.4, y, 0, rack); }
     s.add(rack); this.tag(rack, 'rack', 'steel rack. empty. for now.'); this.solid(-hx + 0.55, hz * 0.45, 0.5, 1.4);
+    // the radio. on the rack's top shelf. one station, argued over.
+    const radio = new T.Group(); radio.position.set(-hx + 0.55, 1.98, hz * 0.45 + 1.0);
+    this.box(0.36, 0.18, 0.16, new T.MeshStandardMaterial({ color: 0xc8541e, roughness: 0.6 }), 0, 0.09, 0, radio);
+    const grille = this.box(0.14, 0.12, 0.01, new T.MeshStandardMaterial({ color: 0x222 }), -0.08, 0.09, 0.085, radio);
+    const dial = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.01, 12), new T.MeshStandardMaterial({ color: 0x111 })); dial.rotation.x = Math.PI / 2; dial.position.set(0.09, 0.09, 0.085); radio.add(dial);
+    const ant = new T.Mesh(new T.CylinderGeometry(0.004, 0.004, 0.4, 6), new T.MeshStandardMaterial({ color: 0xcfd4d8, metalness: 0.8 })); ant.position.set(0.14, 0.35, -0.05); ant.rotation.z = -0.4; radio.add(ant);
+    s.add(radio); this.tag(radio, 'radio', 'the radio. one station. argued over.');
 
     // scrap bin by the door. empty. for now.
     const bin = this.box(1.0, 0.8, 0.8, new T.MeshStandardMaterial({ color: 0x3f4a55, roughness: 0.7 }), dx - 3.2, 0.4, hz - 0.7);
@@ -188,7 +195,8 @@ export class Shop {
     this.box(0.5, 0.06, 0.5, cm, 0, 0.45, 0, chair); this.box(0.5, 0.5, 0.06, cm, 0, 0.75, 0.24, chair);
     const post = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.4, 8), cm); post.position.y = 0.22; chair.add(post);
     s.add(chair); this.tag(chair, 'chair', 'the chair. it squeaks. a better one is $140.');
-    const wb = new T.Mesh(new T.PlaneGeometry(1.6, 1.0), new T.MeshBasicMaterial({ map: TX.whiteboard(T, ['TO DO:', '- buy a mill', '- get a job', '- fix the door', '- coffee']) }));
+    this.wbMat = new T.MeshBasicMaterial({ map: TX.whiteboard(T, ['TO DO:', '- buy a mill', '- get a job', '- fix the door', '- coffee']) });
+    const wb = new T.Mesh(new T.PlaneGeometry(1.6, 1.0), this.wbMat);
     wb.position.set(x1 - 0.07, 1.6, z0 + 1.6); wb.rotation.y = -Math.PI / 2; s.add(wb); this.tag(wb, 'whiteboard', 'the whiteboard. the real schedule.');
     // office light: one warm point
     const ol = new T.PointLight(0xffe8c0, 10, 0, 1.6); ol.position.set((x0 + x1) / 2, O.h - 0.2, (z0 + z1) / 2); s.add(ol);
@@ -233,6 +241,8 @@ export class Shop {
     }
     this.rollup.visible = real; this.tarpGroup.visible = !real;
   }
+  setWhiteboard(lines) { if (!this.wbMat) return; this.wbMat.map = TX.whiteboard(this.T, lines); this.wbMat.needsUpdate = true; }
+
   // the overhead crane: runway beams along both long walls, a bridge, a trolley and a hook
   setCrane(on) {
     if (this.craneOn === on) return; this.craneOn = on;

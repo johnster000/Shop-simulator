@@ -6,6 +6,15 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 export function nightlyEvents(state) {
   const notes = [];
+  // THE FRIDAY. A mold shipped late on a Friday. Monday at 8:04 the revision arrives.
+  if (state.storyFriday && (state.day - 1) % 7 === 0) {
+    const j = state.jobs.find((q) => q.id === state.storyFriday); const c = j && customerOf(j.customer);
+    if (c) message(state, c.name, `Re: ${j.title}: one small change`, 'Monday, 8:04 a.m. Thanks for getting the tool out Friday night, we really appreciate it. One small change: engineering moved the boss on the B-side 0.5 mm. Print attached. Can we have the tool back by Wednesday?');
+    notes.push('Monday, 8:04 a.m. The revision to the mold you shipped Friday night. The Friday. Every shop has one.');
+    state.storyFriday = null; state.achievements && !state.achievements.includes('the_friday') && state.achievements.push('the_friday');
+  }
+  // THE DRAW. The first stuck part: the polisher is certain. The moldmaker is certain. The press is charging by the hour.
+  if (!state.storyDraw) { const j = state.jobs.find((q) => q.defects && q.defects.includes('Stuck part')); if (j) { state.storyDraw = j.id; const a = state.people[0], b = state.people[1]; notes.push(`The part on job ${j.id} would not come out of the cavity. ${a ? `${a.name} is certain the polish was fine.` : 'The polish was fine, you are certain.'} ${b ? `${b.name} is certain it was not.` : 'The moldmaker at the press is certain it was not.'} The press was charging by the hour. The Draw. Every shop has one.`); state.achievements && !state.achievements.includes('the_draw') && state.achievements.push('the_draw'); } }
   const jobs = state.jobs.filter((j) => j.status === 'work');
   const roll = (p) => Math.random() < p;
 
