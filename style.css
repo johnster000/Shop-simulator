@@ -245,3 +245,8 @@ body.iso #isoTags{display:block}
 .isoTag.down{border-color:var(--red);color:#ff8a8a}
 .isoTag.run{border-color:#3fbf5f;color:#bff0c8}
 .isoTag.person{background:rgba(30,40,60,.8)}
+
+/* to see what happens: the panel's dumb section */
+details.dumb { margin-top: 14px; border-top: 1px dashed rgba(0,0,0,.2); padding-top: 8px; }
+details.dumb summary { cursor: pointer; letter-spacing: .08em; }
+details.dumb .pacts { margin: 8px 0 4px; }

@@ -77,7 +77,7 @@ export class UI {
       const c = customerOf(r.customer);
       const missing = r.stages.filter((st) => !has(st.kind)).map((st) => st.kind);
       return `<div class="rfq ${r.status}" data-rfq="${r.id}">
-        <div class="from">RFQ · ${c.name} · day ${r.day} · ${r.status === 'quoted' ? 'quoted, waiting' : `answer by day ${r.expires}`}</div>
+        <div class="from">RFQ · ${c.name} · day ${r.day} · ${r.status === 'quoted' ? 'quoted, waiting' : `answer by day ${r.expires}`}${r.bidders ? ` · ${r.bidders} shops quoting` : ''}</div>
         <h3>${r.title}${r.qty > 1 ? ` × ${r.qty}` : ''}</h3>
         <div class="note">${c.blurb}</div>
         ${r.mold ? `<div class="note"><b>A new tool.</b> ${r.spec.cav}-cavity, ${r.spec.steel}, ${r.spec.finish} finish, ${r.spec.slides ? r.spec.slides + ' slide' + (r.spec.slides > 1 ? 's' : '') + ', ' : ''}${r.spec.runner} runner${r.spec.hard ? ', hardened' : ''}. Items: ${r.items.map((it) => it.name).join(', ')}. Then fit and spot, assembly, tryout.</div>` : ''}
@@ -349,8 +349,10 @@ export class UI {
           <span class="note">Oil is fifty hours a fill and nobody checks it. A service costs a day and buys back some condition${m.taped ? ', and takes the tape off' : ''}.</span></div>`}
         <p class="note">${d.cnc && !hasCam(s) ? '<b style="color:var(--red)">No CAM. Nothing can be programmed. The machine is a very expensive table.</b>' : opts.length ? 'Work waiting for this machine:' : d.kind === 'bench' ? 'Nothing to fit. The bench is for bench stages: deburring, polishing, assembly.' : 'No job needs this machine right now.'}</p>
         <ul class="pickjob">${opts.map((o, k) => `<li><span><b>Job ${o.job.id}</b>${o.item && o.job.mold ? ' · ' + o.item.name : ''} · ${o.stage.label} · ${(o.stage.min || IN_HOUSE_MIN[o.stage.kind] || 30) >= 120 ? ((o.stage.min || IN_HOUSE_MIN[o.stage.kind]) / 60).toFixed(1) + ' h' : (o.stage.min || IN_HOUSE_MIN[o.stage.kind] || 30) + ' min'}<br><span class="note">${o.job.title}${o.job.qty > 1 ? ' × ' + o.job.qty : ''} · due day ${o.job.dueDay}</span></span><button data-pick="${k + 1}">LOAD IT</button></li>`).join('')}
-        ${d.kind === 'bench' ? '' : `<li class="practice"><span>Practice cut on a scrap block · ${30} min</span><button data-pick="0">LOAD IT</button></li>`}</ul>`;
+        ${d.kind === 'bench' ? '' : `<li class="practice"><span>Practice cut on a scrap block · ${30} min</span><button data-pick="0">LOAD IT</button></li>`}</ul>
+        ${d.cnc || d.kind === 'sinker' || d.kind === 'wire' ? `<details class="dumb"><summary class="note">To see what happens.</summary><div class="pacts">${d.cnc ? '<button class="btn sm ghost" data-dumb="rapid">RAPID INTO THE VISE</button><button class="btn sm ghost" data-dumb="door">CYCLE WITH THE DOOR OPEN</button>' : ''}${d.kind === 'sinker' || d.kind === 'wire' ? '<button class="btn sm ghost" data-dumb="dry">RUN IT DRY (no dielectric)</button>' : ''}</div><span class="note">The game does not stop you. It shows you, charges you, remembers it, and hands you an achievement.</span></details>` : ''}`;
       body.querySelectorAll('[data-maint]').forEach((b) => b.addEventListener('click', () => { const r = maintain(s, m, b.dataset.maint); if (!r.ok) { this.audio.nope(); this.toast(r.why || 'no'); return; } if (b.dataset.maint === 'service') m.notes = []; this.audio.cash(); this.toast(r.note, 4000); this.renderPanel(); }));
+      body.querySelectorAll('[data-dumb]').forEach((b) => b.addEventListener('click', () => { this.closePanel(); this.hooks.dumb && this.hooks.dumb(m, b.dataset.dumb); }));
       body.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
         const id = +b.dataset.pick; this.audio.click();
         if (d.cnc && !hasCam(s)) { this.audio.nope(); this.toast('No CAM. No program. No cut.'); return; }

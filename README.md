@@ -335,6 +335,13 @@ Then open http://localhost:8080/.
   and the apprentice's phone is charging off the crib outlet. It buzzes in your hand. The
   apprentice would like it back. Throw it and it was on the family plan.
 
+- Deliberate stupidity (§1.4). Every CNC and EDM panel has a folded-down section, "To see what
+  happens": rapid the spindle into the vise (a bang, a spindle check, a vise jaw, a crowd), cycle
+  with the door open (chips in the coffee, the crib, your collar, and sometimes your eye), or run
+  the sinker with no dielectric (an arc, and usually a fire). The game does not stop you. It
+  shows you, charges you, remembers it on the whiteboard, and hands you an achievement. RFQs now
+  say how many shops are quoting (§7.3); three is better odds than five.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

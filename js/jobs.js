@@ -183,7 +183,7 @@ export function makeRfq(state, template, customer) {
     const estimate = Math.round((minutes / 60) * MOLD_RATE + material + heat + tryout);
     const expected = Math.round(estimate * customer.stingy * (0.92 + Math.random() * 0.16));
     const lead = rint(30, 45);
-    return { id: state.nextRfq++, status: 'open', read: false, day: state.day, expires: state.day + 4, customer: customer.id, title: template.title, qty: 1, steel: template.steel,
+    return { id: state.nextRfq++, bidders: rint(3, 5), status: 'open', read: false, day: state.day, expires: state.day + 4, customer: customer.id, title: template.title, qty: 1, steel: template.steel,
       items, jobStages, stages: items.flatMap((it) => it.stages).concat(jobStages), minutes, material, estimate, expected, lead, price: estimate, rate: MOLD_RATE, cnc: !template.proto && !template.transfer, heat, mold: true, spec: { ...template } };
   }
   const qty = rint(template.qty[0], template.qty[1]);
@@ -196,7 +196,7 @@ export function makeRfq(state, template, customer) {
   const expected = Math.round(estimate * customer.stingy * (0.92 + Math.random() * 0.16));
   const lead = rint(4, 9);
   return {
-    id: state.nextRfq++, status: 'open', read: false, day: state.day, expires: state.day + 2,
+    id: state.nextRfq++, bidders: rint(3, 5), status: 'open', read: false, day: state.day, expires: state.day + 2,
     customer: customer.id, title: template.title, qty, steel: template.steel, items: [{ name: 'Part', stages }], jobStages: [], stages, minutes, material, estimate, expected, lead, price: estimate, rate, cnc: !!template.cnc, heat,
   };
 }
@@ -224,6 +224,7 @@ export function winChance(state, rfq) {
   const c = customerOf(rfq.customer); const r = rfq.price / rfq.expected;
   let p = r <= 1 ? 0.8 + (1 - r) * 0.6 : 0.8 - (r - 1) * 2.2;
   p *= 0.7 + 0.6 * (state.rep - 0.5);
+  p *= 1 + (4 - (rfq.bidders || 4)) * 0.1; // three shops quoting is better odds than five. the game says how many.
   const mem = memoryOf(state, c.id); p *= Math.max(0.6, Math.min(1.3, 1 + (mem.onTime + mem.firstRight - mem.late * 2) * 0.04)); // they remember
   return Math.max(0.02, Math.min(0.97, p));
 }

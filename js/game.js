@@ -58,6 +58,7 @@ export function startShop(T, audio, state) {
     goHome() { leaveForTheNight(); },
     shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (state.framed && state.framed.day === state.day && !state.framedShown) { state.framedShown = state.framed.day; shop.setFramed(state.framed); unlock('framed'); setTimeout(() => ui.toast(`The estimate sheet for the ${state.framed.title.toLowerCase()} is in a frame on the office wall now. Quoted ${money(state.framed.quote)}. Cost ${money(state.framed.actual)}. It stays up.`, 6000), 2500); } if (j && j.program) { const line = programShipped(state, j, Math.max(0, state.day - j.dueDay)); if (line) { setTimeout(() => ui.toast(line, 6000), 1500); if (state.program && state.program.finished && state.program.late === 0) unlock('the_program'); } } if (state.t >= 780) unlock('shipped_friday'); if (isSaturday(state)) unlock('saturday_ship'); if (j && j.mold) { unlock('first_mold'); state.cake = { day: state.day, job: j.id }; syncCake(); unlock('cake'); setTimeout(() => ui.toast(pick(['A mold shipped. There is cake on the table. The grocery store had one left. It is not for us, strictly, but it is cake.', 'Ship day. Cake. The crew have already found it.']), 4500), 800); for (const q of state.people) if (Math.random() < 0.6) crew.say(q, pick(['Cake.', 'Corner piece is mine.', 'Who is Barb?', 'Is there a plate? There is no plate.', 'I will have a small one. Three small ones.']), 3.5); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); if ((state.day - 1) % 7 === 4 && state.t >= 720 && !state.storyFriday) { state.storyFriday = j.id; } } },
     crateSync() { shop.setCrates(state.crates); },
+    dumb(m, what) { doSomethingDumb(m, what); },
     crew() { return crew; },
     crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); if (state.people.some((p) => p.returned && p.startDay != null)) unlock('boomerang'); if (state.people.some((p) => (p.quirkId === 'cncOnly' || p.quirkId === 'manualOnly') && p.startDay != null)) unlock('principles'); if (state.people.some((p) => p.role === 'estimator')) unlock('estimator'); },
     achievement(a) { showAchievement(a); },
@@ -212,6 +213,43 @@ export function startShop(T, audio, state) {
     if (what.type === 'wall') { if (kind === 'coffee') ui.toast('Coffee on the block wall. It joins the others.'); return; }
   };
   function itemsAtRest() { for (const it of items.items) if (it.kind === 'scrap' && !it.flying && it.thrownBy && !it.scored) { it.scored = true; const m = it.mesh.position; if (Math.abs(m.x - binRect.x) < binRect.hw && Math.abs(m.z - binRect.z) < binRect.hd && it.throwDist > 4) { unlock('three_pointer'); ui.toast('Nothing but net. From downtown.', 3000); audio.ding(); } } }
+  // deliberate stupidity. a feature, with a bill attached (bible §1.4).
+  function doSomethingDumb(m, what) {
+    const def = byId(m.id); if (!m.placed || m.down || m.running) return;
+    const watching = state.people.filter((p) => { const v = crew.views.get(p.id); return v && v.g.visible; });
+    if (what === 'rapid') {
+      audio.cycleStart(); setTimeout(() => { audio.thunk(); audio.alarm(1.0); audio.noise(0.4, 300, 0.5, 'lowpass'); }, 900);
+      setTimeout(() => {
+        const bill = 1800 + Math.round(Math.random() * 2400); post(state, `Spindle check and a new vise jaw, ${def.name}`, -bill); m.condition = Math.max(0, m.condition - 0.12); m.bumped = true; m.alarm = true; m.hours += 0.1;
+        crew.gatherRound(m.x, m.z); unlock('to_see'); tally(state, 'crashes'); state.dumbCount = (state.dumbCount || 0) + 1;
+        ui.toast(`You rapided the spindle into the vise. To see what happens. What happens is a bang, a spindle check, a vise jaw, and ${money(bill)}. The crew have come to look at you.`, 6000);
+        for (const q of watching) { q.morale = Math.max(0, q.morale - 0.03); if (Math.random() < 0.8) crew.say(q, pick(['Was that... on purpose?', 'He did that on purpose.', 'I saw him press it.', 'Twenty years and I have never seen that on purpose.', 'The apprentice did that once. The apprentice was fired.', 'Photo. For the wall.']), 4); }
+        syncViews();
+      }, 1200);
+      return;
+    }
+    if (what === 'dry') {
+      audio.cycleStart(); for (let i = 0; i < 12; i++) setTimeout(() => audio.noise(0.03, 2500 + Math.random() * 3000, 0.12, 'bandpass', 4), 200 + i * 90);
+      setTimeout(() => {
+        unlock('no_dielectric'); state.dumbCount = (state.dumbCount || 0) + 1;
+        if (Math.random() < 0.6) { fireStart(m); ui.toast('No dielectric. The arc went where arcs go without it. That is a fire. The extinguisher is on the wall by the door, and the tag is from 2009.', 6000); }
+        else { m.condition = Math.max(0, m.condition - 0.08); post(state, 'Electrode, pitted beyond use', -60); ui.toast('No dielectric. It arced. It pitted the electrode into a sponge and scorched the table and did not, this time, catch fire. This time.', 5500); }
+        for (const q of watching) if (Math.random() < 0.6) crew.say(q, pick(['WHAT are you doing.', 'Is that supposed to smell like that?', 'Where is the extinguisher.', 'I am going outside.']), 4);
+      }, 1400);
+      return;
+    }
+    if (what === 'door') {
+      audio.cycleStart(); setTimeout(() => { audio.noise(0.8, 1500, 0.3, 'highpass'); }, 600);
+      setTimeout(() => {
+        unlock('interlock'); state.dumbCount = (state.dumbCount || 0) + 1; m.chips = 1; for (const q of state.machines) if (q.placed && Math.hypot(q.x - m.x, q.z - m.z) < 4) q.chips = Math.min(1, (q.chips || 0) + 0.4);
+        const eye = Math.random() < 0.3; if (eye) { post(state, 'Clinic: you, eye wash', -800); tally(state, 'wsib'); state.fatigue = Math.min(1, state.fatigue + 0.2); }
+        ui.toast(`You cycled with the door open. Chips. Everywhere. In the coffee, in the crib, in your collar, down the hallway${eye ? ', and in your eye. $800 at the clinic and a patch for the afternoon' : ''}. The interlock existed for a reason, and the reason was you.`, 6500);
+        for (const q of watching) { q.morale = Math.max(0, q.morale - 0.02); if (Math.random() < 0.7) crew.say(q, pick(['OW.', 'Those are HOT.', 'Door. DOOR.', 'I am wearing the glasses. See? I am WEARING them.', 'Somebody get the broom. Not me.']), 4); }
+        syncViews();
+      }, 1200);
+      return;
+    }
+  }
   // the hammer
   function whack(m) {
     const d = byId(m.id);
@@ -426,7 +464,7 @@ export function startShop(T, audio, state) {
     const g = state.people.find((p) => p.grievance); if (g) lines.push(`- talk to ${g.name}`);
     if (!state.machines.length) lines.push('- buy a mill');
     if (state.cash < 5000) lines.push('- MONEY');
-    if (state.jar < -10) lines.push('- COFFEE FUND. PAY.'); if ((state.walked || []).length) lines.push(`- WHO HAS THE ${state.walked[0].kind === 'hammer' ? 'HAMMER' : state.walked[0].kind === 'key' ? 'CHUCK KEY' : 'CALIPERS'}`);
+    if ((state.dumbCount || 0) >= 3) lines.push('- STOP "SEEING WHAT HAPPENS"'); if (state.jar < -10) lines.push('- COFFEE FUND. PAY.'); if ((state.walked || []).length) lines.push(`- WHO HAS THE ${state.walked[0].kind === 'hammer' ? 'HAMMER' : state.walked[0].kind === 'key' ? 'CHUCK KEY' : 'CALIPERS'}`);
     lines.push(pick(['- coffee', '- radio: NO', '- sweep', '- call Rick back (no)', '- order end mills']));
     return lines.slice(0, 6);
   }
