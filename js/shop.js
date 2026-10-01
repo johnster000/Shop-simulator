@@ -141,7 +141,7 @@ export class Shop {
     for (const y of [0.5, 1.2, 1.9]) { this.box(0.08, 0.06, 2.7, rackMat, 0.4, y, 0, rack); this.box(0.08, 0.06, 2.7, rackMat, -0.4, y, 0, rack); }
     s.add(rack); this.tag(rack, 'rack', 'steel rack. empty. for now.'); this.solid(-hx + 0.55, hz * 0.45, 0.5, 1.4);
     // the radio. on the rack's top shelf. one station, argued over.
-    const radio = new T.Group(); radio.position.set(-hx + 0.55, 1.98, hz * 0.45 + 1.0);
+    const radio = new T.Group(); radio.position.set(-hx + 0.55, 1.98, hz * 0.45 + 1.0); this.radioPos = { x: -hx + 0.55, z: hz * 0.45 + 1.0 };
     this.box(0.36, 0.18, 0.16, new T.MeshStandardMaterial({ color: 0xc8541e, roughness: 0.6 }), 0, 0.09, 0, radio);
     const grille = this.box(0.14, 0.12, 0.01, new T.MeshStandardMaterial({ color: 0x222 }), -0.08, 0.09, 0.085, radio);
     const dial = new T.Mesh(new T.CylinderGeometry(0.03, 0.03, 0.01, 12), new T.MeshStandardMaterial({ color: 0x111 })); dial.rotation.x = Math.PI / 2; dial.position.set(0.09, 0.09, 0.085); radio.add(dial);

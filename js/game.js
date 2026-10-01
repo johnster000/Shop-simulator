@@ -296,6 +296,7 @@ export function startShop(T, audio, state) {
     return lines.slice(0, 6);
   }
   shop.setWhiteboard(whiteboardLines());
+  audio.setStation(state.radio || 0);
 
   // ---- lights out. CNC machines keep cutting after you lock up. Manual ones wait for a person.
   function runLightsOut() {
@@ -538,7 +539,7 @@ export function startShop(T, audio, state) {
     if (lookAt.type === 'rack') { ui.toast('Steel goes here. When there is steel.'); return; }
     if (lookAt.type === 'radio') {
       const stations = ['classic rock', 'country', 'talk', 'the French station', 'static'];
-      state.radio = ((state.radio || 0) + 1) % stations.length; const st = stations[state.radio];
+      state.radio = ((state.radio || 0) + 1) % stations.length; const st = stations[state.radio]; audio.setStation(state.radio);
       audio.tick(0.1, 1500); ui.toast(`The radio: ${st}.`);
       for (const q of state.people) { const likes = (q.id + state.radio) % 3 === 0; q.morale = Math.max(0, Math.min(1, q.morale + (likes ? 0.04 : -0.03))); if (Math.random() < 0.5) crew.say(q, likes ? pick(['Finally.', 'Leave it there.', 'Now we are talking.']) : pick(['Who changed that?', 'No.', 'Put it back.', 'Not this again.'])); }
       return;
@@ -658,13 +659,13 @@ export function startShop(T, audio, state) {
     audio.update(dt, {
       listener: { x: camera.position.x, z: camera.position.z }, iso: iso.active,
       running: paused ? [] : state.machines.filter((m) => m.running && m.placed).map((m) => ({ x: m.x, z: m.z, kind: byId(m.id).kind })),
-      compressor: shop.compressorPos, truck: delivery.here || delivery.leaving ? { x: delivery.truck.position.x, z: delivery.truck.position.z } : null,
+      compressor: shop.compressorPos, radio: shop.radioPos, truck: delivery.here || delivery.leaving ? { x: delivery.truck.position.x, z: delivery.truck.position.z } : null,
     });
     look(); ui.update(); crew.projectBubbles(iso.active ? iso.camera : camera, iso.active);
     if (ui.panelOpen && ui.panelM && ui.panelM.running) ui.renderPanel();
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }

@@ -43,7 +43,50 @@ export class ShopAudio {
     this.dieselF = ctx.createBiquadFilter(); this.dieselF.type = 'lowpass'; this.dieselF.frequency.value = 180;
     this.dieselG = ctx.createGain(); this.dieselG.gain.value = 0;
     this.diesel.connect(this.dieselF); this.dieselF.connect(this.dieselG); this.dieselG.connect(this.master); this.diesel.start(); this.dieselLfo.start();
+    // the radio: everything goes through a small, bad speaker
+    this.radioF = ctx.createBiquadFilter(); this.radioF.type = 'bandpass'; this.radioF.frequency.value = 1100; this.radioF.Q.value = 0.6;
+    this.radioG = ctx.createGain(); this.radioG.gain.value = 0;
+    this.radioF.connect(this.radioG); this.radioG.connect(this.master);
+    this.station = -1; this.step = 0; this.nextNote = 0;
     this.enabled = true;
+  }
+  // ---- the radio. five stations, each somebody's wrong station.
+  setStation(i) { this.station = i; this.step = 0; if (this.ctx) this.nextNote = this.ctx.currentTime + 0.05; }
+  radioNote(freq, dur, gain, type = 'square', when = 0, decay = true) {
+    const ctx = this.ctx, o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.value = freq;
+    const t0 = when || ctx.currentTime; g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * (decay ? 1 : 1.2));
+    o.connect(g); g.connect(this.radioF); o.start(t0); o.stop(t0 + dur * 1.3);
+  }
+  radioNoise(dur, freq, gain, when, q = 1) {
+    const ctx = this.ctx, src = ctx.createBufferSource(); src.buffer = this.noiseBuf; const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; const g = ctx.createGain();
+    g.gain.setValueAtTime(gain, when); g.gain.exponentialRampToValueAtTime(0.0001, when + dur); src.connect(f); f.connect(g); g.connect(this.radioF); src.start(when); src.stop(when + dur + 0.05);
+  }
+  radioTick(near) {
+    if (!this.ctx || this.station < 0 || near < 0.02) return;
+    const ctx = this.ctx, now = ctx.currentTime; if (now < this.nextNote) return;
+    const st = this.station, n = this.step++, when = this.nextNote;
+    const N = (semi) => 110 * Math.pow(2, semi / 12);
+    if (st === 0) { // classic rock: power chords, a kick, the same four bars since 1978
+      const roots = [0, 0, 3, 5, 0, 0, 5, 3][Math.floor(n / 2) % 8]; const sixteenth = 0.125;
+      if (n % 2 === 0) { this.radioNote(N(roots - 12), 0.22, 0.09, 'sawtooth', when); this.radioNote(N(roots - 5), 0.22, 0.06, 'sawtooth', when); }
+      if (n % 4 === 0) this.radioNote(55, 0.12, 0.12, 'sine', when); if (n % 4 === 2) this.radioNoise(0.08, 1800, 0.07, when);
+      this.nextNote = when + sixteenth;
+    } else if (st === 1) { // country: a plucked I-IV-V with a train beat
+      const chord = [[0, 4, 7], [5, 9, 12], [7, 11, 14], [0, 4, 7]][Math.floor(n / 8) % 4]; const pick = chord[n % 3] + (n % 8 >= 4 ? 12 : 0);
+      this.radioNote(N(pick), 0.18, 0.07, 'triangle', when); if (n % 2 === 0) this.radioNoise(0.05, 4000, 0.05, when, 2); if (n % 8 === 0) this.radioNote(N(chord[0] - 12), 0.3, 0.08, 'square', when);
+      this.nextNote = when + 0.15;
+    } else if (st === 2) { // talk: a man, certain about something, for an hour
+      const len = 0.08 + Math.random() * 0.22; const f = 140 + Math.random() * 60;
+      if (Math.random() < 0.82) { this.radioNote(f, len, 0.05, 'sawtooth', when); this.radioNoise(len, 900 + Math.random() * 1400, 0.03, when, 0.8); }
+      this.nextNote = when + len + (Math.random() < 0.15 ? 0.5 : 0.04);
+    } else if (st === 3) { // the French station: accordion, in three
+      const bar = Math.floor(n / 3) % 4, root = [0, 5, 7, 0][bar], beat = n % 3;
+      if (beat === 0) { this.radioNote(N(root - 12), 0.3, 0.08, 'square', when); } else { this.radioNote(N(root + 4), 0.2, 0.05, 'square', when); this.radioNote(N(root + 7) * 1.004, 0.2, 0.05, 'square', when); }
+      const mel = [12, 14, 16, 12, 16, 14, 12, 7, 9, 11, 12, 9][n % 12]; this.radioNote(N(root + mel), 0.25, 0.045, 'square', when);
+      this.nextNote = when + 0.21;
+    } else { // static. between stations. somebody left it there on purpose.
+      this.radioNoise(0.3, 600 + Math.random() * 3000, 0.05, when, 0.5); this.nextNote = when + 0.25;
+    }
   }
 
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
@@ -61,6 +104,7 @@ export class ShopAudio {
     if (!this.compOn && this.compT > 24) { this.compOn = true; this.compT = 0; }
     if (this.compOn && this.compT > 9) { this.compOn = false; this.compT = 0; this.tick(0.12, 400); }
     const compNear = falloff(scene.compressor, 3.5);
+    const radioNear = scene.radio ? falloff(scene.radio, 4.0) : 0; this.radioG.gain.setTargetAtTime(0.9 * radioNear, now, 0.3); this.radioTick(radioNear);
     if (this.dieselG) this.dieselG.gain.setTargetAtTime(scene.truck ? 0.02 + 0.12 * falloff(scene.truck, 6) : 0, now, 0.5);
     this.compG.gain.setTargetAtTime(this.compOn ? 0.02 + 0.09 * compNear : 0, now, 0.4);
     // the nearest running machine sets the level and the kind of noise

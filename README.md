@@ -176,6 +176,11 @@ Then open http://localhost:8080/.
   a stand, a height gauge and a case of gauge blocks. There is a vending machine by the office
   (and in the break room). B4 is stuck. Everyone knows B4 is stuck. Press E anyway, $2.
 
+- The radio plays. Five synthesized stations through a small, bad speaker on the steel rack:
+  classic rock (the same four bars since 1978), country with a train beat, a man who is certain
+  about something, the French station in three, and static. It gets quieter as you walk away
+  and louder when you come back, like a real one. Click it to change it; somebody will object.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 
