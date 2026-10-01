@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shop Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="description" content="Run a plastic injection mold shop. Buy machines, hire people, win contracts, build the tools, ship them on time. Or go broke trying.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23222'/%3E%3Crect x='5' y='8' width='22' height='18' fill='%234a6a8a'/%3E%3Crect x='9' y='12' width='14' height='9' fill='%23111'/%3E%3Ccircle cx='24' cy='23' r='2.5' fill='%2340c040'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============ INTRO ============ -->
+<div id="intro" class="screen">
+  <div class="wrap">
+    <p id="introText"></p>
+    <p id="introPrompt">press the any key to continue</p>
+  </div>
+  <p id="disclaimer">All companies, products and people in this game are fictional. Any resemblance to real machine tool builders is a joke.</p>
+</div>
+
+<!-- ============ NAME THE SHOP ============ -->
+<div id="naming" class="screen hidden">
+  <div class="paper">
+    <h1>ARTICLES OF INCORPORATION</h1>
+    <p class="sub">Form 7A &middot; Sole proprietorship &middot; Tool &amp; die, mold making</p>
+    <label for="shopName">Name of business</label>
+    <input id="shopName" maxlength="28" autocomplete="off" spellcheck="false" placeholder="e.g. Northside Mold &amp; Tool">
+    <p class="fine">The name goes on the sign, the quotes, the invoices, the crates, the coffee mugs, and the complaint emails. Renaming later costs a new sign.</p>
+    <div class="row">
+      <button id="nameRandom" class="btn ghost">PICK ONE FOR ME</button>
+      <button id="nameGo" class="btn">SIGN &amp; OPEN THE DOORS</button>
+    </div>
+    <p id="continueRow" class="fine hidden">There is an existing shop in this browser. <button id="continueBtn" class="link">Continue it</button> instead.</p>
+  </div>
+</div>
+
+<!-- ============ THE SHOP ============ -->
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div id="shopSign"></div>
+  <div id="cash">$0</div>
+  <div id="clock">
+    <span id="clockText">Day 1 &middot; Mon 8:00</span>
+    <span id="speeds"><button data-speed="0">II</button><button data-speed="1" class="on">1x</button><button data-speed="3">3x</button><button data-speed="10">10x</button></span>
+  </div>
+  <div id="crosshair"></div>
+  <div id="hint"></div>
+  <div id="toast"></div>
+  <div id="tag"></div>
+  <div id="placeHelp" class="hidden">click to place &middot; R to rotate &middot; Esc to cancel</div>
+  <div id="touchBtns">
+    <button id="isoBtn" aria-label="overhead view">ISO</button>
+    <button id="clipBtn" aria-label="clipboard">CLIP</button>
+    <button id="rotBtn" aria-label="rotate" class="hidden">ROT</button>
+    <button id="pauseBtn" aria-label="pause">II</button>
+  </div>
+</div>
+
+<div id="touch"><div class="knob"></div></div>
+
+<div id="enter" class="overlay hidden">
+  <div>click to walk in</div>
+  <small>
+    WASD walk &middot; shift run &middot; mouse look &middot; click to use &middot; V overhead view &middot; Tab clipboard &middot; Esc pause<br>
+    on touch: left side to move, drag the right to look, tap to use
+  </small>
+</div>
+
+<!-- ============ CLIPBOARD (management) ============ -->
+<div id="clip" class="overlay hidden">
+  <div class="board">
+    <div class="clipTop"><span class="clipTitle" id="clipTitle">CLIPBOARD</span><button id="clipClose" class="x" aria-label="close">&times;</button></div>
+    <nav id="clipTabs">
+      <button data-tab="shop" class="on">SHOP</button>
+      <button data-tab="machines">MACHINES</button>
+      <button data-tab="bank">BANK</button>
+    </nav>
+    <section id="tab-shop" class="tab"></section>
+    <section id="tab-machines" class="tab hidden"></section>
+    <section id="tab-bank" class="tab hidden"></section>
+  </div>
+</div>
+
+<!-- ============ MACHINE PANEL ============ -->
+<div id="panel" class="overlay hidden">
+  <div class="board small">
+    <div class="clipTop"><span class="clipTitle" id="panelTitle">MACHINE</span><button id="panelClose" class="x" aria-label="close">&times;</button></div>
+    <div id="panelBody"></div>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <h2>PAUSED</h2>
+  <p id="pauseShop"></p>
+  <button class="btn" id="resumeBtn">BACK TO WORK</button>
+  <button class="btn" id="saveBtn">SAVE</button>
+  <button class="btn" id="quitBtn">LOCK UP &amp; GO HOME</button>
+  <p id="pauseNote"></p>
+</div>
+
+<div id="fail" class="overlay hidden">
+  <div>the shop could not be loaded.</div>
+  <small>this browser does not do WebGL, or something else went wrong. the console knows.</small>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

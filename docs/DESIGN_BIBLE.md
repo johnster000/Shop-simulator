@@ -1,6 +1,6 @@
 # SHOP SIMULATOR — Design Bible
 
-**Studio:** Cycle Start Studios · **Status:** DRAFT 0.9 — sections 1 to 4 agreed by John; sections 5 to 16 answered by Claude (🟢) pending veto; BRANDS.md awaiting vetting (Q55)
+**Studio:** Cycle Start Studios · **Status:** 1.0 — all questions answered (John: §1–4 and brands; Claude: §5–16, veto any time). Building has started; see the README for what each build contains.
 **Sibling reference:** Buy Stove (same technical foundation: first-person, Three.js, browser, no build step)
 
 ---
@@ -1216,7 +1216,7 @@ shops that bid against you and poach your people; the retirement ending with the
 | Q51 | 2 | Command people from the isometric view? | ✅ Both isometric click and floor talk |
 | Q52 | 2 | Fidelity of loading a machine by hand | ✅ Seat, door, probe, select program, CYCLE START; skipped steps cause crashes |
 | Q53 | 3 | Software package naming | ✅ Spoofed real brands everywhere, see BRANDS.md |
-| Q55 | 3 | Vet the BRANDS.md spoof list | ❓ |
+| Q55 | 3 | Vet the BRANDS.md spoof list | ✅ Good as is; adjust on the fly |
 | Q56 | 3 | Genvision Easter egg? | ✅ Yes, loosely, behind a flag |
 | Q57 | 4 | Heat-treat oven as a Stage 3 upgrade? | ✅ Yes |
 | Q58 | 4 | Welder: separate hire or a skill? | ✅ A skill, rare |
@@ -1230,6 +1230,7 @@ shops that bid against you and poach your people; the retirement ending with the
 
 | Date | Question | Decision | Changed sections |
 |---|---|---|---|
+| 2026-10-01 | Q55 Brands | BRANDS.md approved as is; adjust on the fly. Build started. | BRANDS.md |
 | 2026-09-30 | Q15–Q49 | John asked Claude to answer the remaining questions. Answered as 🟢 (mold model, workflow, customers, staff, economy, time, progression, risk, presentation, scope). Each stands until vetoed. | 5–16 |
 | 2026-09-30 | Q57 Oven | Heat-treat oven is a Stage 3 upgrade. | 4.2, 4.5, 3.3 |
 | 2026-09-30 | Q58 Welder | Welding is a rare skill on a moldmaker, not a separate trade. | 4.5, 8 |
