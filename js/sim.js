@@ -292,6 +292,7 @@ export const ACHIEVEMENTS = {
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   glad_once: ['Glad Of It, Exactly Once', 'A fire, with insurance. The adjuster said "huh".'], uninsured: ['Should Have', 'A fire, without insurance. The Monday you turned it down.'],
   swept: ['Billable, Apparently', 'Swept the floor yourself. Ten times. The crew watched.'], chips_deep: ['Ankle Deep', 'A machine with chips to the top of its boots. Somebody should sweep.'],
+  forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
   welded: ['The Flag', 'Welded an end mill into a cavity. It stood up like a flag.'], bumped: ['Two Thou', 'A machine was out for a week and the CMM finally said so.'], glasses: ['Safety Culture', 'After the injury, everyone wore safety glasses. For ten days.'],
   night_shift: ['Second Shift', 'Somebody you have never met ran a machine all night and it was fine.'],

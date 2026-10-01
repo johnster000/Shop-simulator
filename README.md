@@ -272,6 +272,11 @@ Then open http://localhost:8080/.
   three ship on time. Lose one quote and the set is off; ship one late and the bonus is gone; ship
   all three on time and the bonus clears, reputation jumps, and the next program is yours to lose.
 
+- The forklift. Yellow, by the door, certified operators only (you are the certifying body).
+  Press E to get on, WASD to drive, H for the horn, E to get off. It lifts nothing in this build.
+  It beeps in reverse, scatters the crew, and dents machines, which also bumps them out of true
+  where nobody can see.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

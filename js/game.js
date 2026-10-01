@@ -10,6 +10,7 @@ import { crewVerdict, programShipped } from './events.js';
 import { Delivery } from './truck.js';
 import { Visitor } from './visitor.js';
 import { Phone } from './phone.js';
+import { Forklift } from './forklift.js';
 import { practice, nightShift, setupRoll, skillFor } from './people.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve, ACHIEVEMENTS as ACH, building, valuation, canRetire, tally, SAVE_KEY, loadMonth, MONTH_KEY, fireCost, saturdayWorth, isSaturday } from './sim.js';
 import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel, runnableStages, afterTryout, allDone, startJob, message, openCrate } from './jobs.js';
@@ -95,6 +96,14 @@ export function startShop(T, audio, state) {
   const spills = []; // { x, z, until }
   const delivery = new Delivery(T, scene, shop, state);
   const phone = new Phone(shop, state, audio, { toast: (t, ms) => ui.toast(t, ms), unlock });
+  const forklift = new Forklift(T, scene, shop, audio, {
+    bump: (c, spd) => {
+      const v = views.find((q) => q.m.placed && Math.abs(q.m.x - c.x) < 0.01 && Math.abs(q.m.z - c.z) < 0.01); audio.thunk();
+      if (v) { const m = v.m, d = v.def; m.condition = Math.max(0, m.condition - 0.03); if (Math.random() < 0.5) m.bumped = true; noteOn(m, pick(['FORKLIFT|WAS|HERE', 'DENT|NOT|MINE', 'CERTIFIED|???'])); unlock('forklift_bump'); ui.toast(`CRUNCH. The forklift met the ${d.name.toLowerCase()}. A dent, a note, and maybe two thou nobody will find for a week.`, 4500); for (const q of state.people) if (Math.random() < 0.4) crew.say(q, pick(['CERTIFIED, he says.', 'That is coming out of something.', 'I saw nothing.']), 3); }
+      else ui.toast(pick(['CRUNCH. Something that was not a machine. Probably fine.', 'Thump. The wall. The wall is fine. The forklift has an opinion.']), 2500);
+    },
+    scare: (p) => { p.morale = Math.max(0, p.morale - 0.02); crew.say(p, pick(['WHOA.', 'HEY. Horn!', 'Are you CERTIFIED?', 'I have a FAMILY.']), 2.5); },
+  });
   // the travellers: one clipboard per live job, beside the machine that has it or on the rack
   const travellers = new Map();
   function syncTravellers() {
@@ -473,7 +482,7 @@ export function startShop(T, audio, state) {
     if (!coffeeItem) coffeeItem = items.make('coffee', shop.pcPos.x + 0.6, shop.pcPos.z + 0.1, { y: 0.77 });
     if (items.held) items.drop();
     hoseItem.mesh.position.set(shop.hosePos.x, shop.hosePos.y, shop.hosePos.z); hoseItem.mesh.rotation.set(0, 0, 0); hoseItem.flying = false;
-    crew.night(); delivery.night(); visitor.night(); phone.night();
+    crew.night(); delivery.night(); visitor.night(); phone.night(); if (forklift.driving) { const off = forklift.dismount(); camera.position.set(off.x, 1.65, off.z); }
     const lightsOut = runLightsOut();
     const n = goHome(state); save(state); shop.setOrphans((state.orphans || []).length);
     if (lightsOut.length) n.notes = (n.notes || []).concat(lightsOut);
@@ -563,6 +572,7 @@ export function startShop(T, audio, state) {
         if (d < bestD && (dx * fx + dz * fz) / (d || 1) > 0.7) { best = v; bestD = d; }
       }
       if (best) lookAt = { type: 'machine', uid: best.m.uid };
+      else if (!forklift.driving) { const dx = forklift.pos.x - camera.position.x, dz = forklift.pos.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 3.0 && (dx * fx + dz * fz) / (d || 1) > 0.75) lookAt = { type: 'forklift', text: 'the forklift.' }; }
       // or a thing on the floor or a bench right in front of you
       if (!lookAt && !items.held) { let bi = null, bd = 1.7; for (const it of items.items) { if (it.flying) continue; const dx = it.mesh.position.x - camera.position.x, dz = it.mesh.position.z - camera.position.z, d = Math.hypot(dx, dz); if (d < bd && (dx * fx + dz * fz) / (d || 1) > 0.75) { bd = d; bi = it; } } if (bi) lookAt = { type: 'item', kind: bi.kind, ref: bi, text: ITEM_KINDS[bi.kind].hint }; }
       // or the radio
@@ -596,12 +606,14 @@ export function startShop(T, audio, state) {
     } else if (lookAt.type === 'person') {
       const p = state.people.find((q) => q.id === lookAt.id);
       if (p) { ui.tag(`${p.name.toUpperCase()} · ${p.roleName.toUpperCase()} · ${crew.status(p)}`); ui.hint('talk'); }
-    } else if (lookAt.type === 'phone' && phone.call) { ui.tag('THE PHONE · RINGING'); ui.hint('ANSWER IT'); $('hint').classList.add('alarm'); }
+    } else if (lookAt.type === 'forklift') { ui.tag('THE FORKLIFT · CERTIFIED OPERATORS ONLY'); ui.hint('get on'); $('hint').classList.remove('alarm'); }
+    else if (lookAt.type === 'phone' && phone.call) { ui.tag('THE PHONE · RINGING'); ui.hint('ANSWER IT'); $('hint').classList.add('alarm'); }
     else if (lookAt.type === 'visitor') { ui.tag(`${visitor.p.name.toUpperCase()} · ${visitor.title.toUpperCase()}`); ui.hint(visitor.toured ? 'they are looking' : 'say hello'); $('hint').classList.remove('alarm'); }
     else if (lookAt.type === 'driver') { ui.tag('THE DRIVER · BRAMALEA STEEL'); ui.hint('sign for the steel'); $('hint').classList.remove('alarm'); }
     else { ui.tag(''); ui.hint(lookAt.text || lookAt.type); $('hint').classList.remove('alarm'); }
   }
   function use() {
+    if (forklift.driving) { const off = forklift.dismount(); camera.position.set(off.x, 1.65, off.z); player.enabled = true; audio.tick(0.1, 400); ui.toast(pick(['Off the forklift. It ticks as it cools.', 'Parked. Roughly.']), 2500); return; }
     if (items.held) {
       const hk = items.held.kind, mAt = lookAt && lookAt.type === 'machine' ? state.machines.find((q) => q.uid === lookAt.uid) : null, pAt = lookAt && lookAt.type === 'person' ? state.people.find((q) => q.id === lookAt.id) : null;
       if (hk === 'hammer' && mAt) { whack(mAt); return; }
@@ -632,6 +644,7 @@ export function startShop(T, audio, state) {
       ui.toast(`"${r.line}" Signed. Steel for job${r.jobs.length > 1 ? 's' : ''} ${r.jobs.map((j) => j.id).join(', ')} on the rack. ${pick(['He left before you finished reading the sheet.', 'He took the pen.', 'Nine more stops.'])}`, 5000);
       return;
     }
+    if (lookAt.type === 'forklift') { if (items.held) { ui.toast('Put that down first.'); return; } forklift.mount(); player.yaw = forklift.yaw; player.enabled = false; unlock('forklift'); audio.tick(0.12, 500); ui.toast('On the forklift. WASD drives, H honks, E gets off. Nothing is lifted. Things are hit.', 4500); return; }
     if (lookAt.type === 'phone') {
       const line = phone.answer();
       if (line) { audio.tick(0.08, 700); ui.toast(line, 6000); }
@@ -714,6 +727,7 @@ export function startShop(T, audio, state) {
       return;
     }
     if (e.code === 'KeyE' && !modal && !iso.active) use();
+    if (e.code === 'KeyH' && forklift.driving) { forklift.honk(); for (const q of state.people) if (Math.random() < 0.5) crew.say(q, pick(['WHAT.', 'We heard you.', 'Very mature.']), 2); }
     if (e.code === 'KeyG' && !modal && !iso.active && items.held) { const wasHose = items.held.kind === 'airhose'; if (items.held.kind === 'traveller') items.held.moved = true; items.drop(); audio.tick(0.08, 500); if (wasHose) { hoseItem.mesh.position.set(shop.hosePos.x, shop.hosePos.y, shop.hosePos.z); hoseItem.mesh.rotation.set(0, 0, 0); audio.noise(0.6, 1200, 0.05, 'bandpass', 2); ui.toast('The hose reeled itself back. Loudly.', 2000); } }
     if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3') { if (!modal) ui.setSpeed({ Digit1: 1, Digit2: 2, Digit3: 3 }[e.code]); }
     if (e.code === 'KeyP' || e.code === 'Space') { if (!modal) ui.setSpeed(state.speed ? 0 : 1); }
@@ -779,7 +793,10 @@ export function startShop(T, audio, state) {
         if (pc.runLeft <= 0) { pc.running = false; const job = state.jobs.find((j) => j.id === pc.jobId); if (job) { stageDone(state, job, -1, pc.index); ui.toast(`Design done for job ${job.id}. ${customerOf(job.customer).name} approved it by email, with one note about a radius.`, 4000); audio.ding(); } state.pc = null; }
       }
     }
-    if (iso.active) iso.update(); else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
+    if (iso.active) iso.update(); else if (forklift.driving) {
+      if (!paused && !modal) forklift.update(dt, player.keys, allColliders(), { hx: shop.hx, hz: shop.hz }, [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, p: v.p })));
+      const st = forklift.seat(); camera.position.set(st.x, st.y, st.z); camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
+    } else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
     if (!paused && !modal) {
     fireTick(dt); spillTick(); if (state.machines.some((m) => m.found)) { unlock('bumped'); } if (now - travT > 700) { travT = now; syncTravellers(); if (state.machines.some((m) => (m.chips || 0) >= 1)) unlock('chips_deep'); }
@@ -802,6 +819,6 @@ export function startShop(T, audio, state) {
     if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
-  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, run: (m, skipped) => runMachine(m, skipped, null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
+  window.__dbg = { state, camera, player, iso, views, crew, nav, items, shop, delivery, audio, phone, scene, get paused() { return paused; }, get night() { return night; }, forklift, run: (m, skipped) => runMachine(m, skipped, null), get visitor() { return visitor; }, sync: syncViews, mods: { makeRfq, TEMPLATES, CUSTOMERS, runnableStages, startJob }, get lookAt() { return lookAt; }, get modal() { return modal; } };
   requestAnimationFrame(frame);
 }
