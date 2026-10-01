@@ -342,6 +342,14 @@ Then open http://localhost:8080/.
   shows you, charges you, remembers it on the whiteboard, and hands you an achievement. RFQs now
   say how many shops are quoting (§7.3); three is better odds than five.
 
+- The segments (§7.1). Three more kinds of customer, each unlocked by what is on the floor and
+  what the name is worth: appliance (big, plain, twenty-year molds; they call once there is a
+  crane), packaging (sixteen and thirty-two cavity stainless hot-runner tools; they need a CMM, a
+  hot runner you have shipped, and reputation 60), and medical (Stavax, a tenth, a binder of
+  signed pages; they need a CMM, climate control and reputation 75, and they pay like it). Each
+  segment's first call is a note and an achievement, and the JOBS tab says who is calling and who
+  is not, and why.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

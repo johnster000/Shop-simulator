@@ -43,6 +43,12 @@ export const CUSTOMERS = [
   { id: 'maplewood', name: 'Maplewood Housewares', kind: 'consumer', stingy: 1.0, terms: 30, cnc: true, blurb: 'Bins, lids and a salad spinner. Their engineer is twenty-six and certain.' },
   // automotive: they call once there is a 5-axis on the floor. they pay in 60 days and audit you first.
   { id: 'dorval', name: 'Dorval Automotive Mouldings', kind: 'auto', stingy: 1.15, terms: 60, cnc: true, five: true, blurb: 'Tier 2. A quality manual thicker than the mold. Sixty-day terms and a portal that is down.' },
+  // appliance: big and plain. they call once there is a crane, because nothing they make fits on a pallet jack.
+  { id: 'northfield', name: 'Northfield Appliance', kind: 'appliance', stingy: 1.0, terms: 45, cnc: true, crane: true, blurb: 'Dryer housings and fridge liners. Big, plain, and meant to run for twenty years. Their buyer has been there twenty-one.' },
+  // packaging: cavities by the dozen, stainless, hot runners, a CMM, and no patience at all
+  { id: 'clearpak', name: 'Clearpak Packaging', kind: 'packaging', stingy: 1.05, terms: 30, cnc: true, cmm: true, hot: true, rep: 0.6, blurb: 'Sixteen cavities or do not bother. Stainless, hot runner, and a lead time they said with a straight face.' },
+  // medical: small, tight, clean, documented. they pay like it. they audit like it.
+  { id: 'vitalis', name: 'Vitalis Medical', kind: 'medical', stingy: 1.4, terms: 30, cnc: true, cmm: true, clean: true, rep: 0.75, blurb: 'Syringe parts and a binder. Everything in Stavax, everything to a tenth, everything signed. They wipe their feet on the way in.' },
   { id: 'trillium', name: 'Trillium Outdoor', kind: 'consumer', stingy: 1.05, terms: 30, cnc: true, blurb: 'Cooler parts and paddle grips. Nice people. Slow to approve anything.' },
 ];
 
@@ -79,6 +85,12 @@ export const TEMPLATES = [
   { title: 'Single-cavity mold, paddle grip', mold: true, cnc: true, size: 'S', cav: 1, geo: 2, slides: 1, steel: 'P20', finish: 'B-1', runner: 'cold', hard: false, base: 2600, steelCost: 700 },
   { title: '2-cavity mold, closure', mold: true, cnc: true, size: 'S', cav: 2, geo: 2, slides: 0, steel: 'NAP80', finish: 'A-3', runner: 'cold', hard: false, base: 3400, steelCost: 1600 },
   { title: '2-cavity mold, cooler latch', mold: true, cnc: true, size: 'S', cav: 2, geo: 2, slides: 2, steel: 'H13', finish: 'B-2', runner: 'cold', hard: true, base: 3600, steelCost: 1900 },
+  { title: 'Appliance mold, dryer lint housing', mold: true, cnc: true, appliance: true, size: 'XL', cav: 1, geo: 1, slides: 0, steel: 'P20', finish: 'B-2', runner: 'cold', hard: false, base: 11000, steelCost: 7800 },
+  { title: 'Appliance mold, crisper drawer front, 1 slide', mold: true, cnc: true, appliance: true, size: 'XL', cav: 1, geo: 2, slides: 1, steel: 'P20', finish: 'B-1', runner: 'hot', hard: false, base: 12500, steelCost: 8200 },
+  { title: '16-cavity closure mold, stainless, hot runner', mold: true, cnc: true, packaging: true, size: 'M', cav: 16, geo: 2, slides: 0, steel: '420 SS', finish: 'A-2', runner: 'hot', hard: true, base: 9500, steelCost: 7200 },
+  { title: '32-cavity cap mold, stainless, hot runner', mold: true, cnc: true, packaging: true, size: 'L', cav: 32, geo: 2, slides: 0, steel: '420 SS', finish: 'A-2', runner: 'hot', hard: true, base: 16000, steelCost: 12500 },
+  { title: 'Medical mold, syringe barrel, 8 cavities, Stavax', mold: true, cnc: true, medical: true, size: 'S', cav: 8, geo: 2, slides: 0, steel: 'Stavax', finish: 'A-1', runner: 'hot', hard: true, base: 7000, steelCost: 6200 },
+  { title: 'Medical mold, pipette tip, 4 cavities, Stavax', mold: true, cnc: true, medical: true, size: 'S', cav: 4, geo: 3, slides: 0, steel: 'Stavax', finish: 'A-1', runner: 'hot', hard: true, base: 5500, steelCost: 4100 },
   { title: 'Automotive mold, door handle bezel, 2 slides + lifter', mold: true, cnc: true, five: true, size: 'L', cav: 2, geo: 3, slides: 2, steel: 'H13', finish: 'A-2', runner: 'hot', hard: true, base: 9000, steelCost: 6500 },
   { title: 'Automotive mold, instrument cluster bezel, 4 slides', mold: true, cnc: true, five: true, size: 'L', cav: 1, geo: 3, slides: 4, steel: 'H13', finish: 'A-1', runner: 'hot', hard: true, base: 14000, steelCost: 9000 },
   { title: '4-cavity mold, cap, hot runner', mold: true, cnc: true, size: 'S', cav: 4, geo: 2, slides: 0, steel: '420 SS', finish: 'A-3', runner: 'hot', hard: true, base: 5200, steelCost: 3400, manifold: 9800 },
@@ -147,8 +159,8 @@ export function moldItems(t) {
     return { items: [{ name: 'The crate', stages: [st('bench', 'Open the crate', 30), st('bench', 'Clean it up', 120)] }],
       jobStages: [st('design', 'Assess the damage from the photos', 120), st('fitspot', 'Fit and spot what they sent', 240), st('bench', 'Make it run', 120), st('tryout', 'Tryout T1', 0)] };
   }
-  const polish = { 'C-1': 1, 'B-2': 3, 'B-1': 4, 'A-3': 7, 'A-2': 9 }[t.finish] || 3;
-  const sizeK = { S: 0.8, M: 1, L: 1.5 }[t.size] || 1, geoK = 0.8 + t.geo * 0.25;
+  const polish = { 'C-1': 1, 'B-2': 3, 'B-1': 4, 'A-3': 7, 'A-2': 9, 'A-1': 12 }[t.finish] || 3;
+  const sizeK = { S: 0.8, M: 1, L: 1.5, XL: 2.2 }[t.size] || 1, geoK = 0.8 + t.geo * 0.25;
   const items = [];
   items.push({ name: 'Mold base', stages: [st('base', 'Mold base from DMV', 0)] });
   const block = (name, k) => {
@@ -160,14 +172,16 @@ export function moldItems(t) {
     stages.push(st('bench', `Polish to ${t.finish}`, 90 * polish * sizeK * k));
     return { name, stages };
   };
-  items.push(block('Cavity (A-side)', 1.0 * Math.sqrt(t.cav)));
-  items.push(block('Core (B-side)', 0.9 * Math.sqrt(t.cav)));
+  const cavK = t.cav >= 16 ? 2.2 + (t.cav - 16) * 0.05 : Math.sqrt(t.cav); // high cavitation is inserts, not one block; it scales, but not forever
+  items.push(block('Cavity (A-side)', 1.0 * cavK));
+  items.push(block('Core (B-side)', 0.9 * cavK));
   for (let i = 0; i < t.slides; i++) items.push({ name: `Slide ${i + 1}`, stages: [st('vmc', 'Rough', 150), ...(t.hard ? [st('heat', 'Heat treat', 0)] : []), st('wire', 'Wire the gib', 120), st('grinder', 'Grind the fit', 60), st('bench', 'Fit the slide', 120)] });
   if (t.runner === 'hot') items.push({ name: 'Hot runner', stages: [st('manifold', 'Manifold from Mould-Majors', 0)] });
   const jobStages = [
     st('design', 'Mold design', 420 * sizeK * (1 + t.slides * 0.2)),
     st('fitspot', 'Fit and spot', 720 * sizeK * (1 + t.slides * 0.3) * Math.sqrt(t.cav)),
     st('bench', 'Assemble ejection, water, hardware', 240 * sizeK * (t.runner === 'hot' ? 1.5 : 1)),
+    ...(t.medical ? [st('cmm', 'Inspect every cavity, sign every page', 180), st('design', 'The binder: drawings, certs, a signature on each', 240)] : t.packaging ? [st('cmm', 'Inspect the cavities (all of them)', 120)] : []),
     st('tryout', 'Tryout T1', 0),
   ];
   return { items, jobStages };
@@ -180,9 +194,9 @@ export function makeRfq(state, template, customer) {
     const material = template.steelCost + template.base + (template.manifold || 0);
     const heat = template.hard ? HEAT_COST * 2 : 0;
     const tryout = 200 * (4 + template.cav);
-    const estimate = Math.round((minutes / 60) * MOLD_RATE + material + heat + tryout);
+    const estimate = Math.round(((minutes / 60) * MOLD_RATE + material + heat + tryout) * (template.medical ? 1.25 : template.packaging ? 1.1 : 1));
     const expected = Math.round(estimate * customer.stingy * (0.92 + Math.random() * 0.16));
-    const lead = rint(30, 45);
+    const lead = template.packaging ? rint(22, 30) : template.appliance ? rint(40, 55) : rint(30, 45);
     return { id: state.nextRfq++, bidders: rint(3, 5), status: 'open', read: false, day: state.day, expires: state.day + 4, customer: customer.id, title: template.title, qty: 1, steel: template.steel,
       items, jobStages, stages: items.flatMap((it) => it.stages).concat(jobStages), minutes, material, estimate, expected, lead, price: estimate, rate: MOLD_RATE, cnc: !template.proto && !template.transfer, heat, mold: true, spec: { ...template } };
   }
@@ -219,6 +233,25 @@ export function sendQuote(state, rfq, price) { rfq.price = Math.round(price); rf
 export function declineRfq(state, rfq) { rfq.status = 'declined'; rfq.read = true; }
 
 export const RIVALS = ['Lakeshore Mold & Die', 'Durham Tool', 'a shop in Windsor nobody has heard of', 'Bramalea Moldworks', 'somebody\'s brother-in-law'];
+// the segments of §7.1: who calls depends on what is on the floor and what the name is worth
+export const SEGMENT_FLAG = { auto: 'five', appliance: 'appliance', packaging: 'packaging', medical: 'medical' };
+export const SEGMENT_HELLO = {
+  auto: (c) => `${c.name} called. They heard about the 5-axis. A quality manual is on its way, by courier, in a binder.`,
+  appliance: (c) => `${c.name} called. They heard about the crane. Everything they make is big, plain, and meant to run for twenty years.`,
+  packaging: (c) => `${c.name} called. Sixteen cavities, stainless, hot runner, and a lead time they said with a straight face. They heard about the CMM.`,
+  medical: (c) => `${c.name} called. Stavax, a tenth, and a binder. They asked if the shop was clean. You said yes. They are coming to check.`,
+};
+export function customerOpen(state, c, byId) {
+  const has = (f) => state.machines.some((m) => m.placed && f(byId(m.id)));
+  if (c.cnc && !has((d) => d.cnc)) return false;
+  if (c.five && !has((d) => d.five)) return false;
+  if (c.crane && !state.facility.crane) return false;
+  if (c.cmm && !has((d) => (d.stations || []).includes('inspect'))) return false;
+  if (c.hot && !state.jobs.some((j) => j.status === 'shipped' && j.mold && j.spec && j.spec.runner === 'hot')) return false;
+  if (c.clean && !state.facility.climate) return false;
+  if (c.rep && state.rep < c.rep) return false;
+  return true;
+}
 export function memoryOf(state, cid) { const m = (state.memory || {})[cid] || { late: 0, onTime: 0, firstRight: 0 }; return m; }
 export function winChance(state, rfq) {
   const c = customerOf(rfq.customer); const r = rfq.price / rfq.expected;
@@ -463,8 +496,11 @@ export function endOfDay(state, byId) {
     const hasLaser = state.machines.some((m) => m.placed && byId(m.id).stations.includes('weld'));
     const hasFive = state.machines.some((m) => m.placed && byId(m.id).five);
     const sour = state.sour || {};
-    const custs = CUSTOMERS.filter((c) => (!c.cnc || hasCnc) && (!c.five || hasFive) && !(sour[c.id] > state.day)), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc).filter((t) => !t.mold || t.proto || t.transfer || (hasCnc && state.rep >= 0.5)).filter((t) => !t.weld || hasLaser).filter((t) => !t.five || hasFive).filter((t) => !t.transfer || state.rep >= 0.4);
-    const c = pick(custs), t = c.five ? pick(temps.filter((q) => q.five)) : c.cnc ? pick(temps.filter((q) => q.cnc && !q.five)) : pick(temps.filter((q) => (!q.mold || q.proto || q.transfer) && !q.five));
+    const custs = CUSTOMERS.filter((c) => customerOpen(state, c, byId) && !(sour[c.id] > state.day)), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc).filter((t) => !t.mold || t.proto || t.transfer || (hasCnc && state.rep >= 0.5)).filter((t) => !t.weld || hasLaser).filter((t) => !t.five || hasFive).filter((t) => !t.transfer || state.rep >= 0.4);
+    const c = pick(custs), seg = SEGMENT_FLAG[c.kind];
+    const t = seg ? pick(temps.filter((q) => q[seg])) : c.cnc ? pick(temps.filter((q) => q.cnc && !q.five && !q.appliance && !q.packaging && !q.medical)) : pick(temps.filter((q) => (!q.mold || q.proto || q.transfer) && !q.five && !q.appliance && !q.packaging && !q.medical));
+    if (!t) continue;
+    if (seg && !(state.segments || (state.segments = [])).includes(c.kind)) { state.segments.push(c.kind); notes.push(SEGMENT_HELLO[c.kind](c)); state.achievements && !state.achievements.includes('seg_' + c.kind) && state.achievements.push('seg_' + c.kind); }
     const r = makeRfq(state, t, c); state.rfqs.push(r); notes.push(`RFQ from ${c.name}: ${t.title}.`);
   }
   return notes;

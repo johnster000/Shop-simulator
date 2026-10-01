@@ -4,7 +4,7 @@
 // Monday is day 1.
 
 import { byId, SHOP, BUILDINGS, UPGRADES, SOFTWARE } from './catalog.js';
-import { initJobs, endOfDay, makeRfq, CUSTOMERS, TEMPLATES, cmmReport } from './jobs.js';
+import { initJobs, endOfDay, makeRfq, CUSTOMERS, TEMPLATES, cmmReport, customerOpen, SEGMENT_FLAG } from './jobs.js';
 import { initPeople, endOfDay as peopleEndOfDay } from './people.js';
 import { nightlyEvents, yearSummary } from './events.js';
 
@@ -298,6 +298,7 @@ export const ACHIEVEMENTS = {
   orders: ['Orders', 'The inspector walked the floor and wrote things down.'], no_orders: ['Frame It', 'The inspector walked the floor and wrote nothing down. Nobody believes you.'],
   forklift: ['Forklift Certified', 'Got on the forklift. Nobody checked.'], forklift_bump: ['Certified, Apparently', 'Drove the forklift into a machine. There is a note about it.'],
   the_program: ['The Program', 'Three molds for one customer, all on time. The bonus cleared.'],
+  seg_auto: ['Tier Two', 'Automotive called. The quality manual is thicker than the mold.'], seg_appliance: ['Big and Plain', 'Appliance called. Nothing they make fits on a pallet jack.'], seg_packaging: ['Sixteen or Do Not Bother', 'Packaging called. Stainless, hot runner, no patience at all.'], seg_medical: ['Wipe Your Feet', 'Medical called. Stavax, a tenth, and a binder. They asked if the shop was clean.'],
   to_see: ['To See What Happens', 'Rapided the spindle into the vise. On purpose. It did what you thought.'], no_dielectric: ['Dry Burn', 'Ran the sinker with no dielectric. To see. Now you have seen.'], interlock: ['The Interlock Was Optional', 'Cycled with the door open. Chips in places chips should not be.'],
   cracked_screen: ['Family Plan', 'Threw the apprentice\'s phone. It was on the family plan. The family has been informed.'], certificate: ['With a Certificate', 'Paid double for heat treat that comes with a piece of paper. Worth it, once.'],
   tenth: ['A Tenth Is a Tenth', 'A CMM report with no red on it. Frame that one too.'], big_one: ['The Big One', 'A PO for a mold over the big number. Read it twice. Then the terms.'], one_million: ['One Million', 'A tool you built passed a million cycles at the customer. They sent a photo of the counter.'],
@@ -403,9 +404,10 @@ export function goHome(state) {
     state.tradeShow = false; state.lastShow = state.day;
     for (let i = 0; i < 2; i++) state.day = (state.day - 1) % 7 === 4 ? state.day + 3 : state.day + 1;
     const hasCnc = state.machines.some((m) => m.placed && byId(m.id).cnc), hasFive = state.machines.some((m) => m.placed && byId(m.id).five);
-    const custs = CUSTOMERS.filter((c) => (!c.cnc || hasCnc) && (!c.five || hasFive)), temps = TEMPLATES.filter((t) => (!t.cnc || hasCnc) && (!t.five || hasFive) && !t.weld && (!t.mold || t.proto || (hasCnc && state.rep >= 0.4)));
+    const custs = CUSTOMERS.filter((c) => customerOpen(state, c, byId)), temps = TEMPLATES.filter((t) => (!t.cnc || hasCnc) && (!t.five || hasFive) && !t.weld && (!t.mold || t.proto || (hasCnc && state.rep >= 0.4)));
+    const tempsFor = (c) => { const seg = SEGMENT_FLAG[c.kind]; return temps.filter((t) => seg ? t[seg] : !t.five && !t.appliance && !t.packaging && !t.medical); };
     const n = 2 + Math.floor(Math.random() * 3); const got = [];
-    for (let i = 0; i < n; i++) { const c = custs[Math.floor(Math.random() * custs.length)], t = temps[Math.floor(Math.random() * temps.length)]; if (c && t) { state.rfqs.push(makeRfq(state, t, c)); got.push(c.name); } }
+    for (let i = 0; i < n; i++) { const c = custs[Math.floor(Math.random() * custs.length)], tt = c ? tempsFor(c) : [], t = tt[Math.floor(Math.random() * tt.length)]; if (c && t) { state.rfqs.push(makeRfq(state, t, c)); got.push(c.name); } }
     state.rep = Math.min(1, state.rep + 0.03); achieve(state, 'lanyard');
     const crewLine = state.people.length ? (Math.random() < 0.3 ? (() => { const m = state.machines.find((q) => q.placed); if (m) { m.condition = Math.max(0, m.condition - 0.08); return `The crew, alone for two days, had an incident with the ${byId(m.id).name.toLowerCase()}. Nobody will say what.`; } return 'The crew were fine. Suspiciously fine.'; })() : 'The crew ran the place. Nothing burned. The radio station changed.') : 'The shop sat dark for two days. The compressor cycled anyway.';
     night.show = `Two days at the show. A lanyard, a $14 hot dog, a bag of pens, and ${n} RFQ${n === 1 ? '' : 's'} from ${[...new Set(got)].join(', ')}. ${crewLine}`;

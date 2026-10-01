@@ -1,7 +1,7 @@
 // Things that happen when you are not looking. The bible's table, as inbox mail and overnight notes.
 import { post, valuation } from './sim.js';
 import { byId } from './catalog.js';
-import { customerOf, message, makeRfq, TEMPLATES } from './jobs.js';
+import { customerOf, message, makeRfq, TEMPLATES, SEGMENT_FLAG } from './jobs.js';
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
@@ -86,7 +86,7 @@ export function nightlyEvents(state) {
     const cid = Object.keys(good).find((k) => good[k] >= 2);
     if (cid && roll(0.25)) {
       const c = customerOf(cid), hasFive = state.machines.some((m) => m.placed && byId(m.id).five);
-      const temps = TEMPLATES.filter((t) => t.mold && !t.proto && !t.transfer && (!t.five || hasFive));
+      const seg = SEGMENT_FLAG[c.kind]; const temps = TEMPLATES.filter((t) => t.mold && !t.proto && !t.transfer && (!t.five || hasFive)).filter((t) => seg ? t[seg] : !t.five && !t.appliance && !t.packaging && !t.medical);
       const ids = []; let total = 0;
       for (let i = 0; i < 3; i++) { const t = temps[Math.floor(Math.random() * temps.length)]; const r = makeRfq(state, t, c); r.title = `PROGRAM ${i + 1}/3: ${t.title}`; r.program = true; r.expires = state.day + 10; r.lead = 40 + i * 25; state.rfqs.push(r); ids.push(r.id); total += r.expected; }
       state.program = { customer: cid, rfqs: ids, jobs: [], bonus: Math.round(total * 0.1), day: state.day, done: 0, late: 0 };
