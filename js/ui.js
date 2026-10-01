@@ -3,7 +3,7 @@ import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
 import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve, valuation, canRetire, maintain, serviceCost, techFor, insuranceWeekly } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
-import { IN_HOUSE_MIN, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel } from './jobs.js';
+import { IN_HOUSE_MIN, schedule, customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel } from './jobs.js';
 import { hire, fire, raise, fixGrievance, tough, moraleWord, SKILLS } from './people.js';
 import { hasCad as hasCadFn } from './sim.js';
 
@@ -102,6 +102,11 @@ export class UI {
   renderJobs() {
     const s = this.state, el = $('tab-jobs');
     const live = s.jobs.filter((j) => j.status !== 'shipped').slice().reverse();
+    const sch = schedule(s, byId);
+    const hue = (id) => (id * 47) % 360;
+    const board = sch.lanes.length ? `<h4 class="sect">THE BOARD</h4><div class="boardWrap"><table class="board"><tr><th></th>${sch.cols.map((d, i) => `<th>${i === 0 ? 'today' : 'd' + d}</th>`).join('')}</tr>
+      ${sch.lanes.map((l) => `<tr><td class="lane">${l.name}</td>${sch.cols.map((d, c) => { const cell = l.cells.find((x) => x.c === c); return `<td>${cell ? `<i style="background:hsl(${hue(cell.j)},55%,62%)" title="job ${cell.j}: ${cell.label}">${cell.j % 1000}</i>` : ''}</td>`; }).join('')}</tr>`).join('')}</table></div>
+      <div class="boardNote">${sch.summary.map((q) => `<b style="color:hsl(${hue(q.id)},55%,38%)">job ${q.id}</b> ${q.beyond ? 'runs past the board' : `done around day ${q.endDay}`}, due day ${q.due}${q.late ? ' <b style="color:var(--red)">LATE</b>' : ''}${q.missing ? ' <b style="color:var(--red)">needs a machine you do not have</b>' : ''}`).join(' · ')}. A projection: one shift, nobody sick, vendors on time. So, no.</div>` : '';
     const done = s.jobs.filter((j) => j.status === 'shipped').slice().reverse().slice(0, 8);
     const has = (kind) => shopHas(s, kind, byId);
     const stageLi = (st, prefix, next) => `<li class="${st.done ? 'done' : st.out ? 'out' : next && !has(st.kind) ? 'missing' : ''}">${prefix}${st.label}${st.min ? ' · ' + (st.min >= 120 ? (st.min / 60).toFixed(1) + ' h' : st.min + ' min') : ''}${st.out ? ` · back day ${st.out.backDay}` : ''}</li>`;
@@ -123,7 +128,7 @@ export class UI {
           ${j.status === 'work' ? `<span class="note">Next: ${nextLabel(j)}.</span>` : ''}
         </div></div>`;
     };
-    el.innerHTML = `${live.length ? live.map(jobHtml).join('') : '<p class="note">No jobs. Quote something.</p>'}${done.length ? `<h4 class="sect">SHIPPED</h4>${done.map(jobHtml).join('')}` : ''}
+    el.innerHTML = board + `${live.length ? live.map(jobHtml).join('') : '<p class="note">No jobs. Quote something.</p>'}${done.length ? `<h4 class="sect">SHIPPED</h4>${done.map(jobHtml).join('')}` : ''}
       <p class="note">Reputation ${Math.round(s.rep * 100)}. On-time ships raise it. Late ones drop it faster. A mold with no notes at T1 is the one they remember.</p>`;
     el.querySelectorAll('[data-ship]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.ship); const r = ship(s, j); s.stats.shipped++; this.audio.cash(); this.toast(r.late ? `Shipped. ${r.late} day${r.late === 1 ? '' : 's'} late. They noticed.` : j.mold ? 'Shipped. A mold went out the door. Cake.' : 'Shipped. One out the door.', 3200); this.hooks.shipped(j); this.renderJobs(); }));
     el.querySelectorAll('[data-out]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.out); const r = sendOut(s, j, +b.dataset.ii, +b.dataset.i); if (!r.ok) { this.audio.nope(); this.toast(r.why); return; } this.audio.cash(); this.toast(`Sent out. ${money(r.cost)}. A few days.`); this.renderJobs(); }));

@@ -216,6 +216,12 @@ Then open http://localhost:8080/.
   costs the deductible and a form; uninsured, it costs the cleanup, the fire department and half
   the machine, and you remember the Monday you turned it down. Both go on the wall.
 
+- The board. The JOBS tab opens with a schedule board: every machine and vendor as a row, the
+  next ten working days as columns, and every live job's remaining stages laid on them in due
+  date order, one shift a day. Under it, one line per job: done around when, due when, LATE in
+  red, and "needs a machine you do not have" when it does. A projection: one shift, nobody sick,
+  vendors on time. So, no.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

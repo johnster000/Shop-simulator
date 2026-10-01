@@ -390,3 +390,40 @@ export function endOfDay(state, byId) {
   }
   return notes;
 }
+
+// ---- the schedule board. a projection, not a promise: every live job's remaining stages laid on the stations
+// the shop has, in due-date order, one shift a day, vendors at their usual lead times. the whiteboard, with columns.
+const VENDOR_DAYS = { heat: 2, base: 5, manifold: 7, tryout: 3, design: 3 };
+export function nextWorkDay(d) { return (d - 1) % 7 === 4 ? d + 3 : d + 1; }
+export function schedule(state, byId, days = 10) {
+  const cols = []; let d = state.day; for (let i = 0; i < days; i++) { cols.push(d); d = nextWorkDay(d); }
+  const idx = (day) => cols.indexOf(day);
+  // lanes: one per placed machine, keyed by the station kind it serves; vendors and the PC get one lane each
+  const lanes = [];
+  for (const m of state.machines) if (m.placed && !m.down) { const dk = byId(m.id); lanes.push({ name: `${dk.name}${state.machines.filter((q) => q.placed && q.id === m.id).length > 1 ? ' #' + m.uid : ''}`, kind: dk.kind, free: 0, cells: [] }); }
+  for (const k of ['design', 'base', 'manifold', 'heat', 'tryout']) lanes.push({ name: stationName(k), kind: k, vendor: true, free: 0, cells: [] });
+  const laneFor = (stageKind, from) => {
+    const fit = lanes.filter((l) => l.vendor ? l.kind === stageKind && !inHouse(state, stageKind, byId) : matches(stageKind, l.kind));
+    if (!fit.length) return null;
+    return fit.reduce((a, l) => (Math.max(l.free, from) < Math.max(a.free, from) ? l : a), fit[0]);
+  };
+  const live = state.jobs.filter((j) => j.status === 'work' || j.status === 'material').slice().sort((a, b) => a.dueDay - b.dueDay);
+  const summary = [];
+  for (const j of live) {
+    const place = (q, from) => { // returns the column index the stage ends on
+      const lane = laneFor(q.kind, from); const len = q.out ? Math.max(1, q.out.backDay - state.day) : VENDOR_DAYS[q.kind] && !inHouse(state, q.kind, byId) ? VENDOR_DAYS[q.kind] : Math.max(1, Math.ceil((q.min || 60) / 420));
+      if (!lane) return { end: from + len, missing: true };
+      const start = Math.max(lane.free, from); for (let c = start; c < start + len; c++) lane.cells.push({ c, j: j.id, label: q.label });
+      lane.free = start + len; return { end: start + len };
+    };
+    let t0 = 0, missing = false; const designDone = !j.mold || j.jobStages[0].done;
+    if (j.mold && !designDone) { const r = place(j.jobStages[0], 0); t0 = r.end; }
+    if (j.status === 'material' && j.materialDay > state.day) t0 = Math.max(t0, j.materialDay - state.day);
+    let itemsEnd = t0;
+    for (const it of j.items) { let t = t0; for (const q of it.stages) { if (q.done) continue; const r = place(q, t); t = r.end; missing = missing || !!r.missing; } itemsEnd = Math.max(itemsEnd, t); }
+    let t = itemsEnd; j.jobStages.forEach((q, i) => { if (q.done || (j.mold && i === 0)) return; const r = place(q, t); t = r.end; missing = missing || !!r.missing; });
+    const endDay = cols[Math.min(t, cols.length - 1)] + (t >= cols.length ? (t - cols.length + 1) * 1.4 : 0);
+    summary.push({ id: j.id, title: j.title, due: j.dueDay, end: t, endDay: Math.round(endDay), late: Math.round(endDay) > j.dueDay, missing, beyond: t > cols.length });
+  }
+  return { cols, lanes: lanes.filter((l) => l.cells.length), summary };
+}
