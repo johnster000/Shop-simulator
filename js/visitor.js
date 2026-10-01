@@ -61,6 +61,7 @@ export class Visitor {
     } else {
       if (s.scrapCount >= 6) note('scrap', -1, pick(['That is a lot of scrap.', 'Big bin.']));
       if (s.facility.crane) note('crane', 1, 'A crane. Nice.');
+      if (s.summer && s.facility.climate) note('cool', 1, 'It is cool in here. Ours is a sauna.'); else if (s.summer) note('hot', -1, pick(['It is thirty degrees in here.', 'Is the air conditioning broken, or is there none?']));
       if (s.building === 'large') note('big', 1, 'Big place. Bigger than ours.');
       const crew = [...this.crew.views.values()].filter((v) => v.g.visible);
       if (crew.length && crew.every((v) => v.mode === 'idle' || v.mode === 'break' || v.mode === 'gawk')) note('relaxed', -1, pick(['Your guys look relaxed.', 'Slow day?']));

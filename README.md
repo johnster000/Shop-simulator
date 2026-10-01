@@ -230,6 +230,13 @@ Then open http://localhost:8080/.
   tab sells the trade show: $2,400, two days away, a lanyard, a $14 hot dog, two to four RFQs,
   and whatever the crew did while you were gone.
 
+- The little things. Three more building upgrades from the bible: foundation pads (the 5-axis,
+  the press and the hard-milling VMC will not sit on four inches of 1974), chip bins and coolant
+  recycling (chips pile up half as fast), and climate control (July is sixty days a year; without
+  it the crew wilt and visitors notice). Spilled coffee is now a puddle for twenty seconds and
+  anyone who walks through it may go down, $400 and a form, unless the wet floor sign from beside
+  the office is standing next to it.
+
 Next: more things to do on the floor, more things that go wrong, and whatever the first playtest
 turns up.
 

@@ -122,6 +122,7 @@ export function whyNot(state, def) {
   if (!canPower(state, def)) return `the panel has ${circuits(state) - poweredCount(state)} circuit${circuits(state) - poweredCount(state) === 1 ? '' : 's'} free and this needs ${def.power}`;
   if (!canAir(state, def)) return 'the compressor cannot feed another machine';
   if (def.cnc && !hasCam(state)) return 'you have no CAM software to program it';
+  if (def.pads && !state.facility.pads) return 'it needs a foundation pad; the floor is four inches of 1974';
   return null;
 }
 export function hasCam(state) { const sw = state.software; return !!(sw && sw.cam && state.day >= (sw.camDownUntil || 0)); }
@@ -291,6 +292,7 @@ export const ACHIEVEMENTS = {
   down: ['Down', 'A machine quit on you overnight. They do that.'], estop: ['The Red Button', 'Hit the E-stop before the spindle hit the table.'], the_call: ['The Call', 'The bank called it. They were polite.'], tape: ['Duct Tape', 'It runs. It is louder.'],
   glad_once: ['Glad Of It, Exactly Once', 'A fire, with insurance. The adjuster said "huh".'], uninsured: ['Should Have', 'A fire, without insurance. The Monday you turned it down.'],
   swept: ['Billable, Apparently', 'Swept the floor yourself. Ten times. The crew watched.'], chips_deep: ['Ankle Deep', 'A machine with chips to the top of its boots. Somebody should sweep.'],
+  wet_sign: ['Caution: Wet', 'Put the sign out before anybody slipped. Rare.'], slipped: ['WHOA', 'Somebody slipped on the coffee. There was a sign for that. It was in the closet.'],
   lanyard: ['The Lanyard', 'Went to the trade show. Came back with pens and RFQs.'], the_crate: ['The Crate', 'Opened somebody else\'s mold. There was a surprise. There is always a surprise.'],
   the_speech: ['The Speech', 'Somebody quit on the floor, out loud, with everyone watching.'],
   stayed: ['Everybody Stays', 'Kept the crew late. Time and a half, and a look.'], watched: ['Supervision', 'Stood behind somebody while they ran a machine. It helped. They hated it.'],
@@ -323,7 +325,7 @@ export function tick(state, dt) {
       // the way lube. fifty hours a fill. nobody checks it. then it is dry and the ways start to sing.
       if (m.oil == null) m.oil = 1;
       m.oil = Math.max(0, m.oil - elapsed / 60 / 50);
-      m.chips = Math.min(1, (m.chips || 0) + elapsed / 60 * (byId(m.id).kind === 'vmc' ? 0.14 : byId(m.id).kind === 'sinker' || byId(m.id).kind === 'wire' ? 0.02 : 0.09));
+      m.chips = Math.min(1, (m.chips || 0) + elapsed / 60 * (byId(m.id).kind === 'vmc' ? 0.14 : byId(m.id).kind === 'sinker' || byId(m.id).kind === 'wire' ? 0.02 : 0.09) * (state.facility.chips ? 0.5 : 1));
       if (m.oil <= 0) { m.condition = Math.max(0, m.condition - elapsed * 0.0015); if (!m.dryWarned) { m.dryWarned = true; events.push({ type: 'dry', uid: m.uid }); } }
       if (m.runLeft <= 0) { m.running = false; m.runLeft = 0; m.checklist = {}; events.push({ type: 'cycleDone', uid: m.uid }); }
     }
@@ -373,8 +375,10 @@ export function goHome(state) {
     const crewLine = state.people.length ? (Math.random() < 0.3 ? (() => { const m = state.machines.find((q) => q.placed); if (m) { m.condition = Math.max(0, m.condition - 0.08); return `The crew, alone for two days, had an incident with the ${byId(m.id).name.toLowerCase()}. Nobody will say what.`; } return 'The crew were fine. Suspiciously fine.'; })() : 'The crew ran the place. Nothing burned. The radio station changed.') : 'The shop sat dark for two days. The compressor cycled anyway.';
     night.show = `Two days at the show. A lanyard, a $14 hot dog, a bag of pens, and ${n} RFQ${n === 1 ? '' : 's'} from ${[...new Set(got)].join(', ')}. ${crewLine}`;
   }
+  const yday = (state.day - 1) % 260; state.summer = yday >= 130 && yday < 190;
+  if (state.summer && !state.facility.climate) { for (const p of state.people) p.morale = Math.max(0, p.morale - 0.012); if (yday === 130) night.notes = ['July. The shop is thirty degrees by ten. The polishers have opinions about it. Climate control is on the SHOP tab.']; }
   night.day = state.day;
-  night.notes = upgradeDue(state).concat(extra, overnightMachines(state), endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state), nightlyEvents(state), bankCheck(state));
+  night.notes = (night.notes || []).concat(upgradeDue(state).concat(extra, overnightMachines(state), endOfDay(state, byId), peopleEndOfDay(state), auditCheck(state), nightlyEvents(state), bankCheck(state)));
   if (state.bankrupt) night.bankrupt = true; else monthlySave(state);
   // the year turns every 52 weeks
   const yearBefore = Math.floor((night.dayDone - 1) / 260), yearAfter = Math.floor((state.day - 1) / 260);

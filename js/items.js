@@ -11,6 +11,7 @@ const KINDS = {
   key: { label: 'chuck key', mass: 0.3, hint: 'the chuck key. somebody left it in.' },
   extinguisher: { label: 'fire extinguisher', mass: 5, hint: 'fire extinguisher. pull, aim, squeeze. the tag is from 2009.' },
   airhose: { label: 'air hose', mass: 1, hint: 'the air hose. for chips. only for chips.' },
+  wetsign: { label: 'wet floor sign', mass: 0.8, hint: 'the wet floor sign. CAUTION, in two languages and a drawing.' },
   broom: { label: 'broom', mass: 1.2, hint: 'the broom. the apprentice\'s. you can use it.' },
   traveller: { label: 'job traveller', mass: 0.3, hint: 'a traveller. where the job is, in pen, with a coffee ring.' },
 };
@@ -44,6 +45,11 @@ export class Items {
       const horn = new T.Mesh(new T.CylinderGeometry(0.03, 0.012, 0.08, 12), blk); horn.position.set(0.0, 0.3, 0.1); horn.rotation.x = 0.4; mesh.add(horn);
       const lbl = new T.Mesh(new T.PlaneGeometry(0.1, 0.16), new T.MeshBasicMaterial({ map: TX.label(T, ['FIRE', 'ABC', '2009'], { size: 26 }) })); lbl.position.set(0, 0.24, 0.076); mesh.add(lbl);
       const tag = new T.Mesh(new T.PlaneGeometry(0.04, 0.06), new T.MeshBasicMaterial({ color: 0xe8d44a, side: T.DoubleSide })); tag.position.set(0.09, 0.5, 0); tag.rotation.y = Math.PI / 2; mesh.add(tag);
+    }
+    else if (kind === 'wetsign') {
+      mesh = new T.Group(); const yel = new T.MeshStandardMaterial({ color: 0xf2d31b, roughness: 0.6 });
+      for (const sgn of [-1, 1]) { const leaf = new T.Mesh(new T.BoxGeometry(0.3, 0.6, 0.01), yel); leaf.position.set(0, 0.3, sgn * 0.11); leaf.rotation.x = sgn * 0.35; mesh.add(leaf); const lbl = new T.Mesh(new T.PlaneGeometry(0.24, 0.3), new T.MeshBasicMaterial({ map: TX.label(T, ['CAUTION', 'WET', 'FLOOR'], { size: 26, bg: '#f2d31b', border: '#f2d31b', fg: '#111' }) })); lbl.position.set(0, 0.33, sgn * (0.11 + 0.006)); lbl.rotation.x = sgn * 0.35; if (sgn < 0) lbl.rotation.y = Math.PI; mesh.add(lbl); }
+      const hinge = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, 0.3, 8), new T.MeshStandardMaterial({ color: 0x333 })); hinge.rotation.z = Math.PI / 2; hinge.position.y = 0.58; mesh.add(hinge);
     }
     else if (kind === 'broom') { mesh = buildBroom(T); mesh.traverse((o) => { delete o.raycast; }); mesh.rotation.set(-0.55, 0, 0); }
     else if (kind === 'traveller') {
@@ -79,6 +85,7 @@ export class Items {
     if (item.kind === 'airhose') { item.mesh.position.set(0.3, -0.45, -0.6); item.mesh.rotation.set(0.3, -1.4, 0); }
     if (item.kind === 'traveller') { item.mesh.position.set(0.3, -0.28, -0.55); item.mesh.rotation.set(-0.9, -0.3, 0.1); }
     if (item.kind === 'broom') { item.mesh.position.set(0.35, 0.1, -0.5); item.mesh.rotation.set(0.1, -0.5, 0.2); }
+    if (item.kind === 'wetsign') { item.mesh.position.set(0.4, -0.55, -0.7); item.mesh.rotation.set(0, -0.6, 0); }
     this.audio.tick(0.08, 600);
     return true;
   }

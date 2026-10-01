@@ -78,7 +78,7 @@ export const MACHINES = [
     id: 'hardmill', kind: 'vmc', name: 'Hard-milling VMC', brand: 'Mikano', model: 'V33ish', cnc: true,
     blurb: 'The mold shop\'s dream mill. Finishes in hardened steel all night and leaves nothing for the polisher to do. Every VMC stage runs in three quarters of the time. The service tech flies in.',
     w: 2.4, d: 2.2, h: 2.9, priceNew: 300000, priceUsed: 130000, stage: 2, power: 3, air: true,
-    stations: ['cnc'], manual: false, tools: 30, speed: 0.75,
+    pads: true, stations: ['cnc'], manual: false, tools: 30, speed: 0.75,
   },
   {
     id: 'cncgrind', kind: 'grinder', name: 'CNC surface grinder', brand: 'Okeymoto', model: 'ACC-CNC', cnc: true,
@@ -96,13 +96,13 @@ export const MACHINES = [
     id: 'fiveaxis', kind: 'vmc', look: 'five', name: '5-axis mill', brand: 'Hermlin', model: 'C 42ish', cnc: true, five: true,
     blurb: 'The one everybody wants. Trunnion table, forty tools, a window you can watch through for an hour. Every VMC stage in half the time, and the automotive people start calling. Delivery was fourteen months; it is on the truck now.',
     w: 3.2, d: 3.0, h: 3.1, priceNew: 850000, priceUsed: 420000, stage: 3, power: 4, air: true,
-    stations: ['cnc'], manual: false, tools: 40, speed: 0.5,
+    pads: true, stations: ['cnc'], manual: false, tools: 40, speed: 0.5,
   },
   {
     id: 'press', kind: 'press', name: 'Sampling press', brand: 'Lad Machines', model: '55T', cnc: false,
     blurb: 'A 55-ton injection press for tryouts. Clamp your mold in, set the shot, see the flash yourself instead of reading about it in an email three days later. Needs a moldmaker, or somebody who has watched one.',
     w: 4.4, d: 1.5, h: 2.1, priceNew: 180000, priceUsed: 70000, stage: 3, power: 3, air: true,
-    stations: ['tryout'], manual: false, tools: 0,
+    pads: true, stations: ['tryout'], manual: false, tools: 0,
   },
   {
     id: 'oven', kind: 'heat', name: 'Heat-treat oven', brand: 'Kilnworth', model: 'HT-12', cnc: false,
@@ -126,6 +126,9 @@ export const UPGRADES = [
   { id: 'toolbreak', name: 'Tool-break detection', group: 'safety', price: 2200, days: 1, blurb: 'A laser in the VMC that notices the cutter is gone before the cutter does. Lights-out gets safer, not safe.', gives: { toolbreak: true }, needs: null },
   { id: 'building2', name: 'The next building: 10,000 sq ft', group: 'building', price: 42000, days: 6, blurb: 'Four times the floor, a 24 ft ceiling, two real doors, an office with a window, an inspection room, a break room. First and last month, movers, riggers, and a weekend of everybody carrying things. The sign comes with you. Rent is four times the sign.', gives: { building: 'large' }, needs: null },
   { id: 'crane', name: 'Overhead crane, 5 tonne', group: 'crane', price: 18000, days: 4, blurb: 'Runway beams along both walls, a bridge, a hoist. Everyone stops to watch the first lift. Until then anything over a pallet jack goes out, and so does fit-and-spot on a real mold.', gives: { crane: true }, needs: null },
+  { id: 'pads', name: 'Foundation pads', group: 'floor', price: 6800, days: 4, blurb: 'Cut the slab, pour, wait. The big machines (the 5-axis, the press, the hard-milling VMC) will not sit on a four-inch floor and the dealer will not deliver onto one.', gives: { pads: true }, needs: null },
+  { id: 'chips', name: 'Chip bins and coolant recycling', group: 'floor', price: 3200, days: 1, blurb: 'A bin at every machine, a coolant cart, a chip wringer. Chips pile up half as fast and the floor stops being an ankle hazard.', gives: { chips: true }, needs: null },
+  { id: 'climate', name: 'Climate control', group: 'building', price: 9500, days: 3, blurb: 'Rooftop units. The inspection room holds twenty degrees, the polishers stop sweating in July, and the crew stop talking about July.', gives: { climate: true }, needs: null },
   { id: 'dust', name: 'Dust extraction', group: 'safety', price: 2800, days: 1, blurb: 'A vacuum for cutting graphite. Without it the dust gets into the ways, the coffee, and the crew.', gives: { dust: true }, needs: null },
 ];
 

@@ -91,6 +91,8 @@ export function startShop(T, audio, state) {
   const hoseItem = items.make('airhose', shop.hosePos.x, shop.hosePos.z, { y: shop.hosePos.y });
   let coffeeItem = items.items.find((it) => it.kind === 'coffee');
   const broomItem = items.make('broom', shop.office.x1 + 0.35, shop.office.z1 - 0.9, { y: 0.0 });
+  const signItem = items.make('wetsign', shop.office.x1 + 0.35, shop.office.z1 - 1.5, { y: 0.0 });
+  const spills = []; // { x, z, until }
   const delivery = new Delivery(T, scene, shop, state);
   const phone = new Phone(shop, state, audio, { toast: (t, ms) => ui.toast(t, ms), unlock });
   // the travellers: one clipboard per live job, beside the machine that has it or on the rack
@@ -140,7 +142,7 @@ export function startShop(T, audio, state) {
     }
     if (what.type === 'tarp') { ui.toast(pick(['Through the tarp. The tarp did not mind.', 'The tarp flapped. It always flaps.'])); return; }
     if (what.type === 'lot') { ui.toast(`${ITEM_KINDS[kind].label[0].toUpperCase() + ITEM_KINDS[kind].label.slice(1)}: now in the parking lot.${kind === 'steel' ? ' That was $90 of P20.' : ''}`, 3400); if (kind === 'steel') { post(state, 'A block of P20, in the parking lot', -90); items.remove(it); steelItem = null; } else if (kind !== 'scrap') items.remove(it); else { it.mesh.position.set(shop.binPos.x, 0.82, shop.binPos.z); } return; }
-    if (what.type === 'spill') { unlock('wet_floor'); ui.toast(pick(['Coffee on the floor. Somebody will slip on that.', 'The coffee is on the floor now. It was the good coffee.']), 3000); setTimeout(() => { it.mesh.position.set(shop.pcPos.x + 0.6, 0.77, shop.pcPos.z + 0.1); }, 20000); return; }
+    if (what.type === 'spill') { unlock('wet_floor'); spills.push({ x: it.mesh.position.x, z: it.mesh.position.z, until: performance.now() + 20000, mesh: spillMesh(it.mesh.position.x, it.mesh.position.z) }); ui.toast(pick(['Coffee on the floor. Somebody will slip on that.', 'The coffee is on the floor now. It was the good coffee.', 'Coffee on the floor. The sign is by the office. The sign is always by the office.']), 3000); setTimeout(() => { it.mesh.position.set(shop.pcPos.x + 0.6, 0.77, shop.pcPos.z + 0.1); }, 20000); return; }
     if (what.type === 'wall') { if (kind === 'coffee') ui.toast('Coffee on the block wall. It joins the others.'); return; }
   };
   function itemsAtRest() { for (const it of items.items) if (it.kind === 'scrap' && !it.flying && it.thrownBy && !it.scored) { it.scored = true; const m = it.mesh.position; if (Math.abs(m.x - binRect.x) < binRect.hw && Math.abs(m.z - binRect.z) < binRect.hd && it.throwDist > 4) { unlock('three_pointer'); ui.toast('Nothing but net. From downtown.', 3000); audio.ding(); } } }
@@ -262,6 +264,25 @@ export function startShop(T, audio, state) {
     p.morale = Math.min(1, p.morale + 0.08); unlock('my_round'); audio.tick(0.08, 700);
     crew.say(p, pick(['Oh. Thanks.', 'Is this a trick?', 'Two sugars. This is one.', 'Huh. Okay.', 'What did you do?']), 3);
     ui.toast(`${p.name} took the coffee. Morale went up. Suspicion also went up.`, 3200);
+  }
+  // a puddle. brown, round, twenty seconds, and a slip hazard unless the sign is near it
+  function spillMesh(x, z) { const m = new T.Mesh(new T.CircleGeometry(0.28, 18), new T.MeshBasicMaterial({ color: 0x4a2e14, transparent: true, opacity: 0.55, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.015, z); m.raycast = () => {}; scene.add(m); return m; }
+  function spillTick() {
+    const now = performance.now();
+    for (const sp of spills.slice()) {
+      if (now > sp.until) { scene.remove(sp.mesh); spills.splice(spills.indexOf(sp), 1); continue; }
+      const signed = !signItem.flying && items.held !== signItem && Math.hypot(signItem.mesh.position.x - sp.x, signItem.mesh.position.z - sp.z) < 1.6;
+      if (signed && !sp.signed) { sp.signed = true; unlock('wet_sign'); ui.toast('Sign out. Liability: managed.', 2000); }
+      if (signed) continue;
+      for (const v of crew.views.values()) {
+        if (!v.g.visible || v.walk < 0.3 || v.slippedAt === sp) continue;
+        if (Math.hypot(v.pos.x - sp.x, v.pos.z - sp.z) < 0.4 && Math.random() < 0.5) {
+          v.slippedAt = sp; const p = v.p; p.morale = Math.max(0, p.morale - 0.1); post(state, `Clinic: ${p.name}, the coffee`, -400); tally(state, 'wsib'); unlock('slipped');
+          crew.say(p, pick(['WHOA.', 'Who left COFFEE on the FLOOR.', 'My back. My BACK.', 'There is a SIGN for this.']), 3); audio.thunk();
+          ui.toast(`${p.name} slipped on the coffee. $400 at the clinic and a form with a drawing on it. The sign is by the office.`, 5000);
+        }
+      }
+    }
   }
   // sticky notes on machines. the crew writes them. nobody takes them down.
   function noteOn(m, text) { m.notes = (m.notes || []).filter((t) => t !== text); m.notes.push(text); if (m.notes.length > 4) m.notes.shift(); }
@@ -534,7 +555,7 @@ export function startShop(T, audio, state) {
       const hk = items.held.kind, pName = lookAt.type === 'person' ? (state.people.find((q) => q.id === lookAt.id) || {}).name : '';
       const mAt = lookAt.type === 'machine' ? state.machines.find((q) => q.uid === lookAt.uid) : null;
       ui.tag(pName || (mAt ? `${byId(mAt.id).brand.toUpperCase()} ${byId(mAt.id).name.toUpperCase()}${mAt.fire ? ' · ON FIRE' : ''}` : ''));
-      ui.hint(hk === 'broom' ? 'click to sweep' : hk === 'traveller' && !pAt && !mAt ? 'click to read it (the JOBS tab) · G to put it down' : hk === 'extinguisher' && mAt && mAt.fire ? 'PUT IT OUT' : hk === 'extinguisher' && (mAt || pName) ? 'click to squeeze (it is not on fire)' : hk === 'airhose' ? (pName ? 'click to blast (do not)' : mAt ? 'click to blow the chips off' : 'click: PSSSHT') : hk === 'coffee' && pName ? 'click to hand it over' : 'click to throw');
+      ui.hint(hk === 'wetsign' ? 'G to put it down where the coffee is' : hk === 'broom' ? 'click to sweep' : hk === 'traveller' && !pAt && !mAt ? 'click to read it (the JOBS tab) · G to put it down' : hk === 'extinguisher' && mAt && mAt.fire ? 'PUT IT OUT' : hk === 'extinguisher' && (mAt || pName) ? 'click to squeeze (it is not on fire)' : hk === 'airhose' ? (pName ? 'click to blast (do not)' : mAt ? 'click to blow the chips off' : 'click: PSSSHT') : hk === 'coffee' && pName ? 'click to hand it over' : 'click to throw');
       $('hint').classList.toggle('alarm', !!(hk === 'extinguisher' && mAt && mAt.fire)); return;
     }
     if (lookAt.type === 'machine') {
@@ -718,7 +739,7 @@ export function startShop(T, audio, state) {
     if (iso.active) iso.update(); else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
     if (!paused && !modal) {
-    fireTick(dt); if (now - travT > 700) { travT = now; syncTravellers(); if (state.machines.some((m) => (m.chips || 0) >= 1)) unlock('chips_deep'); }
+    fireTick(dt); spillTick(); if (now - travT > 700) { travT = now; syncTravellers(); if (state.machines.some((m) => (m.chips || 0) >= 1)) unlock('chips_deep'); }
     if (!paused && !modal && !night) { delivery.update(dt, (line) => { ui.toast(line, 5000); syncSteel(); }, () => { const v = [...crew.views.values()].find((q) => q.g.visible && (q.mode === 'idle' || q.mode === 'sweep')); return v ? v.p : null; }); visitor.update(dt); phone.update(dt, { x: camera.position.x, z: camera.position.z }); }
       items.update(dt, views.filter((v) => v.m.placed).map((v) => ({ ...v.collider(), uid: v.m.uid, top: v.def.h || 2 })), [...crew.views.values()].filter((v) => v.g.visible).map((v) => ({ x: v.pos.x, z: v.pos.z, id: v.p.id })).concat(visitor.here ? [{ x: visitor.pos.x, z: visitor.pos.z, id: -1 }] : []));
       for (const it of items.items) if (it.flying && it.from) it.throwDist = Math.hypot(it.mesh.position.x - it.from.x, it.mesh.position.z - it.from.z);
