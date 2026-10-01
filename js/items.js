@@ -141,7 +141,7 @@ export class Items {
     if (item.kind === 'wetsign') { item.mesh.position.set(0.4, -0.55, -0.7); item.mesh.rotation.set(0, -0.6, 0); }
     if (item.kind === 'jar') { item.mesh.position.set(0.32, -0.36, -0.7); item.mesh.rotation.set(0.1, -0.3, 0); }
     if (item.kind === 'cake') { item.mesh.position.set(0.1, -0.42, -0.75); item.mesh.rotation.set(0.1, 0, 0); }
-    if (item.kind === 'phone') { item.mesh.position.set(0.28, -0.26, -0.6); item.mesh.rotation.set(-1.0, -0.3, 0.1); }
+    if (item.kind === 'phone') { item.mesh.position.set(0.3, -0.24, -0.55); item.mesh.rotation.set(1.35, -0.15, -0.05); }
     this.audio.tick(0.08, 600);
     return true;
   }
