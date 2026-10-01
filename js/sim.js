@@ -182,7 +182,7 @@ export const ACHIEVEMENTS = {
   hired: ['Somebody Else\'s Problem', 'Hire a person.'], lights_out: ['Lights Out, Nobody Home', 'An unattended run that worked.'], lights_wrong: ['Lights Out, Something\'s Wrong', 'An unattended run that did not.'],
   genuine: ['Genuine Advantage', 'Buy the software after the letter.'], letter: ['The Letter', 'Registered mail from a software company.'], first_cnc: ['Cycle Start, For Real', 'Press the green button on a CNC.'],
   the_crane: ['The Crane', 'Buy it. Lift something. Everyone watches.'], shipped_friday: ['Shipped It Friday', 'Ship after eight at night.'], candle: ['The Candle', 'The sinker caught fire. You have insurance. Probably.'],
-  repeat: ['Repeat Customer', 'Their next job lands on your desk.'], quit: ['The Speech', 'Somebody quit in the middle of the floor.'], panel: ['Four Hundred Amps', 'The electrician came. It was Thursday.'],
+  repeat: ['Repeat Customer', 'Their next job lands on your desk.'], first_mold: ['A Mold. An Actual Mold.', 'Ship a new tool build.'], t1_no_notes: ['T1, No Notes', 'A tryout with nothing to fix. Frame the email.'], quit: ['The Speech', 'Somebody quit in the middle of the floor.'], panel: ['Four Hundred Amps', 'The electrician came. It was Thursday.'],
 };
 export function achieve(state, id) { if (!state.achievements) state.achievements = []; if (state.achievements.includes(id)) return null; state.achievements.push(id); return ACHIEVEMENTS[id]; }
 

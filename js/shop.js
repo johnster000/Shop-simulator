@@ -182,7 +182,7 @@ export class Shop {
     this.box(0.1, 0.18, 0.1, new T.MeshStandardMaterial({ color: 0x1a1a1a }), -0.2, 0.83, -0.2, desk);
     const phone = this.box(0.18, 0.06, 0.2, new T.MeshStandardMaterial({ color: 0x222 }), 0.5, 0.79, -0.15, desk);
     s.add(desk); this.tag(desk, 'pc', 'the office PC. quotes, bills, the inbox.'); this.solid(x0 + 1.4, z0 + 1.0, 0.9, 0.45);
-    this.pc = desk;
+    this.pc = desk; this.pcPos = { x: x0 + 1.4, z: z0 + 1.0 };
     const chair = new T.Group(); chair.position.set(x0 + 1.4, 0, z0 + 1.9);
     const cm = new T.MeshStandardMaterial({ color: 0x333, roughness: 0.8 });
     this.box(0.5, 0.06, 0.5, cm, 0, 0.45, 0, chair); this.box(0.5, 0.5, 0.06, cm, 0, 0.75, 0.24, chair);

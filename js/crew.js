@@ -50,7 +50,7 @@ export class Crew {
       const d = byId(m.id); if (!canRun(p, d.kind)) continue;
       for (const o of runnableStages(s, d.kind)) {
         // a stage already loaded on another machine is spoken for
-        if (views.some((q) => q.m.job && q.m.job.jobId === o.job.id)) continue;
+        if (views.some((q) => q.m.job && q.m.job.jobId === o.job.id && q.m.job.itemIndex === o.itemIndex)) continue;
         if (!best || o.job.dueDay < best.o.job.dueDay) best = { m, o };
       }
     }
@@ -64,7 +64,7 @@ export class Crew {
     for (const mv of views) {
       const m = mv.m; if (!m.placed || m.running || m.job) continue;
       const d = byId(m.id); if (!canRun(p, d.kind)) continue;
-      const opts = runnableStages(this.state, d.kind).filter((o) => !views.some((q) => q.m.job && q.m.job.jobId === o.job.id));
+      const opts = runnableStages(this.state, d.kind).filter((o) => !views.some((q) => q.m.job && q.m.job.jobId === o.job.id && q.m.job.itemIndex === o.itemIndex));
       if (opts.length) out.push({ m, d, o: opts[0] });
     }
     return out;
@@ -72,10 +72,10 @@ export class Crew {
   // the owner points at a machine and says "that one"
   assign(p, m) {
     const v = this.views.get(p.id); if (!v || !this.present(p)) return false;
-    const d = byId(m.id); const opts = runnableStages(this.state, d.kind).filter((o) => !this.hooks.machineViews().some((q) => q.m.job && q.m.job.jobId === o.job.id));
+    const d = byId(m.id); const opts = runnableStages(this.state, d.kind).filter((o) => !this.hooks.machineViews().some((q) => q.m.job && q.m.job.jobId === o.job.id && q.m.job.itemIndex === o.itemIndex));
     if (!opts.length || m.running || m.job) return false;
     const o = opts[0];
-    m.job = { jobId: o.job.id, index: o.index, label: o.stage.label, min: o.stage.min, operator: p.id }; m.checklist = {};
+    m.job = { jobId: o.job.id, itemIndex: o.itemIndex, item: o.item ? o.item.name : null, index: o.index, label: o.stage.label, min: o.stage.min, operator: p.id }; m.checklist = {};
     v.machine = m; this.goTo(v, this.spotFor(m), 'toMachine');
     return true;
   }
@@ -115,7 +115,7 @@ export class Crew {
       // ---- doing things
       if (v.mode === 'idle' && here && !lunch) {
         v.think -= dt;
-        if (v.think <= 0) { v.think = 1.5 + Math.random() * 2; const f = this.freeMachineFor(p); if (f) { f.m.job = { jobId: f.o.job.id, index: f.o.index, label: f.o.stage.label, min: f.o.stage.min, operator: p.id }; f.m.checklist = {}; v.machine = f.m; this.goTo(v, this.spotFor(f.m), 'toMachine'); } }
+        if (v.think <= 0) { v.think = 1.5 + Math.random() * 2; const f = this.freeMachineFor(p); if (f) { f.m.job = { jobId: f.o.job.id, itemIndex: f.o.itemIndex, item: f.o.item ? f.o.item.name : null, index: f.o.index, label: f.o.stage.label, min: f.o.stage.min, operator: p.id }; f.m.checklist = {}; v.machine = f.m; this.goTo(v, this.spotFor(f.m), 'toMachine'); } }
       }
       if (v.mode === 'setup') {
         v.setupLeft -= shopDt;

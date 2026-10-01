@@ -3,8 +3,9 @@ import { MACHINES, byId, UPGRADES, SOFTWARE } from './catalog.js';
 import { money, clockText, buy, sell, canPower, poweredCount, afterHours, fatigueText, END_DAY_SPEED, whyNot, circuits, airSlots, airCount, buyUpgrade, buySoftware, softwareWeekly, hasCam, takeLoan, financeMachine, post, ACHIEVEMENTS, achieve } from './sim.js';
 import { SHOP } from './catalog.js';
 import { play as playMinigame } from './minigames.js';
-import { customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE } from './jobs.js';
+import { customerOf, unread, sendQuote, declineRfq, winChance, runnableStages, sendOut, ship, stationName, shopHas, SHOP_RATE, VENDOR_KINDS, nextLabel } from './jobs.js';
 import { hire, fire, raise, fixGrievance, tough, moraleWord, SKILLS } from './people.js';
+import { hasCad as hasCadFn } from './sim.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -78,8 +79,9 @@ export class UI {
         <div class="from">RFQ · ${c.name} · day ${r.day} · ${r.status === 'quoted' ? 'quoted, waiting' : `answer by day ${r.expires}`}</div>
         <h3>${r.title}${r.qty > 1 ? ` × ${r.qty}` : ''}</h3>
         <div class="note">${c.blurb}</div>
-        <ul class="stages">${r.stages.map((st) => `<li class="${has(st.kind) ? '' : 'missing'}" title="${stationName(st.kind)}">${st.label} · ${st.min} min</li>`).join('')}</ul>
-        <div class="note">${r.minutes} min of work at $${SHOP_RATE}/hr + $${r.material} ${r.steel} = estimate <b>${money(r.estimate)}</b>. Lead time ${r.lead} days.${missing.length ? ` <span style="color:var(--red)">You have no ${[...new Set(missing)].map(stationName).join(' or ')}: those stages would go out to Bramalea at $110/hr.</span>` : ''}</div>
+        ${r.mold ? `<div class="note"><b>A new tool.</b> ${r.spec.cav}-cavity, ${r.spec.steel}, ${r.spec.finish} finish, ${r.spec.slides ? r.spec.slides + ' slide' + (r.spec.slides > 1 ? 's' : '') + ', ' : ''}${r.spec.runner} runner${r.spec.hard ? ', hardened' : ''}. Items: ${r.items.map((it) => it.name).join(', ')}. Then fit and spot, assembly, tryout.</div>` : ''}
+        <ul class="stages">${(r.mold ? r.items.flatMap((it) => it.stages.map((q) => ({ ...q, label: it.name === 'Part' ? q.label : it.name.split(' ')[0] + ': ' + q.label }))).concat(r.jobStages) : r.stages).map((st) => `<li class="${has(st.kind) ? '' : 'missing'}" title="${stationName(st.kind)}">${st.label}${st.min ? ' · ' + (st.min >= 120 ? (st.min / 60).toFixed(1) + ' h' : st.min + ' min') : ''}</li>`).join('')}</ul>
+        <div class="note">${r.minutes >= 600 ? (r.minutes / 60).toFixed(0) + ' hours' : r.minutes + ' min'} of work at $${r.rate}/hr + $${r.material.toLocaleString()} ${r.mold ? 'steel, base' + (r.spec.manifold ? ', manifold' : '') : r.steel}${r.mold ? ' + tryout' : ''} = estimate <b>${money(r.estimate)}</b>. Lead time ${r.lead} days.${missing.length ? ` <span style="color:var(--red)">You have no ${[...new Set(missing)].map(stationName).join(' or ')}: those stages would go out to Bramalea at $110/hr.</span>` : ''}</div>
         ${r.status === 'open' ? `<div class="quote"><input type="range" min="${Math.round(r.estimate * 0.5)}" max="${Math.round(r.estimate * 2)}" step="5" value="${r.price}" id="q${r.id}"><span class="price" id="p${r.id}">${money(r.price)}</span><span class="est" id="w${r.id}"></span><button data-send="${r.id}">SEND QUOTE</button><button class="ghost" data-decline="${r.id}">DECLINE</button></div>` : `<div class="note">You quoted <b>${money(r.price)}</b>. They will let you know tomorrow.</div>`}
       </div>`;
     };
@@ -102,23 +104,43 @@ export class UI {
     const live = s.jobs.filter((j) => j.status !== 'shipped').slice().reverse();
     const done = s.jobs.filter((j) => j.status === 'shipped').slice().reverse().slice(0, 8);
     const has = (kind) => shopHas(s, kind, byId);
+    const stageLi = (st, prefix, next) => `<li class="${st.done ? 'done' : st.out ? 'out' : next && !has(st.kind) ? 'missing' : ''}">${prefix}${st.label}${st.min ? ' · ' + (st.min >= 120 ? (st.min / 60).toFixed(1) + ' h' : st.min + ' min') : ''}${st.out ? ` · back day ${st.out.backDay}` : ''}</li>`;
+    const outBtn = (j, ii, i, st) => `<button class="ghost" data-out="${j.id}" data-ii="${ii}" data-i="${i}">SEND OUT: ${st.label} (${money(st.kind === 'design' ? 3200 : Math.round(st.min / 60 * 110) + 40)})</button>`;
     const jobHtml = (j) => {
       const c = customerOf(j.customer), late = j.status !== 'shipped' && s.day > j.dueDay;
-      const next = j.stages.findIndex((st) => !st.done);
+      const designDone = !j.mold || j.jobStages[0].done;
+      const itemsHtml = j.items.map((it, ii) => { const next = it.stages.findIndex((q) => !q.done); const prog = it.stages.filter((q) => q.done).length / it.stages.length; return `<div class="item"><div class="row2"><b>${it.name}</b><span class="note">${Math.round(prog * 100)}%</span></div><div class="bar"><i style="width:${Math.round(prog * 100)}%"></i></div><ul class="stages">${it.stages.map((q, i) => stageLi(q, '', i === next && designDone)).join('')}</ul>${j.status === 'work' && designDone && next >= 0 && !it.stages[next].out && !VENDOR_KINDS.has(it.stages[next].kind) && !has(it.stages[next].kind) ? `<div class="acts">${outBtn(j, ii, next, it.stages[next])}<span class="note">You have no ${stationName(it.stages[next].kind)}.</span></div>` : ''}</div>`; }).join('');
+      const jn = j.jobStages.findIndex((q) => !q.done);
+      const itemsDone = j.items.every((it) => it.stages.every((q) => q.done));
+      const jobLevel = j.jobStages.length ? `<div class="item"><b>${j.mold ? 'The mold' : 'Then'}</b><ul class="stages">${j.jobStages.map((q, i) => stageLi(q, '', i === jn)).join('')}</ul>${j.status === 'work' && jn >= 0 && !j.jobStages[jn].out && j.jobStages[jn].kind === 'design' && !j.jobStages[jn].done ? `<div class="acts"><span class="note">Design at the office PC (needs a CAD seat), or</span>${outBtn(j, -1, jn, j.jobStages[jn])}</div>` : ''}</div>` : '';
       return `<div class="job ${j.status} ${late ? 'late' : ''}">
-        <div class="from">JOB ${j.id} · ${c.name} · ${j.status === 'material' ? `steel arrives day ${j.materialDay}` : j.status === 'ready' ? 'READY TO SHIP' : j.status === 'shipped' ? `shipped day ${j.shippedDay}` : 'in work'}</div>
+        <div class="from">JOB ${j.id} · ${c.name} · ${j.status === 'material' ? `steel arrives day ${j.materialDay}` : j.status === 'ready' ? 'READY TO SHIP' : j.status === 'shipped' ? `shipped day ${j.shippedDay}` : 'in work'}${j.mold ? ' · NEW TOOL' : ''}</div>
         <h3 style="margin:4px 0">${j.title}${j.qty > 1 ? ` × ${j.qty}` : ''}</h3>
-        <div class="meta">${money(j.price)} · due day ${j.dueDay}${late ? ` · <b style="color:var(--red)">${s.day - j.dueDay} day${s.day - j.dueDay === 1 ? '' : 's'} LATE</b>` : ''}${j.scrap ? ` · scrapped ${j.scrap}×` : ''}</div>
-        <ul class="stages">${j.stages.map((st, i) => `<li class="${st.done ? 'done' : st.out ? 'out' : i === next && !has(st.kind) ? 'missing' : ''}">${st.label} · ${st.min} min${st.out ? ` · back day ${st.out.backDay}` : ''}</li>`).join('')}</ul>
+        <div class="meta">${money(j.price)}${j.paid ? ` (${money(j.paid)} in)` : ''} · due day ${j.dueDay}${late ? ` · <b style="color:var(--red)">${s.day - j.dueDay} day${s.day - j.dueDay === 1 ? '' : 's'} LATE</b>` : ''}${j.scrap ? ` · scrapped ${j.scrap}×` : ''}${j.tryouts ? ` · T${j.tryouts}${j.defects.length ? ': ' + j.defects.join(', ').toLowerCase() : ' approved'}` : ''}</div>
+        ${j.mold ? itemsHtml + jobLevel : itemsHtml}
         <div class="acts">
           ${j.status === 'ready' ? `<button class="ship" data-ship="${j.id}">SHIP IT</button>` : ''}
-          ${j.status === 'work' && next >= 0 && !j.stages[next].out ? (has(j.stages[next].kind) ? `<span class="note">Next: ${j.stages[next].label.toLowerCase()} on the ${stationName(j.stages[next].kind)}. Walk over and load it.</span>` : `<button class="ghost" data-out="${j.id}" data-i="${next}">SEND OUT: ${j.stages[next].label} (${money(Math.round(j.stages[next].min / 60 * 110) + 40)})</button><span class="note">You have no ${stationName(j.stages[next].kind)}.</span>`) : ''}
+          ${j.status === 'work' ? `<span class="note">Next: ${nextLabel(j)}.</span>` : ''}
         </div></div>`;
     };
-    el.innerHTML = `${live.length ? live.map(jobHtml).join('') : '<p class="note">No jobs. Quote something.</p>'}${done.length ? `<h4 style="letter-spacing:.2em;font-size:12px;margin:18px 0 4px">SHIPPED</h4>${done.map(jobHtml).join('')}` : ''}
-      <p class="note">Reputation ${Math.round(s.rep * 100)}. On-time ships raise it. Late ones drop it faster.</p>`;
-    el.querySelectorAll('[data-ship]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.ship); const r = ship(s, j); s.stats.shipped++; this.audio.cash(); this.toast(r.late ? `Shipped. ${r.late} day${r.late === 1 ? '' : 's'} late. They noticed.` : 'Shipped. One out the door.', 3200); this.hooks.shipped(); this.renderJobs(); }));
-    el.querySelectorAll('[data-out]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.out); const r = sendOut(s, j, +b.dataset.i); if (!r.ok) { this.audio.nope(); this.toast(r.why); return; } this.audio.cash(); this.toast(`Off to Bramalea. ${money(r.cost)}. Back in two days.`); this.renderJobs(); }));
+    el.innerHTML = `${live.length ? live.map(jobHtml).join('') : '<p class="note">No jobs. Quote something.</p>'}${done.length ? `<h4 class="sect">SHIPPED</h4>${done.map(jobHtml).join('')}` : ''}
+      <p class="note">Reputation ${Math.round(s.rep * 100)}. On-time ships raise it. Late ones drop it faster. A mold with no notes at T1 is the one they remember.</p>`;
+    el.querySelectorAll('[data-ship]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.ship); const r = ship(s, j); s.stats.shipped++; this.audio.cash(); this.toast(r.late ? `Shipped. ${r.late} day${r.late === 1 ? '' : 's'} late. They noticed.` : j.mold ? 'Shipped. A mold went out the door. Cake.' : 'Shipped. One out the door.', 3200); this.hooks.shipped(j); this.renderJobs(); }));
+    el.querySelectorAll('[data-out]').forEach((b) => b.addEventListener('click', () => { const j = s.jobs.find((q) => q.id === +b.dataset.out); const r = sendOut(s, j, +b.dataset.ii, +b.dataset.i); if (!r.ok) { this.audio.nope(); this.toast(r.why); return; } this.audio.cash(); this.toast(`Sent out. ${money(r.cost)}. A few days.`); this.renderJobs(); }));
+  }
+
+  // ---- the office PC: design, and the clipboard
+  openPC() {
+    const s = this.state; this.panelM = null;
+    $('panelTitle').textContent = 'THE OFFICE PC'; $('panel').classList.remove('hidden'); this.hooks.modal(true);
+    const body = $('panelBody'), pc = s.pc;
+    const opts = runnableStages(s, 'design');
+    body.innerHTML = `${pc && pc.running ? `<p>Designing job ${pc.jobId}. ${Math.ceil(pc.runLeft)} minutes to go. <span class="note">You are at the desk. The floor is on its own.</span></p><div class="bar"><i style="width:${Math.round((1 - pc.runLeft / pc.runTotal) * 100)}%"></i></div>` :
+      `<p class="note">${hasCadFn(s) ? 'CAD is up.' : '<b style="color:var(--red)">No CAD seat.</b> Molds get designed by a contract designer at $3,200, or not at all.'} ${opts.length ? 'Designs waiting:' : 'Nothing to design.'}</p>
+      <ul class="pickjob">${opts.map((o) => `<li><span><b>Job ${o.job.id}</b> · ${o.stage.label} · ${(o.stage.min / 60).toFixed(1)} h<br><span class="note">${o.job.title} · due day ${o.job.dueDay}</span></span><button data-design="${o.job.id}" data-i="${o.index}" ${hasCadFn(s) ? '' : 'disabled'}>SIT DOWN</button></li>`).join('')}</ul>`}
+      <div class="pacts"><button data-clip>THE CLIPBOARD</button></div>`;
+    body.querySelector('[data-clip]').addEventListener('click', () => { this.closePanel(); this.openClip(); });
+    body.querySelectorAll('[data-design]').forEach((b) => b.addEventListener('click', () => { const o = opts.find((q) => q.job.id === +b.dataset.design); s.pc = { running: true, jobId: o.job.id, index: o.index, runLeft: o.stage.min, runTotal: o.stage.min }; this.audio.paper(); this.toast(`Job ${o.job.id}: designing. Coffee, a print, and ${(o.stage.min / 60).toFixed(0)} hours of KATYA.`, 3200); this.closePanel(); }));
   }
 
   skillsHtml(p, showActual) {
@@ -272,13 +294,13 @@ export class UI {
       body.innerHTML = `<div class="row2"><span>Condition</span><span>${Math.round(m.condition * 100)}% · ${m.hours.toFixed(1)} h on the clock · ${m.used ? 'used' : 'new'}</span></div>
         <div class="bar"><i style="width:${Math.round(m.condition * 100)}%"></i></div>
         <p class="note">${d.cnc && !hasCam(s) ? '<b style="color:var(--red)">No CAM. Nothing can be programmed. The machine is a very expensive table.</b>' : opts.length ? 'Work waiting for this machine:' : d.kind === 'bench' ? 'Nothing to fit. The bench is for bench stages: deburring, polishing, assembly.' : 'No job needs this machine right now.'}</p>
-        <ul class="pickjob">${opts.map((o) => `<li><span><b>Job ${o.job.id}</b> · ${o.stage.label} · ${o.stage.min} min<br><span class="note">${o.job.title}${o.job.qty > 1 ? ' × ' + o.job.qty : ''} · due day ${o.job.dueDay}</span></span><button data-pick="${o.job.id}" data-i="${o.index}">LOAD IT</button></li>`).join('')}
+        <ul class="pickjob">${opts.map((o, k) => `<li><span><b>Job ${o.job.id}</b>${o.item && o.job.mold ? ' · ' + o.item.name : ''} · ${o.stage.label} · ${o.stage.min >= 120 ? (o.stage.min / 60).toFixed(1) + ' h' : o.stage.min + ' min'}<br><span class="note">${o.job.title}${o.job.qty > 1 ? ' × ' + o.job.qty : ''} · due day ${o.job.dueDay}</span></span><button data-pick="${k + 1}">LOAD IT</button></li>`).join('')}
         ${d.kind === 'bench' ? '' : `<li class="practice"><span>Practice cut on a scrap block · ${30} min</span><button data-pick="0">LOAD IT</button></li>`}</ul>`;
       body.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
         const id = +b.dataset.pick; this.audio.click();
         if (d.cnc && !hasCam(s)) { this.audio.nope(); this.toast('No CAM. No program. No cut.'); return; }
-        if (id === 0) m.job = { jobId: 0, index: -1, label: 'practice cut', min: 30 };
-        else { const o = opts.find((q) => q.job.id === id); m.job = { jobId: o.job.id, index: o.index, label: o.stage.label, min: o.stage.min }; }
+        if (id === 0) m.job = { jobId: 0, itemIndex: 0, index: -1, label: 'practice cut', min: 30 };
+        else { const o = opts[id - 1]; m.job = { jobId: o.job.id, itemIndex: o.itemIndex, item: o.item ? o.item.name : null, index: o.index, label: o.stage.label, min: o.stage.min }; }
         m.checklist = {}; this.renderPanel();
       }));
       return;

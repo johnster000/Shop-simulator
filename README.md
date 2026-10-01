@@ -80,7 +80,17 @@ Then open http://localhost:8080/.
   floor, some with a heat-treat stage that goes to Quench & Sons and sometimes comes back in two pieces.
   Weekends exist. Achievements go on the wall in the BANK tab.
 
-Not yet: real mold builds (work items, tryout, revisions), Stage 2 machines, the crane. Next.
+- Real molds. Once a CNC is on the floor and the reputation is there, consumer customers send RFQs
+  for new tools: single and multi-cavity, P20 to stainless, B to A finishes, slides, cold or hot
+  runners. A mold is a set of work items (the base from DMV, the cavity, the core, each slide, a hot
+  runner from Mould-Majors) that move through the shop on their own and in parallel, after the owner
+  designs it at the office PC (CAD seat required, or a contract designer). Then fit and spot and
+  assembly at the bench, a tryout at the molder, and the bible's defect table on the sample parts:
+  flash, short shots, sink, stuck parts, pin marks, water leaks, dimensions out, burn marks, slide
+  hang-ups. Each defect becomes a revision stage and another tryout. Terms are 30 on PO, 30 at T1,
+  40 on approval. A mold with no notes at T1 goes on the wall.
+
+Not yet: Stage 2 machines, the crane, the second building, year-end summaries. Next.
 
 ## Layout
 

@@ -6,7 +6,7 @@ import { Iso } from './iso.js';
 import { UI } from './ui.js';
 import { byId } from './catalog.js';
 import { tick, save, money, post, goHome, hourText, END_DAY_SPEED, achieve } from './sim.js';
-import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS } from './jobs.js';
+import { stageDone, scrapJob, customerOf, makeRfq, TEMPLATES, CUSTOMERS, nextLabel } from './jobs.js';
 import { Nav } from './nav.js';
 import { Crew } from './crew.js';
 
@@ -47,7 +47,7 @@ export function startShop(T, audio, state) {
     pause() { pause(); },
     cycleStart(m, keys) { cycleStart(m, keys); },
     goHome() { leaveForTheNight(); },
-    shipped() { shop.setCrates(state.crates); unlock('one_out'); if (state.t >= 780) unlock('shipped_friday'); },
+    shipped(j) { shop.setCrates(state.crates); unlock('one_out'); if (state.t >= 780) unlock('shipped_friday'); if (j && j.mold) { unlock('first_mold'); if (j.tryouts === 1 && !j.defects.length) unlock('t1_no_notes'); } },
     crew() { return crew; },
     crewChanged() { crew.sync(); if (state.people.length) unlock('hired'); },
     achievement(a) { showAchievement(a); },
@@ -132,6 +132,7 @@ export function startShop(T, audio, state) {
         if (!m.running) return;
         m.running = false; m.runLeft = 0; m.checklist = {};
         const job = m.job && m.job.jobId ? state.jobs.find((j) => j.id === m.job.jobId) : null;
+        const jobItem = m.job ? m.job.itemIndex : 0, jobItemName = m.job && m.job.item && job && job.mold ? ' ' + m.job.item.toLowerCase() : '';
         m.job = null;
         audio.thunk(); audio.nope();
         if (p) { p.crashes++; p.morale = Math.max(0, p.morale - 0.06); }
@@ -139,10 +140,10 @@ export function startShop(T, audio, state) {
         if (sev < 0.6) { const c = def.cnc ? 180 : 45; post(state, 'Broken cutter', -c); m.condition = Math.max(0, m.condition - 0.01); ui.toast(`BANG. Broken cutter on the ${def.name.toLowerCase()}. ${money(c)}. The part is fine. Load it again.${blame}`, 4000); }
         else if (sev < 0.9) {
           m.condition = Math.max(0, m.condition - 0.04);
-          if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); unlock('oops'); ui.toast(`Chatter. Job ${job.id} is scrap. ${money(job.material)} of ${job.steel} in the bin. Start over. OOPS.${blame}`, 4500); }
+          if (job) { scrapJob(state, job, jobItem); shop.setScrap(state.scrapCount); unlock('oops'); ui.toast(`Chatter. Job ${job.id}${jobItemName} is scrap. ${money(job.material)} of ${job.steel} in the bin. Start over. OOPS.${blame}`, 4500); }
           else { post(state, 'Chatter, scrapped block', -40); state.scrapCount++; shop.setScrap(state.scrapCount); ui.toast(`Chatter. The scrap block is more scrap now. OOPS.${blame}`, 4000); }
         }
-        else { const bill = def.manual ? 900 : 4000 + Math.round(Math.random() * 6000); post(state, 'Crash: tech visit', -bill); unlock('oops'); m.condition = Math.max(0, m.condition - 0.2); if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); } ui.toast(`Crash on the ${def.name.toLowerCase()}. A tech has to come. ${money(bill)}.${job ? ` Job ${job.id} is scrap too.` : ''}${blame} He arrives Thursday.`, 4500); }
+        else { const bill = def.manual ? 900 : 4000 + Math.round(Math.random() * 6000); post(state, 'Crash: tech visit', -bill); unlock('oops'); m.condition = Math.max(0, m.condition - 0.2); if (job) { scrapJob(state, job, jobItem); shop.setScrap(state.scrapCount); } ui.toast(`Crash on the ${def.name.toLowerCase()}. A tech has to come. ${money(bill)}.${job ? ` Job ${job.id}${jobItemName} is scrap too.` : ''}${blame} He arrives Thursday.`, 4500); }
       }, 1500 + Math.random() * 6000);
     }
   }
@@ -160,9 +161,10 @@ export function startShop(T, audio, state) {
       for (let h = 0; h < hours; h++) { if (Math.random() < pFire) { fire = true; broke = h; break; } if (Math.random() < pBreak) { broke = h; break; } }
       const job = m.job && m.job.jobId ? state.jobs.find((j) => j.id === m.job.jobId) : null;
       if (fire) {
+        const fireItem = m.job ? m.job.itemIndex : 0;
         m.running = false; m.runLeft = 0; m.condition = 0.05; m.job = null; m.checklist = {};
         post(state, 'Fire: smoke damage, dielectric, a very long form', -8500);
-        if (job) { scrapJob(state, job); shop.setScrap(state.scrapCount); }
+        if (job) { scrapJob(state, job, fireItem); shop.setScrap(state.scrapCount); }
         notes.push(`The sinker caught fire at ${hourText((state.t + broke * 60) % 1440)}. The fire department has questions. $8,500 and the machine is a shell.${job ? ` Job ${job.id} is ash.` : ''}`);
         unlock('candle'); unlock('lights_wrong');
       } else if (broke >= 0) {
@@ -172,7 +174,7 @@ export function startShop(T, audio, state) {
         unlock('lights_wrong');
       } else if (m.runLeft <= nightMin) {
         m.runLeft = 0; m.running = false; m.hours += hours;
-        if (job) { const finished = stageDone(state, job, m.job.index); if (finished) { shop.setCrates(state.crates); } notes.push(`${def.brand} ${def.name} finished ${m.job.label.toLowerCase()} on job ${job.id} overnight.${finished ? ' It is done. Ship it.' : ''}`); }
+        if (job) { const finished = stageDone(state, job, m.job.itemIndex, m.job.index); if (finished) { shop.setCrates(state.crates); } notes.push(`${def.brand} ${def.name} finished ${m.job.label.toLowerCase()}${m.job.item && job.mold ? ' on the ' + m.job.item.toLowerCase() : ''} on job ${job.id} overnight.${finished ? ' It is done. Ship it.' : ''}`); }
         else notes.push(`${def.brand} ${def.name} finished overnight.`);
         m.job = null; m.checklist = {}; unlock('lights_out');
       } else { m.runLeft -= nightMin; m.hours += hours; notes.push(`${def.brand} ${def.name} ran all night. ${Math.round(m.runLeft)} minutes to go.`); }
@@ -254,6 +256,8 @@ export function startShop(T, audio, state) {
         if (d < bestD && (dx * fx + dz * fz) / (d || 1) > 0.7) { best = v; bestD = d; }
       }
       if (best) lookAt = { type: 'machine', uid: best.m.uid };
+      // or the office PC, when you are standing at the desk
+      if (!lookAt) { const dx = shop.pcPos.x - camera.position.x, dz = shop.pcPos.z - camera.position.z, d = Math.hypot(dx, dz); if (d < 1.8 && (dx * fx + dz * fz) / (d || 1) > 0.6) lookAt = { type: 'pc', text: 'the office PC. quotes, bills, the inbox.' }; }
       // or a person standing right there
       for (const v of crew.views.values()) {
         if (!v.g.visible) continue;
@@ -278,7 +282,7 @@ export function startShop(T, audio, state) {
     if (lookAt.type === 'machine') { const m = state.machines.find((q) => q.uid === lookAt.uid); if (m.job && m.job.operator && m.job.operator !== 'owner' && !m.running) { ui.toast(`${state.people.find((q) => q.id === m.job.operator).name} is setting this one up.`); return; } if (player.locked) document.exitPointerLock(); ui.openPanel(m); return; }
     if (lookAt.type === 'person') { const p = state.people.find((q) => q.id === lookAt.id); if (p) { if (player.locked) document.exitPointerLock(); ui.openPerson(p); } return; }
     if (lookAt.type === 'crate') { ui.toast('Finished work. Ship it from the clipboard, JOBS tab.'); return; }
-    if (lookAt.type === 'pc') { if (player.locked) document.exitPointerLock(); ui.openClip('shop'); return; }
+    if (lookAt.type === 'pc') { if (player.locked) document.exitPointerLock(); ui.openPC(); return; }
     if (lookAt.type === 'tarp') { audio.tarp(); ui.toast(pick(['It flaps.', 'A real door is on the list.', 'It let the winter in last year too.'])); return; }
     if (lookAt.type === 'compressor') { ui.toast(pick(['It came with the shop.', 'It has not stopped.', 'It is doing its best.'])); return; }
     if (lookAt.type === 'chair') { audio.noise(0.2, 2200, 0.08, 'bandpass', 3); ui.toast('Squeak.'); return; }
@@ -358,14 +362,20 @@ export function startShop(T, audio, state) {
           const who = op ? op.name + ' finished' : 'Done:';
           if (m && m.job && m.job.jobId) {
             const job = state.jobs.find((j) => j.id === m.job.jobId);
-            const finished = job ? stageDone(state, job, m.job.index) : false;
+            const finished = job ? stageDone(state, job, m.job.itemIndex, m.job.index) : false;
             if (finished) { shop.setCrates(state.crates); ui.toast(`Job ${job.id} is done${op ? ` (${op.name} did the last of it)` : ''}. ${customerOf(job.customer).name} is waiting. Ship it from the clipboard.`, 4000); }
-            else if (job) ui.toast(`${who} ${m.job.label.toLowerCase()}. Next: ${job.stages.find((st) => !st.done).label.toLowerCase()}.`, 3200);
+            else if (job) ui.toast(`${who} ${m.job.label.toLowerCase()}${m.job.item && job.mold ? ' on the ' + m.job.item.toLowerCase() : ''}. Next: ${nextLabel(job)}.`, 3600);
           } else if (v) ui.toast(`${v.def.brand} ${v.def.name}: done. A perfectly good scrap block, slightly smaller.`, 3000);
           if (m) m.job = null;
         }
       }
       if (state.speed === END_DAY_SPEED && state.t >= 600 && !state.closingShown) closingTime();
+      // the owner at the PC, designing
+      const pc = state.pc;
+      if (pc && pc.running) {
+        pc.runLeft -= (dt * speedMul * state.speed) / 60;
+        if (pc.runLeft <= 0) { pc.running = false; const job = state.jobs.find((j) => j.id === pc.jobId); if (job) { stageDone(state, job, -1, pc.index); ui.toast(`Design done for job ${job.id}. ${customerOf(job.customer).name} approved it by email, with one note about a radius.`, 4000); audio.ding(); } state.pc = null; }
+      }
     }
     if (iso.active) iso.update(); else player.update(dt, allColliders(), { hx: shop.hx, hz: shop.hz });
     crew.update(paused || modal ? 0 : dt, paused || modal ? 0 : (dt * (state.speed || 0) * speedMul) / 60);
@@ -378,6 +388,7 @@ export function startShop(T, audio, state) {
     });
     look(); ui.update();
     if (ui.panelOpen && ui.panelM && ui.panelM.running) ui.renderPanel();
+    if (ui.panelOpen && !ui.panelM && state.pc && state.pc.running && Math.floor(now / 500) !== Math.floor(last / 500)) ui.openPC();
     renderer.render(scene, iso.active ? iso.camera : camera);
   }
   window.__dbg = { state, camera, player, iso, views, crew, nav, mods: { makeRfq, TEMPLATES, CUSTOMERS }, get lookAt() { return lookAt; }, get modal() { return modal; } };

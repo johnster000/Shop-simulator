@@ -8,6 +8,10 @@ import { post } from './sim.js';
 export const SHOP_RATE = 55;      // $/hr, Stage 0 work (design bible §4.1)
 export const CNC_RATE = 95;       // $/hr, work that needs a CNC
 export const HEAT_COST = 140;     // Quench & Sons, per job, plus two days and a small chance of a crack
+export const MOLD_RATE = 110;     // $/hr, a new tool build
+export const BASE_DAYS = 5;       // DMV: take a number
+export const TRYOUT_DAYS = 2;     // press time at a molder: when they have a slot
+export const DESIGN_OUT = 3200;   // a contract designer, when you have no CAD or no time
 export const OUT_RATE = 110;      // $/hr, what the shop down the road charges to do it for you
 export const OUT_DAYS = 2;        // and how long they take
 
@@ -44,13 +48,20 @@ export const TEMPLATES = [
   { title: 'Lifter, S7 hardened', cnc: true, qty: [1, 2], material: 90, steel: 'S7', stages: [['saw', 'Cut blank', 10, true], ['vmc', 'Rough soft', 60, true], ['heat', 'Heat treat', 0], ['wire', 'Wire the profile', 110, true], ['grinder', 'Grind the heel', 25, true]] },
   { title: 'Electrode set, graphite', cnc: true, qty: [2, 4], material: 45, steel: 'graphite', stages: [['saw', 'Cut blanks', 5, true], ['vmc', 'Machine electrodes', 45, true]] },
   { title: 'Stripper plate, 4140', cnc: true, qty: [1, 1], material: 260, steel: '4140', stages: [['saw', 'Cut plate', 20], ['vmc', 'Mill pockets and pattern', 150], ['drill', 'Drill and tap waterlines', 40], ['grinder', 'Grind flat', 45]] },
+  // Molds. Real tool builds: items in parallel, then fit, assemble, tryout, revise, ship.
+  { title: 'Single-cavity mold, bin lid', mold: true, cnc: true, size: 'M', cav: 1, geo: 1, slides: 0, steel: 'P20', finish: 'B-2', runner: 'cold', hard: false, base: 3200, steelCost: 900 },
+  { title: 'Single-cavity mold, paddle grip', mold: true, cnc: true, size: 'S', cav: 1, geo: 2, slides: 1, steel: 'P20', finish: 'B-1', runner: 'cold', hard: false, base: 2600, steelCost: 700 },
+  { title: '2-cavity mold, closure', mold: true, cnc: true, size: 'S', cav: 2, geo: 2, slides: 0, steel: 'NAP80', finish: 'A-3', runner: 'cold', hard: false, base: 3400, steelCost: 1600 },
+  { title: '2-cavity mold, cooler latch', mold: true, cnc: true, size: 'S', cav: 2, geo: 2, slides: 2, steel: 'H13', finish: 'B-2', runner: 'cold', hard: true, base: 3600, steelCost: 1900 },
+  { title: '4-cavity mold, cap, hot runner', mold: true, cnc: true, size: 'S', cav: 4, geo: 2, slides: 0, steel: '420 SS', finish: 'A-3', runner: 'hot', hard: true, base: 5200, steelCost: 3400, manifold: 9800 },
   { title: 'Slide body, hardened H13', cnc: true, qty: [1, 2], material: 150, steel: 'H13', stages: [['saw', 'Cut block', 15, true], ['vmc', 'Rough soft', 90, true], ['heat', 'Heat treat', 0], ['wire', 'Wire the gib slots', 80, true], ['sinker', 'Burn the detail', 60, true], ['bench', 'Fit and polish', 40, true]] },
 ];
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const rint = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
 
-export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench', vmc: 'VMC', sinker: 'sinker EDM', wire: 'wire EDM', heat: 'heat treater (vendor)' }[kind] || kind; }
+export function stationName(kind) { return { saw: 'band saw', lathe: 'lathe', mill: 'mill', drill: 'drill press', grinder: 'grinder', bench: 'bench', vmc: 'VMC', sinker: 'sinker EDM', wire: 'wire EDM', heat: 'heat treater (vendor)', base: 'DMV (vendor)', manifold: 'Mould-Majors (vendor)', tryout: 'molder (vendor)', design: 'office PC' }[kind] || kind; }
+export const VENDOR_KINDS = new Set(['heat', 'base', 'manifold', 'tryout']);
 export function isCnc(kind) { return kind === 'vmc' || kind === 'sinker' || kind === 'wire'; }
 
 export function initJobs(state) {
@@ -76,19 +87,61 @@ export function message(state, from, subject, body, extra = {}) {
 
 export function unread(state) { return state.inbox.filter((m) => !m.read).length + state.rfqs.filter((r) => r.status === 'open' && !r.read).length; }
 
+const st = (kind, label, min) => ({ kind, label, min: Math.round(min), done: false, out: null });
+
+// A mold is a set of work items that move through the shop on their own, then come together.
+export function moldItems(t) {
+  const polish = { 'C-1': 1, 'B-2': 3, 'B-1': 4, 'A-3': 7, 'A-2': 9 }[t.finish] || 3;
+  const sizeK = { S: 0.8, M: 1, L: 1.5 }[t.size] || 1, geoK = 0.8 + t.geo * 0.25;
+  const items = [];
+  items.push({ name: 'Mold base', stages: [st('base', 'Mold base from DMV', 0)] });
+  const block = (name, k) => {
+    const stages = [st('vmc', 'Rough', 600 * sizeK * geoK * k)];
+    if (t.hard) { stages.push(st('heat', 'Heat treat', 0)); stages.push(st('grinder', 'Grind after heat treat', 90 * sizeK)); }
+    stages.push(st('vmc', 'Finish', 540 * sizeK * geoK * k));
+    if (t.geo >= 2) stages.push(st('sinker', 'Burn the detail', 300 * geoK * k));
+    stages.push(st('grinder', 'Grind the parting line', 60 * sizeK));
+    stages.push(st('bench', `Polish to ${t.finish}`, 90 * polish * sizeK * k));
+    return { name, stages };
+  };
+  items.push(block('Cavity (A-side)', 1.0 * Math.sqrt(t.cav)));
+  items.push(block('Core (B-side)', 0.9 * Math.sqrt(t.cav)));
+  for (let i = 0; i < t.slides; i++) items.push({ name: `Slide ${i + 1}`, stages: [st('vmc', 'Rough', 150), ...(t.hard ? [st('heat', 'Heat treat', 0)] : []), st('wire', 'Wire the gib', 120), st('grinder', 'Grind the fit', 60), st('bench', 'Fit the slide', 120)] });
+  if (t.runner === 'hot') items.push({ name: 'Hot runner', stages: [st('manifold', 'Manifold from Mould-Majors', 0)] });
+  const jobStages = [
+    st('design', 'Mold design', 420 * sizeK * (1 + t.slides * 0.2)),
+    st('bench', 'Fit and spot', 720 * sizeK * (1 + t.slides * 0.3) * Math.sqrt(t.cav)),
+    st('bench', 'Assemble ejection, water, hardware', 240 * sizeK * (t.runner === 'hot' ? 1.5 : 1)),
+    st('tryout', 'Tryout at the molder', 0),
+  ];
+  return { items, jobStages };
+}
+
 export function makeRfq(state, template, customer) {
+  if (template.mold) {
+    const { items, jobStages } = moldItems(template);
+    const minutes = items.reduce((a, it) => a + it.stages.reduce((b, q) => b + q.min, 0), 0) + jobStages.reduce((a, q) => a + q.min, 0);
+    const material = template.steelCost + template.base + (template.manifold || 0);
+    const heat = template.hard ? HEAT_COST * 2 : 0;
+    const tryout = 200 * (4 + template.cav);
+    const estimate = Math.round((minutes / 60) * MOLD_RATE + material + heat + tryout);
+    const expected = Math.round(estimate * customer.stingy * (0.92 + Math.random() * 0.16));
+    const lead = rint(30, 45);
+    return { id: state.nextRfq++, status: 'open', read: false, day: state.day, expires: state.day + 4, customer: customer.id, title: template.title, qty: 1, steel: template.steel,
+      items, jobStages, stages: items.flatMap((it) => it.stages).concat(jobStages), minutes, material, estimate, expected, lead, price: estimate, rate: MOLD_RATE, cnc: true, heat, mold: true, spec: { ...template } };
+  }
   const qty = rint(template.qty[0], template.qty[1]);
   const stages = template.stages.map(([kind, label, min, perPiece]) => ({ kind, label, min: Math.round(min * (perPiece ? qty : 1)), done: false, out: null }));
   const minutes = stages.reduce((a, s) => a + s.min, 0);
   const material = Math.round(template.material * qty);
   const rate = template.cnc ? CNC_RATE : SHOP_RATE;
-  const heat = stages.some((st) => st.kind === 'heat') ? HEAT_COST : 0;
+  const heat = stages.some((q) => q.kind === 'heat') ? HEAT_COST : 0;
   const estimate = Math.round((minutes / 60) * rate + material + heat);
   const expected = Math.round(estimate * customer.stingy * (0.92 + Math.random() * 0.16));
   const lead = rint(4, 9);
   return {
     id: state.nextRfq++, status: 'open', read: false, day: state.day, expires: state.day + 2,
-    customer: customer.id, title: template.title, qty, steel: template.steel, stages, minutes, material, estimate, expected, lead, price: estimate, rate, cnc: !!template.cnc, heat,
+    customer: customer.id, title: template.title, qty, steel: template.steel, items: [{ name: 'Part', stages }], jobStages: [], stages, minutes, material, estimate, expected, lead, price: estimate, rate, cnc: !!template.cnc, heat,
   };
 }
 
@@ -101,7 +154,7 @@ function seedFirstDay(state) {
 
 export function customerOf(id) { return CUSTOMERS.find((c) => c.id === id); }
 
-export function shopHas(state, kind, byId) { if (kind === 'heat') return true; return state.machines.some((m) => m.placed && byId(m.id).stations.includes(stationKindToStation(kind))); }
+export function shopHas(state, kind, byId) { if (VENDOR_KINDS.has(kind) || kind === 'design') return true; return state.machines.some((m) => m.placed && byId(m.id).stations.includes(stationKindToStation(kind))); }
 // station names on machine defs vs. stage kinds
 export function stationKindToStation(kind) { return { saw: 'saw', lathe: 'turn', mill: 'rough', drill: 'drill', grinder: 'grind', bench: 'fit', vmc: 'cnc', sinker: 'sinker', wire: 'wire' }[kind]; }
 
@@ -118,57 +171,125 @@ export function winChance(state, rfq) {
 
 function startJob(state, rfq) {
   const c = customerOf(rfq.customer);
+  const items = (rfq.items || [{ name: 'Part', stages: rfq.stages }]).map((it) => ({ name: it.name, stages: it.stages.map((q) => ({ ...q })) }));
   const job = {
-    id: state.jobNo++, rfqId: rfq.id, customer: rfq.customer, title: rfq.title, qty: rfq.qty, steel: rfq.steel,
-    stages: rfq.stages.map((s) => ({ ...s })), price: rfq.price, material: rfq.material, minutes: rfq.minutes, cnc: !!rfq.cnc,
+    id: state.jobNo++, rfqId: rfq.id, customer: rfq.customer, title: rfq.title, qty: rfq.qty, steel: rfq.steel, mold: !!rfq.mold, spec: rfq.spec || null,
+    items, jobStages: (rfq.jobStages || []).map((q) => ({ ...q })), price: rfq.price, material: rfq.material, minutes: rfq.minutes, cnc: !!rfq.cnc,
     poDay: state.day, dueDay: state.day + rfq.lead, materialDay: rfq.material > 0 ? state.day + 1 : state.day,
-    status: rfq.material > 0 ? 'material' : 'work', shippedDay: null, scrap: 0,
+    status: rfq.material > 0 ? 'material' : 'work', shippedDay: null, scrap: 0, risk: 0, tryouts: 0, defects: [],
   };
   state.jobs.push(job);
-  // deposit: 50% on PO for shops and molders (bible §7.5). material goes out today.
-  const deposit = Math.round(job.price * 0.5);
+  // deposit: 50% on PO for component work; 30/30/40 on a mold (bible §7.5). steel goes out today.
+  const deposit = Math.round(job.price * (job.mold ? 0.3 : 0.5));
+  job.paid = deposit;
   post(state, `Deposit, ${c.name}, job ${job.id}`, deposit);
-  if (job.material > 0) post(state, `Steel for job ${job.id} (${job.steel})`, -job.material);
-  message(state, c.name, `PO ${job.id}: ${job.title}`, `Your quote of $${job.price.toLocaleString()} is accepted. Deposit of $${deposit.toLocaleString()} sent. We need it by day ${job.dueDay}.${job.material > 0 ? ` Steel is ordered; it will be on the rack tomorrow.` : ' Parts are on the way to you.'}`);
+  const steel = job.mold ? job.spec.steelCost : job.material;
+  if (steel > 0) post(state, `Steel for job ${job.id} (${job.steel})`, -steel);
+  message(state, c.name, `PO ${job.id}: ${job.title}`, `Your quote of $${job.price.toLocaleString()} is accepted. Deposit of $${deposit.toLocaleString()} sent. We need it by day ${job.dueDay}.${job.mold ? ' Send us the design for approval when it is done, and sample parts after tryout.' : steel > 0 ? ' Steel is ordered; it will be on the rack tomorrow.' : ' Parts are on the way to you.'}`);
   return job;
 }
 
-// What a stage needs to run now: the job's material has arrived, every stage before it is done, and it is not out.
+// Every stage that could run right now on a station of this kind. An item's stages run in order;
+// a mold's job-level stages wait for every item; design comes first on a mold.
 export function runnableStages(state, kind) {
   const out = [];
   for (const job of state.jobs) {
-    if (job.status !== 'work') continue;
-    const i = job.stages.findIndex((s) => !s.done);
-    if (i < 0) continue;
-    const s = job.stages[i];
-    if (s.kind === kind && !s.out) out.push({ job, stage: s, index: i });
+    if (job.status !== 'work' && !(job.mold && job.status === 'material')) continue; // a mold can be designed while its steel is on a truck
+    const designDone = !job.mold || job.jobStages[0].done;
+    job.items.forEach((item, itemIndex) => {
+      if (!designDone || job.status !== 'work') return;
+      const i = item.stages.findIndex((q) => !q.done); if (i < 0) return;
+      const q = item.stages[i];
+      if (q.kind === kind && !q.out) out.push({ job, item, itemIndex, stage: q, index: i });
+    });
+    const itemsDone = job.items.every((it) => it.stages.every((q) => q.done));
+    const j = job.jobStages.findIndex((q) => !q.done);
+    if (j >= 0) { const q = job.jobStages[j]; const ready = q.kind === 'design' ? j === 0 || job.jobStages[j - 1].done : itemsDone && (j === 0 || job.jobStages[j - 1].done); if (ready && q.kind === kind && !q.out) out.push({ job, item: null, itemIndex: -1, stage: q, index: j }); }
   }
   return out;
 }
+export function stageAt(job, itemIndex, index) { return itemIndex >= 0 ? job.items[itemIndex].stages[index] : job.jobStages[index]; }
+export function allDone(job) { return job.items.every((it) => it.stages.every((q) => q.done)) && job.jobStages.every((q) => q.done); }
+export function nextLabel(job) {
+  if (job.mold && !job.jobStages[0].done) return 'mold design';
+  const open = job.items.map((it) => { const q = it.stages.find((x) => !x.done); return q ? `${it.name}: ${q.label.toLowerCase()}` : null; }).filter(Boolean);
+  if (open.length) return open.join(' · ');
+  const q = job.jobStages.find((x) => !x.done); return q ? q.label.toLowerCase() : 'ship it';
+}
 
-export function nextStage(job) { return job.stages.find((s) => !s.done) || null; }
-
-export function stageDone(state, job, index) {
-  job.stages[index].done = true;
-  if (job.stages.every((s) => s.done)) { job.status = 'ready'; state.crates++; return true; }
+export function stageDone(state, job, itemIndex, index) {
+  const q = stageAt(job, itemIndex, index); if (!q) return false;
+  q.done = true;
+  if (allDone(job)) { job.status = 'ready'; state.crates++; return true; }
   return false;
 }
 
-// a scrapped stage: the material is gone, the stages start over.
-export function scrapJob(state, job) {
-  job.scrap++; state.scrapCount++;
-  for (const s of job.stages) { s.done = false; s.out = null; }
-  if (job.material > 0) { post(state, `Steel again for job ${job.id}`, -job.material); job.materialDay = state.day + 1; job.status = 'material'; }
+// a scrapped item: its steel is gone, its stages start over. on a component job, that is the job.
+export function scrapJob(state, job, itemIndex = 0) {
+  job.scrap++; state.scrapCount++; job.risk = (job.risk || 0) + 0.03;
+  const item = job.items[Math.max(0, itemIndex)] || job.items[0];
+  for (const q of item.stages) { if (q.kind === 'base' || q.kind === 'manifold') continue; q.done = false; q.out = null; }
+  const steel = job.mold ? Math.round(job.spec.steelCost / Math.max(1, job.items.length - 1)) : job.material;
+  if (steel > 0) { post(state, `Steel again for job ${job.id}, ${item.name.toLowerCase()}`, -steel); if (!job.mold) { job.materialDay = state.day + 1; job.status = 'material'; } }
 }
 
 // send a stage out to the shop down the road
-export function sendOut(state, job, index) {
-  const s = job.stages[index];
-  const cost = Math.round((s.min / 60) * OUT_RATE) + 40;
+export function sendOut(state, job, itemIndex, index) {
+  const q = stageAt(job, itemIndex, index);
+  const cost = q.kind === 'design' ? DESIGN_OUT : Math.round((q.min / 60) * OUT_RATE) + 40;
   if (state.cash < cost) return { ok: false, why: 'not enough cash' };
-  post(state, `Bramalea Moldworks: ${s.label.toLowerCase()}, job ${job.id}`, -cost);
-  s.out = { backDay: state.day + OUT_DAYS, cost };
+  post(state, `${q.kind === 'design' ? 'Contract designer' : 'Bramalea Moldworks'}: ${q.label.toLowerCase()}, job ${job.id}`, -cost);
+  q.out = { backDay: state.day + (q.kind === 'design' ? 3 : OUT_DAYS), cost };
   return { ok: true, cost };
+}
+
+// ---- tryout. the risk the build carried comes due on the press.
+const DEFECTS = [
+  ['Flash', 'thin fins on the parting line, like pie crust', 'fit', 'Spot the parting line again', 90, 1.0],
+  ['Short shot', 'a part missing a corner', 'fit', 'Vent the cavity', 40, 0.7],
+  ['Sink marks', 'dimples where the ribs are', 'design', 'Rework the ribs', 60, 0.4],
+  ['Stuck part', 'a part still in the cavity, and drag marks down the side', 'polish', 'Polish in the draw direction', 120, 0.9],
+  ['Ejector pin marks', 'little circles pushed through', 'fit', 'Trim the pins', 30, 0.6],
+  ['Water leak', 'a puddle under the mold', 'assemble', 'Replace the O-rings', 25, 0.5],
+  ['Dimension out', 'the CMM report with a red line', 'finish', 'Re-cut the cavity to size', 150, 0.6],
+  ['Burn marks', 'brown edges where the air could not get out', 'fit', 'Add vents', 35, 0.5],
+  ['Slide hang-up', 'the press alarm, a scratch, a sweating moldmaker', 'slide', 'Fit the slide again', 90, 0.8],
+];
+export function resolveTryout(state, job) {
+  job.tryouts++;
+  const spec = job.spec || {}, c = customerOf(job.customer);
+  const base = 0.12 + (job.risk || 0) + (spec.slides || 0) * 0.08 + (spec.finish && spec.finish.startsWith('A') ? 0.1 : 0) + (job.tryouts > 1 ? -0.15 : 0);
+  const found = [];
+  for (const d of DEFECTS) {
+    if (d[2] === 'slide' && !(spec.slides > 0)) continue;
+    if (Math.random() < Math.max(0.02, base * d[5])) found.push(d);
+  }
+  const notes = [];
+  job.defects = found.map((d) => d[0]);
+  if (!found.length) {
+    notes.push(`T${job.tryouts} on job ${job.id}: sample parts look good. ${c.name} approved it.`);
+    message(state, c.name, `T${job.tryouts} approved: ${job.title}`, job.tryouts === 1 ? 'The parts look great. No notes. We did not expect no notes.' : 'Parts approved. Thank you for sticking with it.');
+    job.risk = 0; return notes;
+  }
+  // every defect adds a revision stage; then another tryout
+  const fixes = found.map((d) => {
+    const kind = d[2] === 'finish' ? 'vmc' : d[2] === 'design' ? 'design' : 'bench';
+    return st(kind, `${d[0]}: ${d[3].toLowerCase()}`, d[4]);
+  });
+  job.jobStages.push(...fixes, st('tryout', `Tryout T${job.tryouts + 1}`, 0));
+  job.risk = Math.max(0, (job.risk || 0) - 0.08);
+  notes.push(`T${job.tryouts} on job ${job.id}: ${found.map((d) => d[0].toLowerCase()).join(', ')}. Back to the bench.`);
+  message(state, c.name, `T${job.tryouts} samples: ${job.title}`, `Samples on the bench: ${found.map((d) => d[1]).join('; ')}. ${found.length > 2 ? 'This is a lot of notes.' : 'Fix and resample, please.'} ${job.tryouts >= 2 ? 'We would like to talk about the schedule.' : ''}`);
+  return notes;
+}
+
+// a job-level or item stage that a vendor does, kicked off automatically when it comes up
+function vendorOut(state, job, q, itemName) {
+  if (q.kind === 'heat') { post(state, `Quench & Sons: heat treat, job ${job.id}${itemName ? ', ' + itemName.toLowerCase() : ''}`, -HEAT_COST); q.out = { backDay: state.day + 2, cost: HEAT_COST, heat: true }; return `Job ${job.id}${itemName ? ' ' + itemName.toLowerCase() : ''} went to Quench & Sons. Back in two days, probably in one piece.`; }
+  if (q.kind === 'base') { const cost = job.spec.base; post(state, `DMV mold base, job ${job.id}`, -cost); q.out = { backDay: state.day + BASE_DAYS, cost }; return `Mold base for job ${job.id} ordered from DMV. Take a number. ${BASE_DAYS} days.`; }
+  if (q.kind === 'manifold') { const cost = job.spec.manifold; post(state, `Mould-Majors hot runner, job ${job.id}`, -cost); q.out = { backDay: state.day + 12, cost }; return `Hot runner for job ${job.id} ordered. Twelve days, they say. They always say twelve.`; }
+  if (q.kind === 'tryout') { const cost = 200 * (4 + (job.spec.cav || 1)); post(state, `Press time, Northgate Plastics, job ${job.id}`, -cost); q.out = { backDay: state.day + TRYOUT_DAYS, cost, tryout: true }; return `Job ${job.id} is on a truck to the molder for tryout. $${cost.toLocaleString()} of press time. Two days.`; }
+  return null;
 }
 
 export function ship(state, job) {
@@ -176,10 +297,11 @@ export function ship(state, job) {
   const c = customerOf(job.customer);
   job.status = 'shipped'; job.shippedDay = state.day; state.crates = Math.max(0, state.crates - 1);
   const late = Math.max(0, state.day - job.dueDay);
-  let balance = job.price - Math.round(job.price * 0.5);
+  let balance = job.price - (job.paid || Math.round(job.price * 0.5));
   let note = '';
   if (late > 0) { const pen = Math.round(job.price * Math.min(0.3, 0.05 * late)); balance -= pen; note = ` ${late} day${late === 1 ? '' : 's'} late. They knocked $${pen.toLocaleString()} off and will remember.`; state.rep = Math.max(0, state.rep - 0.08); }
-  else { state.rep = Math.min(1, state.rep + 0.04); }
+  else { state.rep = Math.min(1, state.rep + (job.mold ? 0.1 : 0.04)); }
+  if (job.mold && job.tryouts === 1 && !job.defects.length) state.firstTimeRight = (state.firstTimeRight || 0) + 1;
   state.receivables.push({ due: state.day + c.terms, amount: balance, text: `${c.name}, job ${job.id} balance` });
   message(state, c.name, `Received: job ${job.id}`, `${job.title} received.${note} Balance of $${balance.toLocaleString()} on net ${c.terms}.`);
   return { late, balance };
@@ -199,13 +321,25 @@ export function endOfDay(state, byId) {
   // expiry
   for (const r of state.rfqs) if (r.status === 'open' && state.day >= r.expires) { r.status = 'expired'; }
   state.rfqs = state.rfqs.filter((r) => r.status === 'open' || r.status === 'quoted' || state.day - r.day < 6);
-  // steel and outsourced work; heat treat goes out by itself the night it comes up
+  // steel and outsourced work; vendor stages go out by themselves the night they come up
   for (const job of state.jobs) {
     if (job.status === 'material' && state.day >= job.materialDay) { job.status = 'work'; notes.push(`Steel on the rack for job ${job.id}.`); }
-    if (job.status === 'work') { const i = job.stages.findIndex((s) => !s.done); const st = job.stages[i]; if (st && st.kind === 'heat' && !st.out) { post(state, `Quench & Sons: heat treat, job ${job.id}`, -HEAT_COST); st.out = { backDay: state.day + 2, cost: HEAT_COST, heat: true }; notes.push(`Job ${job.id} went to Quench & Sons for heat treat. Back in two days, probably in one piece.`); } }
-    for (const s of job.stages) if (s.out && !s.done && state.day >= s.out.backDay) {
-      if (s.out.heat && Math.random() < 0.04) { s.out = null; scrapJob(state, job); notes.push(`Job ${job.id} came back from heat treat in two pieces, in the same crate, with an invoice. Start over.`); continue; }
-      s.done = true; const wasHeat = s.out.heat; s.out = null; notes.push(`Job ${job.id}: ${s.label.toLowerCase()} back from ${wasHeat ? 'Quench & Sons' : 'Bramalea'}.`); if (job.stages.every((q) => q.done)) { job.status = 'ready'; state.crates++; }
+    if (job.status === 'work') {
+      // anything a vendor does, kick off
+      const designDone = !job.mold || job.jobStages[0].done;
+      job.items.forEach((item) => { const i = item.stages.findIndex((q) => !q.done); const q = item.stages[i]; if (q && VENDOR_KINDS.has(q.kind) && !q.out && (designDone || q.kind === 'base' || q.kind === 'manifold')) { const n = vendorOut(state, job, q, item.name); if (n) notes.push(n); } });
+      const itemsDone = job.items.every((it) => it.stages.every((q) => q.done));
+      const j = job.jobStages.findIndex((q) => !q.done); const jq = job.jobStages[j];
+      if (jq && VENDOR_KINDS.has(jq.kind) && !jq.out && itemsDone && (j === 0 || job.jobStages[j - 1].done)) { const n = vendorOut(state, job, jq, null); if (n) notes.push(n); }
+      // things coming back
+      const all = job.items.flatMap((it, ii) => it.stages.map((q) => ({ q, item: it, ii }))).concat(job.jobStages.map((q) => ({ q, item: null, ii: -1 })));
+      for (const { q, item, ii } of all) if (q.out && !q.done && state.day >= q.out.backDay) {
+        if (q.out.heat && Math.random() < 0.04) { q.out = null; scrapJob(state, job, Math.max(0, ii)); notes.push(`Job ${job.id}${item ? ' ' + item.name.toLowerCase() : ''} came back from heat treat in two pieces, in the same crate, with an invoice. Start over.`); continue; }
+        const was = q.out; q.out = null; q.done = true;
+        if (was.tryout) { const t1 = job.tryouts === 0; notes.push(...resolveTryout(state, job)); if (t1) { const pay = Math.round(job.price * 0.3); job.paid = (job.paid || 0) + pay; post(state, `T1 payment, ${customerOf(job.customer).name}, job ${job.id}`, pay); notes.push(`T1 money in: $${pay.toLocaleString()}.`); } }
+        else notes.push(`Job ${job.id}: ${q.label.toLowerCase()}${item ? ' (' + item.name.toLowerCase() + ')' : ''} back from ${was.heat ? 'Quench & Sons' : q.kind === 'base' ? 'DMV' : q.kind === 'manifold' ? 'Mould-Majors' : q.kind === 'design' ? 'the designer' : 'Bramalea'}.`);
+        if (allDone(job)) { job.status = 'ready'; state.crates++; notes.push(`Job ${job.id} is done. Ship it.`); }
+      }
     }
     if (job.status === 'work' && state.day === job.dueDay) notes.push(`Job ${job.id} is due today.`);
   }
@@ -215,8 +349,8 @@ export function endOfDay(state, byId) {
   const hasCnc = state.machines.some((m) => m.placed && byId(m.id).cnc);
   const n = (Math.random() < 0.35 + state.rep * 0.5 ? 1 : 0) + (hasCnc && Math.random() < 0.4 ? 1 : 0);
   for (let i = 0; i < n; i++) {
-    const custs = CUSTOMERS.filter((c) => !c.cnc || hasCnc), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc);
-    const c = pick(custs), t = c.cnc ? pick(temps.filter((q) => q.cnc)) : pick(temps);
+    const custs = CUSTOMERS.filter((c) => !c.cnc || hasCnc), temps = TEMPLATES.filter((t) => !t.cnc || hasCnc).filter((t) => !t.mold || (hasCnc && state.rep >= 0.5));
+    const c = pick(custs), t = c.cnc ? pick(temps.filter((q) => q.cnc)) : pick(temps.filter((q) => !q.mold));
     const r = makeRfq(state, t, c); state.rfqs.push(r); notes.push(`RFQ from ${c.name}: ${t.title}.`);
   }
   return notes;
